@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plata Clara Perú</title>
+  <meta name="description" content="Portal ciudadano para entender cuánto recauda el Estado peruano, en qué lo gasta y cuánto ganan sus autoridades. En lenguaje simple.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔎</text></svg>">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <header class="cabecera">
+    <div class="contenedor cabecera__fila">
+      <a href="#inicio" class="marca" aria-label="Plata Clara Perú, ir al inicio">
+        <span class="marca__icono" aria-hidden="true">🔎</span>
+        <span>Plata Clara <strong>Perú</strong></span>
+      </a>
+      <button class="menu-btn" aria-expanded="false" aria-controls="nav">Menú</button>
+    </div>
+    <nav id="nav" class="nav contenedor" aria-label="Secciones">
+      <a href="#inicio">Inicio</a>
+      <a href="#ingresos">¿Cuánto entra?</a>
+      <a href="#gastos">¿En qué se gasta?</a>
+      <a href="#sueldos">Sueldos</a>
+      <a href="#congreso">Congreso</a>
+      <a href="#visitas">Visitas a Palacio</a>
+      <a href="#mi-impuesto">Mi impuesto</a>
+      <a href="#fuentes">Fuentes</a>
+    </nav>
+  </header>
+
+  <main id="contenido" class="contenedor">
+
+    <!-- ===================== INICIO ===================== -->
+    <section id="inicio" class="vista" aria-labelledby="t-inicio">
+      <div class="hero">
+        <p class="hero__pre">La plata del Estado es <em>tu</em> plata</p>
+        <h1 id="t-inicio">¿Cuánto recauda el Perú, en qué lo gasta y cuánto ganan sus autoridades?</h1>
+        <p class="hero__sub">Información pública, explicada en simple. Sin tecnicismos.</p>
+      </div>
+
+      <div class="kpis" id="kpis"></div>
+
+      <h2>El dinero del Estado en 3 pasos</h2>
+      <ol class="pasos">
+        <li><span class="pasos__n">1</span><div><strong>Pagamos impuestos.</strong> Cada vez que compras algo pagas 18% de IGV. Si trabajas o tienes empresa, pagas Impuesto a la Renta. <a href="#ingresos">Ver cuánto entra →</a></div></li>
+        <li><span class="pasos__n">2</span><div><strong>El Congreso aprueba el presupuesto.</strong> Cada año decide cuánto recibe cada ministerio, región y municipalidad. Además de impuestos, se usan regalías mineras, préstamos y otros ingresos. <a href="#gastos">Ver en qué se gasta →</a></div></li>
+        <li><span class="pasos__n">3</span><div><strong>Las entidades lo gastan.</strong> En sueldos, obras, medicinas, colegios, pensiones y pago de deuda. Tú puedes revisarlo. <a href="#sueldos">Ver sueldos →</a></div></li>
+      </ol>
+
+      <div class="tarjeta tarjeta--acento">
+        <h2>¿Cuánto aportas tú?</h2>
+        <p>Calcula cuánto pagas de impuestos al año y a qué se destina, sol por sol.</p>
+        <a class="boton" href="#mi-impuesto">Usar la calculadora</a>
+      </div>
+    </section>
+
+    <!-- ===================== INGRESOS ===================== -->
+    <section id="ingresos" class="vista" aria-labelledby="t-ingresos" hidden>
+      <h1 id="t-ingresos">¿Cuánto dinero entra por impuestos?</h1>
+      <p class="intro" id="ingresos-intro"></p>
+      <div class="tarjeta">
+        <h2>¿De dónde viene?</h2>
+        <p class="ayuda">Recaudación tributaria del Gobierno Central. Toca cada fila para ver la explicación y la fuente.</p>
+        <div id="ingresos-barras" class="barras"></div>
+      </div>
+      <div class="tarjeta">
+        <h2>Para entenderlo</h2>
+        <ul class="lista-simple" id="ingresos-equivalencias"></ul>
+      </div>
+    </section>
+
+    <!-- ===================== GASTOS ===================== -->
+    <section id="gastos" class="vista" aria-labelledby="t-gastos" hidden>
+      <h1 id="t-gastos">¿En qué se gasta el dinero?</h1>
+      <p class="intro" id="gastos-intro"></p>
+
+      <div class="tarjeta">
+        <h2>¿Quién lo administra?</h2>
+        <div id="niveles" class="apilada"></div>
+        <ul id="niveles-leyenda" class="leyenda"></ul>
+        <p class="fuente" id="niveles-fuente"></p>
+      </div>
+
+      <div class="kpis kpis--3" id="ejecucion"></div>
+
+      <div class="tarjeta">
+        <div class="tarjeta__cabeza">
+          <h2>¿Para qué se usa?</h2>
+          <div class="controles">
+            <div class="segmentado" role="group" aria-label="Forma de ver">
+              <button data-vista="barras" aria-pressed="true">☰ Barras</button>
+              <button data-vista="arbol" aria-pressed="false">▦ Árbol</button>
+            </div>
+            <div class="segmentado" role="group" aria-label="Unidad" id="seg-unidad">
+              <button data-unidad="total" aria-pressed="true">Total</button>
+              <button data-unidad="persona" aria-pressed="false">Por persona</button>
+            </div>
+          </div>
+        </div>
+        <p class="ayuda" id="gastos-ayuda">Presupuesto por función. Toca cada fila para ver qué incluye y cuánto se ha gastado.</p>
+        <div id="gastos-barras" class="barras"></div>
+        <div id="gastos-arbol-wrap" hidden>
+          <nav class="migas" id="arbol-migas" aria-label="Nivel del árbol"></nav>
+          <div id="gastos-arbol" class="arbol"></div>
+        </div>
+        <p class="fuente" id="gastos-fuente"></p>
+      </div>
+    </section>
+
+    <!-- ===================== SUELDOS ===================== -->
+    <section id="sueldos" class="vista" aria-labelledby="t-sueldos" hidden>
+      <h1 id="t-sueldos">¿Cuánto ganan las autoridades?</h1>
+      <p class="intro">Sueldo mensual bruto por cargo, comparado con el sueldo mínimo. Por ley (Ley 27806), los sueldos de quienes trabajan en el Estado son públicos.</p>
+
+      <div class="tarjeta">
+        <label class="campo">
+          <span>Buscar cargo o entidad</span>
+          <input type="search" id="buscar-sueldo" placeholder="Ej.: ministro, congreso, docente…" autocomplete="off">
+        </label>
+        <div id="lista-sueldos" class="sueldos"></div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>¿Quieres ver el sueldo de una persona en particular?</h2>
+        <p>Estas son las fuentes oficiales donde cada entidad publica la planilla con nombre, cargo y sueldo:</p>
+        <ul class="enlaces" id="buscadores"></ul>
+      </div>
+    </section>
+
+    <!-- ===================== CONGRESO ===================== -->
+    <section id="congreso" class="vista" aria-labelledby="t-congreso" hidden>
+      <h1 id="t-congreso">¿Van a trabajar los congresistas?</h1>
+      <p class="intro">Asistencia a las sesiones del Pleno, leída automáticamente de las actas oficiales que publica cada cámara. Una <strong>licencia</strong> es una falta justificada (viaje oficial, enfermedad, motivo personal); una <strong>ausencia</strong> no tiene justificación registrada.</p>
+
+      <div class="segmentado segmentado--grande" role="group" aria-label="Cámara" id="seg-camara">
+        <button data-camara="senado" aria-pressed="true">Senado (60)</button>
+        <button data-camara="diputados" aria-pressed="false">Diputados (130)</button>
+      </div>
+
+      <div class="kpis kpis--3" id="congreso-kpis"></div>
+
+      <div class="tarjeta">
+        <div class="tarjeta__cabeza">
+          <h2>Asistencia de cada integrante</h2>
+          <label class="selector">Ordenar:
+            <select id="orden-congreso">
+              <option value="faltas">Más ausencias</option>
+              <option value="asistencia">Mejor asistencia</option>
+              <option value="nombre">A–Z</option>
+            </select>
+          </label>
+        </div>
+        <label class="campo">
+          <span class="visualmente-oculto">Buscar por apellido</span>
+          <input type="search" id="buscar-congreso" placeholder="Buscar por apellido…" autocomplete="off">
+        </label>
+        <ul class="leyenda leyenda--fila">
+          <li><i style="background:var(--oficial)"></i>Presente</li>
+          <li><i style="background:var(--estimado)"></i>Con licencia</li>
+          <li><i style="background:var(--acento)"></i>Ausente</li>
+        </ul>
+        <div id="lista-congreso" class="asistencias"></div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Sesiones leídas</h2>
+        <div id="sesiones-congreso" class="tabla-scroll"></div>
+        <p class="fuente" id="congreso-fuente"></p>
+      </div>
+    </section>
+
+    <!-- ===================== VISITAS ===================== -->
+    <section id="visitas" class="vista" aria-labelledby="t-visitas" hidden>
+      <h1 id="t-visitas">¿Quién visita Palacio de Gobierno?</h1>
+      <p class="intro" id="visitas-intro">Registro oficial de visitas al Despacho Presidencial: quién entra, a quién visita, para qué y cuánto tiempo se queda.</p>
+
+      <div class="kpis kpis--3" id="visitas-kpis"></div>
+
+      <div class="tarjeta">
+        <h2>Reuniones con la Presidencia, por semana</h2>
+        <p class="ayuda">Barra y número en negrita: reuniones con la Presidencia. Número gris: total de visitas a Palacio esa semana. La última semana puede estar incompleta.</p>
+        <div id="visitas-semanas" class="columnas" role="img"></div>
+      </div>
+
+      <div class="tarjeta">
+        <div class="tarjeta__cabeza">
+          <h2 id="t-visitas-pres">Reuniones con la Presidencia de la República</h2>
+          <div class="segmentado" role="group" aria-label="Qué visitas ver" id="seg-visitas">
+            <button data-visitas="presidencia" aria-pressed="true">Con la Presidencia</button>
+            <button data-visitas="recientes" aria-pressed="false">Todas (últimos 14 días)</button>
+          </div>
+        </div>
+        <label class="campo">
+          <span class="visualmente-oculto">Buscar visitante, entidad o motivo</span>
+          <input type="search" id="buscar-visitas" placeholder="Buscar visitante, entidad, motivo…" autocomplete="off">
+        </label>
+        <div id="lista-visitas" class="visitas"></div>
+        <button type="button" class="boton boton--secundario" id="mas-visitas" hidden>Ver más</button>
+      </div>
+
+      <div class="dos-col">
+        <div class="tarjeta">
+          <h2>Entidades que más se reúnen con la Presidencia</h2>
+          <div id="top-entidades" class="barras"></div>
+        </div>
+        <div class="tarjeta">
+          <h2>Funcionarios más visitados</h2>
+          <div id="top-funcionarios" class="barras"></div>
+        </div>
+      </div>
+      <p class="fuente" id="visitas-fuente"></p>
+    </section>
+
+    <!-- ===================== MI IMPUESTO ===================== -->
+    <section id="mi-impuesto" class="vista" aria-labelledby="t-mi" hidden>
+      <h1 id="t-mi">¿Cuánto aportas y a dónde va?</h1>
+      <p class="intro">Ingresa tus datos aproximados. Nada se envía a ningún lado: el cálculo ocurre en tu teléfono o computadora.</p>
+
+      <div class="calc">
+        <form class="tarjeta" id="form-calc" onsubmit="return false">
+          <label class="campo">
+            <span>¿Cuánto gastas al mes en compras? (S/)</span>
+            <input type="number" inputmode="decimal" min="0" step="10" id="in-gasto" value="1500">
+            <small>Mercado, ropa, servicios, restaurantes… Todo lo que lleva IGV.</small>
+          </label>
+          <label class="campo">
+            <span>¿Cuál es tu sueldo bruto mensual en planilla? (S/)</span>
+            <input type="number" inputmode="decimal" min="0" step="50" id="in-sueldo" value="2500">
+            <small>Si no estás en planilla, pon 0.</small>
+          </label>
+        </form>
+
+        <div class="tarjeta tarjeta--acento" aria-live="polite">
+          <p class="resultado__label">Aportas aproximadamente</p>
+          <p class="resultado__monto" id="res-total">—</p>
+          <p class="resultado__detalle" id="res-detalle"></p>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Así se reparte tu aporte</h2>
+        <p class="ayuda">Según cómo se distribuye el presupuesto público del año.</p>
+        <div id="res-reparto" class="barras"></div>
+      </div>
+      <p class="nota">Cálculo simplificado: IGV = 18/118 de tus compras; Impuesto a la Renta de 5.ª categoría con 14 sueldos al año, deducción de 7 UIT y tasas de 8% a 30%. No considera deducciones adicionales de 3 UIT ni otros impuestos (ISC, ITF, predial).</p>
+    </section>
+
+    <!-- ===================== FUENTES ===================== -->
+    <section id="fuentes" class="vista" aria-labelledby="t-fuentes" hidden>
+      <h1 id="t-fuentes">Fuentes y cómo leer este portal</h1>
+      <div class="tarjeta">
+        <h2>Etiquetas de confianza</h2>
+        <p><span class="sello sello--oficial">Oficial</span> La cifra viene de una norma o comunicado oficial (con enlace).</p>
+        <p><span class="sello sello--estimado">Estimado</span> Cifra aproximada mientras se carga el dato oficial. Siempre puedes verificarla en la fuente indicada.</p>
+        <p class="ayuda">Última actualización: <strong id="fecha-act"></strong></p>
+      </div>
+      <div class="tarjeta">
+        <h2>Fuentes oficiales para revisar tú mismo</h2>
+        <ul class="enlaces" id="fuentes-lista"></ul>
+      </div>
+      <div class="tarjeta">
+        <h2>Glosario</h2>
+        <dl class="glosario">
+          <dt>PIA</dt><dd>Presupuesto Institucional de Apertura: lo que aprueba el Congreso para el año, antes de cambios.</dd>
+          <dt>PIM</dt><dd>Presupuesto Institucional Modificado: el PIA más los cambios durante el año.</dd>
+          <dt>Devengado</dt><dd>Lo que realmente se gastó (el servicio se recibió o la obra se avanzó).</dd>
+          <dt>UIT</dt><dd>Unidad Impositiva Tributaria. En 2026 equivale a S/ 5,500 y se usa para calcular impuestos y multas.</dd>
+          <dt>IGV</dt><dd>Impuesto General a las Ventas: 18% incluido en el precio de casi todo lo que compras.</dd>
+          <dt>Función</dt><dd>La gran finalidad del gasto (educación, salud, transporte…), sin importar qué entidad lo gaste.</dd>
+        </dl>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <div class="contenedor">
+      <p><strong>Plata Clara Perú</strong> es una iniciativa ciudadana independiente. <strong>No es una página oficial del Estado peruano.</strong> Toda la información proviene de fuentes públicas enlazadas en cada dato.</p>
+      <p>¿Encontraste un error? Revisa la fuente oficial y ayúdanos a corregirlo.</p>
+    </div>
+  </footer>
+
+  <script src="js/datos.js"></script>
+  <script src="js/arbol.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
