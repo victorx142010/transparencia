@@ -19,23 +19,31 @@ scripts/                   Scrapers en Python
 
 | Sección | Fuente oficial | Script | Archivo |
 |---|---|---|---|
+| Impuestos | API de BCRPData: ingresos tributarios del Gobierno Central (datos de SUNAT y MEF), mensual | `actualizar_recaudacion.py` | `data/recaudacion.json` |
 | ¿En qué se gasta? | MEF — Datos Abiertos, *Presupuesto y Ejecución de Gasto* (CSV diario de ~2.6 GB) | `actualizar_presupuesto.py` | `data/presupuesto.json` |
+| Sueldos por persona | Portal de Transparencia Estándar → Personal (CSV oficial de cada entidad, mensual) | `actualizar_sueldos.py` | `data/sueldos.json`, `data/sueldos/<id>.json` |
 | Congreso | Actas del Pleno en senado.congreso.gob.pe y diputados.congreso.gob.pe (PDF) | `actualizar_congreso.py` | `data/congreso.json` |
+| Proyectos de ley | Sistema de Proposiciones Legislativas (api.congreso.gob.pe/spley-portal-service) | `actualizar_proyectos.py` | `data/proyectos.json` |
 | Visitas a Palacio | consulta-visitas.presidencia.gob.pe (Despacho Presidencial) | `actualizar_visitas.py` | `data/visitas.json` |
 
-Las secciones de **impuestos** y **sueldos** siguen en `js/datos.js` (SUNAT publica en Excel/Word y los sueldos salen de decretos), con etiqueta *Oficial* o *Estimado*.
+En `js/datos.js` quedan solo los **sueldos de referencia por cargo** (salen de decretos) y cifras de respaldo por si algún JSON falta.
 
 Notas:
 - **Asistencia**: se cuenta quién estaba al **inicio** de cada sesión del Pleno, más quienes la Presidencia registró justo después. Solo entran las actas ya publicadas (suelen tardar unas semanas).
-- **Visitas**: por privacidad **no se guarda el DNI** de los visitantes.
+- **Visitas y planillas**: por privacidad **no se guarda el DNI**.
+- **Sueldos**: se excluye el régimen de pensionistas. SUNAT no publica montos en el Portal de Transparencia (remite a su web) y el BCRP no tiene planillas recientes; por eso no aparecen. Los senadores y diputados actuales aún no figuran en la planilla publicada del Congreso.
+- Para agregar otra entidad a los sueldos, añade su `id_entidad` del Portal de Transparencia a la lista `ENTIDADES` en `scripts/actualizar_sueldos.py`.
 
 ## Ejecutar los scrapers en tu computadora
 
 ```bash
 pip install -r scripts/requirements.txt
 cd scripts
+python actualizar_recaudacion.py   # segundos
 python actualizar_presupuesto.py   # ~10 min, descarga 2.6 GB en streaming
+python actualizar_sueldos.py       # ~15 min, 30 entidades
 python actualizar_congreso.py      # solo lee actas nuevas
+python actualizar_proyectos.py     # ~1 min
 python actualizar_visitas.py       # solo consulta los días nuevos
 ```
 

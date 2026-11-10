@@ -168,7 +168,7 @@ strong { font-weight: 650; }
 
 /* ---------- Indicadores ---------- */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 0 0 1rem; }
-@media (min-width: 900px) { .kpis, .temas { grid-template-columns: repeat(3, 1fr) !important; } }
+@media (min-width: 900px) { .kpis, .temas { grid-template-columns: repeat(3, 1fr) !important; } .kpis--4, .temas { grid-template-columns: repeat(4, 1fr) !important; } }
 .kpis--3 { margin: 0 0 16px; }
 .kpis:empty { display: none; }
 .kpi {
@@ -413,6 +413,49 @@ code { background: var(--fondo-2); padding: .05rem .35rem; border-radius: 6px; f
 .visita__quien { font-weight: 650; }
 .visita__entidad { color: var(--primario-texto); font-size: .9rem; font-weight: 500; }
 .visita__motivo, .visita__a { font-size: .86rem; color: var(--texto-suave); }
+
+/* ---------- Filtros y selects ---------- */
+.filtros { display: grid; gap: 0 12px; }
+@media (min-width: 760px) { .filtros { grid-template-columns: 1fr 1fr; } }
+.select-grande {
+  font: inherit; font-size: 1rem; padding: .7rem .9rem; border-radius: var(--radio-sm);
+  border: 1px solid var(--borde-fuerte); background: var(--fondo); color: var(--texto); width: 100%;
+}
+.select-grande:focus { outline: none; border-color: var(--primario); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primario) 22%, transparent); }
+.chip-dato { font-size: .8rem; font-weight: 600; color: var(--primario-texto); background: var(--primario-suave); border-radius: 999px; padding: .2rem .7rem; }
+.chip-dato:empty { display: none; }
+.enlace-btn { font: inherit; color: var(--primario-texto); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ---------- Planilla (sueldo por persona) ---------- */
+.planilla { display: grid; gap: 0; }
+@media (min-width: 760px) { .planilla { grid-template-columns: 1fr 1fr; column-gap: 28px; } .planilla .fuente { grid-column: 1 / -1; } }
+.persona { padding: .7rem 0; border-bottom: 1px solid var(--borde); min-width: 0; }
+.persona__top { display: flex; justify-content: space-between; align-items: flex-start; gap: .8rem; margin-bottom: .35rem; }
+.persona__top > div { min-width: 0; }
+.persona__nombre { margin: 0; font-weight: 650; }
+.persona__cargo { margin: 0; font-size: .88rem; color: var(--texto-suave); }
+.persona__monto { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.persona__extra { margin: .35rem 0 0; font-size: .8rem; color: var(--texto-tenue); }
+.persona .pista { height: 6px; }
+
+/* ---------- Proyectos de ley ---------- */
+.leyes { display: grid; gap: 10px; }
+@media (min-width: 760px) { .leyes { grid-template-columns: 1fr 1fr; } }
+.ley { border: 1px solid var(--borde); border-radius: var(--radio-sm); padding: .9rem 1rem; background: var(--superficie); display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+.ley__cab { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .4rem; align-items: center; }
+.ley__num { font-variant-numeric: tabular-nums; font-weight: 700; font-size: .85rem; color: var(--texto-suave); }
+.ley__titulo { margin: 0; font-weight: 550; line-height: 1.4; }
+.ley__meta { margin: 0; font-size: .84rem; color: var(--texto-suave); }
+.ley__link { font-size: .86rem; font-weight: 600; margin-top: auto; }
+.etapa { font-size: .74rem; font-weight: 600; border-radius: 999px; padding: .15rem .6rem; }
+.etapa--inicio { background: var(--fondo-2); color: var(--texto-suave); }
+.etapa--avanza { background: var(--aviso-fondo); color: var(--aviso); }
+.etapa--ley { background: var(--ok-fondo); color: var(--ok); }
+.etapa--fin { background: var(--mal-fondo); color: var(--mal); }
+
+/* Recaudación mensual */
+.columnas--meses .col { flex-basis: 28px; }
+.col__pres--prev { background: color-mix(in srgb, var(--primario) 45%, var(--barra-fondo)); }
 
 /* ---------- Glosario ---------- */
 .glosario { margin: 0; display: grid; gap: .2rem; }

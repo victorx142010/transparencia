@@ -28,11 +28,12 @@
     </div>
     <nav id="nav" class="nav contenedor" aria-label="Secciones">
       <a href="#inicio">Inicio</a>
-      <a href="#ingresos">¿Cuánto entra?</a>
-      <a href="#gastos">¿En qué se gasta?</a>
+      <a href="#ingresos">Impuestos</a>
+      <a href="#gastos">Gastos</a>
       <a href="#sueldos">Sueldos</a>
       <a href="#congreso">Congreso</a>
-      <a href="#visitas">Visitas a Palacio</a>
+      <a href="#leyes">Leyes</a>
+      <a href="#visitas">Visitas</a>
       <a href="#mi-impuesto">Mi impuesto</a>
       <a href="#fuentes">Fuentes</a>
     </nav>
@@ -55,7 +56,7 @@
       </div>
 
       <h2 class="titulo-seccion">Lo más importante, en números</h2>
-      <div class="kpis" id="kpis"></div>
+      <div class="kpis kpis--4" id="kpis"></div>
 
       <h2 class="titulo-seccion">¿Qué quieres saber?</h2>
       <div class="temas">
@@ -63,7 +64,9 @@
         <a class="tema" href="#gastos"><span class="tema__icono" aria-hidden="true">🏗️</span><span class="tema__t">¿En qué se gasta?</span><span class="tema__d">Educación, salud, obras, deuda…</span></a>
         <a class="tema" href="#sueldos"><span class="tema__icono" aria-hidden="true">💵</span><span class="tema__t">Sueldos</span><span class="tema__d">Cuánto gana cada autoridad</span></a>
         <a class="tema" href="#congreso"><span class="tema__icono" aria-hidden="true">🏛️</span><span class="tema__t">Congreso</span><span class="tema__d">¿Van a trabajar senadores y diputados?</span></a>
+        <a class="tema" href="#leyes"><span class="tema__icono" aria-hidden="true">📜</span><span class="tema__t">Proyectos de ley</span><span class="tema__d">Qué leyes proponen y quién las firma</span></a>
         <a class="tema" href="#visitas"><span class="tema__icono" aria-hidden="true">🚪</span><span class="tema__t">Visitas a Palacio</span><span class="tema__d">Quién se reúne con la Presidencia</span></a>
+        <a class="tema" href="#fuentes"><span class="tema__icono" aria-hidden="true">🔍</span><span class="tema__t">¿De dónde salen los datos?</span><span class="tema__d">Fuentes oficiales y glosario</span></a>
         <a class="tema tema--destacado" href="#mi-impuesto"><span class="tema__icono" aria-hidden="true">🧮</span><span class="tema__t">Mi impuesto</span><span class="tema__d">Calcula cuánto aportas y a dónde va</span></a>
       </div>
 
@@ -88,10 +91,17 @@
       <p class="eyebrow">🧾 Impuestos</p>
       <h1 id="t-ingresos">¿Cuánto dinero entra por impuestos?</h1>
       <p class="intro" id="ingresos-intro"></p>
+      <div class="kpis kpis--3" id="ingresos-kpis"></div>
       <div class="tarjeta">
-        <h2>¿De dónde viene?</h2>
-        <p class="ayuda">Recaudación tributaria del Gobierno Central. Toca cada fila para ver la explicación y la fuente.</p>
+        <h2 id="t-ingresos-barras">¿De dónde viene?</h2>
+        <p class="ayuda">Recaudación tributaria del Gobierno Central. Toca cada fila para ver la explicación.</p>
         <div id="ingresos-barras" class="barras"></div>
+        <p class="fuente" id="ingresos-fuente"></p>
+      </div>
+      <div class="tarjeta" id="ingresos-meses-card" hidden>
+        <h2>Recaudación mes a mes</h2>
+        <p class="ayuda">Millones de soles recaudados cada mes (neto de devoluciones). Pasa el dedo o el mouse sobre cada barra para ver el detalle.</p>
+        <div id="ingresos-meses" class="columnas columnas--meses" role="img"></div>
       </div>
       <div class="tarjeta">
         <h2>Para entenderlo</h2>
@@ -142,20 +152,99 @@
     <section id="sueldos" class="vista" aria-labelledby="t-sueldos" hidden>
       <p class="eyebrow">💵 Sueldos públicos</p>
       <h1 id="t-sueldos">¿Cuánto ganan las autoridades?</h1>
-      <p class="intro">Sueldo mensual bruto por cargo, comparado con el sueldo mínimo. Por ley (Ley 27806), los sueldos de quienes trabajan en el Estado son públicos.</p>
+      <p class="intro">Por ley (Ley 27806), el sueldo de quienes trabajan en el Estado es público. Aquí puedes ver los sueldos de las principales autoridades y buscar a cualquier persona en la planilla oficial de cada entidad.</p>
 
       <div class="tarjeta">
+        <h2>Sueldos de las principales autoridades</h2>
         <label class="campo">
-          <span>Buscar cargo o entidad</span>
-          <input type="search" id="buscar-sueldo" placeholder="Ej.: ministro, congreso, docente…" autocomplete="off">
+          <span class="visualmente-oculto">Buscar cargo o entidad</span>
+          <input type="search" id="buscar-sueldo" placeholder="Buscar cargo: ministro, congreso, docente…" autocomplete="off">
         </label>
         <div id="lista-sueldos" class="sueldos"></div>
       </div>
 
+      <div class="tarjeta" id="planillas-card">
+        <div class="tarjeta__cabeza">
+          <h2>Busca a cualquier persona en la planilla</h2>
+          <span class="chip-dato" id="planilla-periodo"></span>
+        </div>
+        <p class="ayuda">Planilla oficial que cada entidad publica en el Portal de Transparencia Estándar: nombre, cargo, oficina y lo que recibió en el mes (sueldo más bonos o incentivos). No mostramos el DNI.</p>
+        <div class="filtros">
+          <label class="campo">
+            <span>Entidad</span>
+            <select id="sel-entidad" class="select-grande"></select>
+          </label>
+          <label class="campo">
+            <span>Nombre o cargo</span>
+            <input type="search" id="buscar-planilla" placeholder="Ej.: Pérez, director, asesor…" autocomplete="off">
+          </label>
+        </div>
+        <div class="kpis kpis--3" id="planilla-kpis"></div>
+        <div id="lista-planilla" class="planilla"></div>
+        <button type="button" class="boton boton--secundario" id="mas-planilla" hidden>Ver más</button>
+      </div>
+
+      <div class="tarjeta" id="entidades-card" hidden>
+        <h2>Comparación entre entidades</h2>
+        <p class="ayuda">Cuánta gente trabaja en cada entidad, cuánto se paga en total al mes y cuánto gana la persona del medio (mediana) y la que más gana.</p>
+        <div class="tabla-scroll"><table class="tabla" id="tabla-entidades"></table></div>
+      </div>
+
       <div class="tarjeta">
-        <h2>¿Quieres ver el sueldo de una persona en particular?</h2>
-        <p>Estas son las fuentes oficiales donde cada entidad publica la planilla con nombre, cargo y sueldo:</p>
+        <h2>Otras fuentes oficiales</h2>
         <ul class="enlaces" id="buscadores"></ul>
+      </div>
+    </section>
+
+    <!-- ===================== PROYECTOS DE LEY ===================== -->
+    <section id="leyes" class="vista" aria-labelledby="t-leyes" hidden>
+      <p class="eyebrow">📜 Proyectos de ley</p>
+      <h1 id="t-leyes">¿Qué leyes están proponiendo?</h1>
+      <p class="intro" id="leyes-intro">Todos los proyectos de ley presentados en el Congreso bicameral (2026–2031): quién los propone, de qué tratan y en qué etapa están. Un proyecto empieza en comisión, luego puede ir al Pleno, y solo es ley cuando se publica en El Peruano.</p>
+
+      <div class="kpis kpis--4" id="leyes-kpis"></div>
+
+      <div class="dos-col">
+        <div class="tarjeta">
+          <h2>¿En qué etapa están?</h2>
+          <div id="leyes-estados" class="barras"></div>
+        </div>
+        <div class="tarjeta">
+          <div class="tarjeta__cabeza">
+            <h2>¿Quién presenta más proyectos?</h2>
+            <div class="segmentado" role="group" aria-label="Ranking">
+              <button data-ranking="autores" aria-pressed="true">Por persona</button>
+              <button data-ranking="origen" aria-pressed="false">Por origen</button>
+            </div>
+          </div>
+          <p class="ayuda" id="leyes-ranking-ayuda"></p>
+          <div id="leyes-ranking" class="barras"></div>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <div class="tarjeta__cabeza">
+          <h2>Todos los proyectos</h2>
+          <div class="segmentado" role="group" aria-label="Cámara">
+            <button data-pcamara="" aria-pressed="true">Ambas</button>
+            <button data-pcamara="D" aria-pressed="false">Diputados</button>
+            <button data-pcamara="S" aria-pressed="false">Senado</button>
+          </div>
+        </div>
+        <div class="filtros">
+          <label class="campo">
+            <span>Buscar</span>
+            <input type="search" id="buscar-leyes" placeholder="Tema, número o autor: pensiones, 00818, Zunini…" autocomplete="off">
+          </label>
+          <label class="campo">
+            <span>Etapa</span>
+            <select id="sel-estado" class="select-grande"><option value="">Todas</option></select>
+          </label>
+        </div>
+        <p class="ayuda" id="leyes-conteo"></p>
+        <div id="lista-leyes" class="leyes"></div>
+        <button type="button" class="boton boton--secundario" id="mas-leyes" hidden>Ver más</button>
+        <p class="fuente" id="leyes-fuente"></p>
       </div>
     </section>
 

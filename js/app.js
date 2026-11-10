@@ -110,10 +110,34 @@
     };
   }
 
-  let PR, CONG, VIS;
-  const I = D.ingresos;
-  const sumaRubros = I.rubros.reduce((a, r) => a + r.monto, 0);
-  const devoluciones = Math.max(0, sumaRubros - I.totalNeto);
+  let PR, CONG, VIS, REC, SUE, PROY, ING;
+
+  // ---------- Modelo de ingresos (BCRP/SUNAT si existe, si no datos.js) ----------
+  const EXPLICA_ING = {
+    igv: ["IGV (impuesto a las compras)", "El 18% que pagas al comprar casi cualquier producto o servicio (16% IGV + 2% municipal)."],
+    renta: ["Impuesto a la Renta", "Lo que pagan empresas y personas por sus ganancias y sueldos."],
+    otros: ["Otros (ITF, multas, fraccionamientos…)", "Impuesto a las transacciones financieras, multas, deudas fraccionadas, impuesto temporal a los activos, etc."],
+    isc: ["ISC (selectivo al consumo)", "Impuesto extra a combustibles, cerveza, licores, cigarros, apuestas y otros."],
+    importaciones: ["Aranceles (importaciones)", "Lo que se paga al traer productos del extranjero."]
+  };
+  function modeloIngresos(rec) {
+    if (rec && rec.anios && rec.anios.length) {
+      const completos = rec.anios.filter((a) => a.completo);
+      const a = completos[completos.length - 1];
+      const prev = completos[completos.length - 2];
+      const rubros = Object.keys(EXPLICA_ING).map((k) => ({ clave: k, nombre: EXPLICA_ING[k][0], explica: EXPLICA_ING[k][1], monto: a[k], estado: "oficial" }));
+      return {
+        oficial: true, anio: a.anio, totalNeto: a.total, crecimiento: prev ? (100 * (a.total / prev.total - 1)) : null,
+        rubros, devoluciones: Math.abs(a.devoluciones), sumaRubros: rubros.reduce((s, r) => s + r.monto, 0),
+        fuente: { nombre: "BCRP — Ingresos tributarios del Gobierno Central (datos de SUNAT y MEF)", url: rec.fuente },
+        acumulado: rec.acumulado, meses: rec.meses, ultimoMes: rec.ultimoMes, anios: rec.anios
+      };
+    }
+    const sumaR = D.ingresos.rubros.reduce((a, r) => a + r.monto, 0);
+    return { oficial: false, anio: D.ingresos.anio, totalNeto: D.ingresos.totalNeto, crecimiento: D.ingresos.crecimiento, rubros: D.ingresos.rubros,
+      devoluciones: Math.max(0, sumaR - D.ingresos.totalNeto), sumaRubros: sumaR, fuente: D.ingresos.totalFuente };
+  }
+  const MESES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
 
   // ---------- Fila de barra reutilizable ----------
   function filaHTML({ nombre, valorTexto, pctTexto, ancho, ancho2, estado, detalle, gris }) {
@@ -134,48 +158,87 @@
   const filaSimple = (nombre, valor, max, texto) =>
     `<div class="fila fila--simple"><div class="fila__top"><span class="fila__nombre">${esc(nombre)}</span><span class="fila__valor">${texto}</span></div>
      <div class="pista" aria-hidden="true"><div class="pista__barra" style="width:${((valor / max) * 100).toFixed(1)}%"></div></div></div>`;
+  const kpiHTML = ([l, v, e, href]) => href
+    ? `<a class="kpi" href="${href}"><p class="kpi__label">${l}</p><p class="kpi__valor">${v}</p><p class="kpi__extra">${e}</p></a>`
+    : `<div class="kpi"><p class="kpi__label">${l}</p><p class="kpi__valor">${v}</p><p class="kpi__extra">${e}</p></div>`;
+
+  // Sueldo del Presidente: de la planilla oficial si está, si no de datos.js
+  function sueldoPresidente() {
+    const dp = SUE && SUE.entidades.find((e) => e.id === 10031);
+    const fila = dp && dp.top.find((t) => /^PRESIDENTE DE LA REP/i.test(t[1]));
+    if (fila) return { monto: fila[2], fuente: "planilla " + dp.periodo };
+    return { monto: D.sueldos.find((s) => /Presidente/.test(s.cargo)).monto, fuente: "D.S. 136-2025-EF" };
+  }
 
   // ---------- INICIO ----------
   function pintarInicio() {
     const porPersona = (PR.pia * 1e6) / D.poblacion;
-    const pres = D.sueldos.find((s) => /Presidente/.test(s.cargo));
+    const pres = sueldoPresidente();
+    const ac = ING.acumulado;
     const kpis = [
-      { href: "#ingresos", label: `Recaudación de impuestos ${I.anio}`, valor: millones(I.totalNeto), extra: `+${nf1.format(I.crecimiento)}% vs. año anterior` },
-      { href: "#gastos", label: `Presupuesto aprobado ${PR.anio}`, valor: millones(PR.pia), extra: PR.dev ? `Ya se gastó el ${pct(PR.dev, PR.pim)} del presupuesto actual` : "Lo aprobado por el Congreso" },
-      { href: "#gastos", label: "Presupuesto por peruano", valor: soles(porPersona), extra: `≈ ${soles(porPersona / 12)} al mes por persona` },
-      { href: "#sueldos", label: "Sueldo del Presidente(a)", valor: soles(pres.monto), extra: `= ${nf1.format(pres.monto / D.rmv)} sueldos mínimos` }
+      ac ? ["Recaudación de impuestos " + ac.anio, millones(ac.total), `enero–${MESES_LARGO[ac.hastaMes - 1]} · ${ac.variacion >= 0 ? "+" : ""}${nf1.format(ac.variacion)}% vs. ${ac.anio - 1}`, "#ingresos"]
+         : [`Recaudación de impuestos ${ING.anio}`, millones(ING.totalNeto), `+${nf1.format(ING.crecimiento)}% vs. año anterior`, "#ingresos"],
+      [`Presupuesto aprobado ${PR.anio}`, millones(PR.pia), PR.dev ? `Ya se gastó el ${pct(PR.dev, PR.pim)} del presupuesto actual` : "Lo aprobado por el Congreso", "#gastos"],
+      ["Presupuesto por peruano", soles(porPersona), `≈ ${soles(porPersona / 12)} al mes por persona`, "#gastos"],
+      ["Sueldo del Presidente(a)", soles(pres.monto), `= ${nf1.format(pres.monto / D.rmv)} sueldos mínimos · ${pres.fuente}`, "#sueldos"]
     ];
     if (CONG) {
       const s = resumenCamara(CONG.camaras.senado), d = resumenCamara(CONG.camaras.diputados);
-      kpis.push({ href: "#congreso", label: "Asistencia promedio al Pleno", valor: `${nf0.format(s.prom)}% · ${nf0.format(d.prom)}%`, extra: "Senado · Diputados (según actas)" });
+      kpis.push(["Asistencia promedio al Pleno", `${nf0.format(s.prom)}% · ${nf0.format(d.prom)}%`, "Senado · Diputados (según actas)", "#congreso"]);
     }
-    if (VIS) kpis.push({ href: "#visitas", label: "Reuniones con la Presidencia", valor: nf0.format(VIS.totalPresidencia), extra: `desde el ${fechaLarga(VIS.desde)} · ${nf0.format(VIS.total)} visitas a Palacio` });
-    $("#kpis").innerHTML = kpis
-      .map((k) => `<a class="kpi" href="${k.href}"><p class="kpi__label">${k.label}</p><p class="kpi__valor">${k.valor}</p><p class="kpi__extra">${k.extra}</p></a>`)
-      .join("");
+    if (PROY) kpis.push(["Proyectos de ley presentados", nf0.format(PROY.total), `${nf0.format(contarLeyes())} ya publicados como ley · desde jul. 2026`, "#leyes"]);
+    if (VIS) kpis.push(["Reuniones con la Presidencia", nf0.format(VIS.totalPresidencia), `desde el ${fechaLarga(VIS.desde)} · ${nf0.format(VIS.total)} visitas a Palacio`, "#visitas"]);
+    if (SUE) kpis.push(["Personas en planillas revisadas", nf0.format(SUE.entidades.reduce((a, e) => a + e.personas, 0)), `${SUE.entidades.length} entidades del Estado`, "#sueldos"]);
+    $("#kpis").innerHTML = kpis.map(kpiHTML).join("");
   }
 
   // ---------- INGRESOS ----------
   function pintarIngresos() {
+    const ac = ING.acumulado;
     $("#ingresos-intro").innerHTML =
-      `En <strong>${I.anio}</strong> el Estado recaudó <strong>${millones(I.totalNeto)}</strong> en impuestos ` +
-      `(ya restadas las devoluciones), ${nf1.format(I.crecimiento)}% más que el año anterior. ${sello(I.totalEstado)} ` +
-      `<span class="fuente">Fuente: ${enlace(I.totalFuente)}</span>`;
-    const max = Math.max(...I.rubros.map((r) => r.monto));
-    let html = [...I.rubros].sort((a, b) => b.monto - a.monto).map((r) =>
-      filaHTML({ nombre: esc(r.nombre), valorTexto: millones(r.monto), pctTexto: pct(r.monto, sumaRubros), ancho: (r.monto / max) * 100, estado: r.estado,
-        detalle: `<p>${esc(r.explica)}</p><p>${sello(r.estado)} Fuente: ${enlace(r.fuente)}</p>` })).join("");
-    if (devoluciones > 0)
-      html += filaHTML({ nombre: "Menos: devoluciones", valorTexto: "− " + millones(devoluciones), ancho: (devoluciones / max) * 100, gris: true,
-        detalle: "<p>Dinero que SUNAT devuelve: exportadores, saldos a favor de Renta, etc. Es la diferencia entre la suma de rubros y el total neto oficial.</p>" });
+      `En <strong>${ING.anio}</strong> el Estado recaudó <strong>${millones(ING.totalNeto)}</strong> en impuestos ` +
+      `(ya restadas las devoluciones)${ING.crecimiento != null ? `, ${nf1.format(ING.crecimiento)}% más que el año anterior` : ""}. ${sello(ING.oficial ? "oficial" : "estimado")}` +
+      (ac ? ` En ${ac.anio}, de enero a ${MESES_LARGO[ac.hastaMes - 1]}, ya van <strong>${millones(ac.total)}</strong>.` : "");
+    if (ac) {
+      const ultimo = ING.meses[ING.meses.length - 1];
+      $("#ingresos-kpis").innerHTML = [
+        [`Recaudado en ${ac.anio} (ene–${MESES[ac.hastaMes - 1]})`, millones(ac.total), `${ac.variacion >= 0 ? "+" : ""}${nf1.format(ac.variacion)}% vs. mismo periodo de ${ac.anio - 1}`],
+        [`Último mes: ${MESES_LARGO[+ultimo.mes.slice(5) - 1]} ${ultimo.mes.slice(0, 4)}`, millones(ultimo.total), `IGV ${corto(ultimo.igv)} · Renta ${corto(ultimo.renta)}`],
+        [`Total ${ING.anio} (año completo)`, millones(ING.totalNeto), `${soles((ING.totalNeto * 1e6) / D.poblacion)} por peruano`]
+      ].map(kpiHTML).join("");
+    }
+    $("#t-ingresos-barras").textContent = `¿De dónde viene? (${ING.anio})`;
+    const max = Math.max(...ING.rubros.map((r) => r.monto));
+    let html = [...ING.rubros].sort((a, b) => b.monto - a.monto).map((r) =>
+      filaHTML({ nombre: esc(r.nombre), valorTexto: millones(r.monto), pctTexto: pct(r.monto, ING.sumaRubros), ancho: (r.monto / max) * 100, estado: r.estado,
+        detalle: `<p>${esc(r.explica)}</p>` + (r.fuente ? `<p>${sello(r.estado)} Fuente: ${enlace(r.fuente)}</p>` : "") })).join("");
+    if (ING.devoluciones > 0)
+      html += filaHTML({ nombre: "Menos: devoluciones", valorTexto: "− " + millones(ING.devoluciones), ancho: (ING.devoluciones / max) * 100, gris: true,
+        detalle: "<p>Dinero que SUNAT devuelve: a exportadores, saldos a favor del Impuesto a la Renta, etc.</p>" });
     $("#ingresos-barras").innerHTML = html;
-    const porPersona = (I.totalNeto * 1e6) / D.poblacion;
-    const igv = I.rubros.find((r) => /IGV/.test(r.nombre));
+    $("#ingresos-fuente").innerHTML = `Fuente: ${enlace(ING.fuente)}${ING.oficial ? " — se actualiza automáticamente cada semana." : ""}`;
+
+    if (ING.meses) {
+      $("#ingresos-meses-card").hidden = false;
+      const ms = ING.meses.slice(-24);
+      const maxM = Math.max(...ms.map((m) => m.total));
+      $("#ingresos-meses").setAttribute("aria-label", "Recaudación mensual: " + ms.map((m) => `${MESES_LARGO[+m.mes.slice(5) - 1]} ${m.mes.slice(0, 4)}: ${nf0.format(m.total)} millones`).join("; "));
+      $("#ingresos-meses").innerHTML = ms.map((m) => {
+        const mm = +m.mes.slice(5);
+        const actual = m.mes.slice(0, 4) === String(ING.acumulado.anio);
+        return `<div class="col" title="${MESES_LARGO[mm - 1]} ${m.mes.slice(0, 4)}: ${millones(m.total)} (IGV ${corto(m.igv)}, Renta ${corto(m.renta)})">
+          <div class="col__barras"><span class="col__pres${actual ? "" : " col__pres--prev"}" style="height:${(m.total / maxM) * 100}%"></span></div>
+          <span class="col__num">${nf1.format(m.total / 1000)}</span><span class="col__lbl">${MESES[mm - 1]}${mm === 1 ? " " + m.mes.slice(2, 4) : ""}</span></div>`;
+      }).join("");
+    }
+    const porPersona = (ING.totalNeto * 1e6) / D.poblacion;
+    const igv = ING.rubros.find((r) => /IGV/.test(r.nombre));
     $("#ingresos-equivalencias").innerHTML = [
-      `Cada día entran en promedio <strong>${millones(I.totalNeto / 365)}</strong> por impuestos.`,
+      `Cada día entran en promedio <strong>${millones(ING.totalNeto / 365)}</strong> por impuestos.`,
       `Equivale a <strong>${soles(porPersona)}</strong> por cada peruano al año.`,
-      igv ? `El <strong>IGV</strong> —el que pagamos todos al comprar— es más de la mitad de lo recaudado (${pct(igv.monto, sumaRubros)} del bruto).` : "",
-      `Los impuestos no alcanzan para todo el presupuesto: la diferencia (${millones(PR.pia - I.totalNeto)}) se cubre con regalías, canon, tasas, préstamos y bonos.`
+      igv ? `El <strong>IGV</strong> —el que pagamos todos al comprar— es más de la mitad de lo recaudado (${pct(igv.monto, ING.sumaRubros)} del bruto).` : "",
+      ING.meses ? "En el gráfico mensual, los números encima de cada barra están en <strong>miles de millones</strong> de soles. Abril suele ser el mes más alto por la declaración anual de Renta." : "",
+      `Los impuestos no alcanzan para todo el presupuesto: la diferencia (${millones(PR.pia - ING.totalNeto)}) se cubre con regalías, canon, tasas, préstamos y bonos.`
     ].filter(Boolean).map((t) => `<li>${t}</li>`).join("");
   }
 
@@ -407,6 +470,135 @@
   $("#buscar-visitas").addEventListener("input", () => { mostrarN = 30; VIS && pintarListaVisitas(); });
   $("#mas-visitas").addEventListener("click", () => { mostrarN += 30; pintarListaVisitas(); });
 
+  // ---------- PLANILLAS (sueldo por persona) ----------
+  let planilla = null, mostrarP = 50;
+  const cachePlanillas = {};
+  const MINUS_P = new Set(["de", "del", "la", "las", "los", "y", "e", "el", "en", "a"]);
+  const propio = (s) => (s && s === s.toUpperCase()
+    ? s.toLowerCase().replace(/\p{L}+/gu, (w, i) => (i > 0 && MINUS_P.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    : s || "");
+  const periodoTexto = (p) => (p ? `${MESES_LARGO[+p.slice(5) - 1]} ${p.slice(0, 4)}` : "");
+
+  function pintarPlanillas() {
+    if (!SUE || !SUE.entidades.length) { $("#planillas-card").hidden = true; return; }
+    const grupos = {};
+    SUE.entidades.forEach((e) => (grupos[e.grupo] = grupos[e.grupo] || []).push(e));
+    $("#sel-entidad").innerHTML = Object.entries(grupos).map(([g, es]) =>
+      `<optgroup label="${esc(g)}">${es.map((e) => `<option value="${e.id}">${esc(e.nombre)}</option>`).join("")}</optgroup>`).join("");
+    $("#entidades-card").hidden = false;
+    const filas = [...SUE.entidades].sort((a, b) => b.maximo - a.maximo);
+    $("#tabla-entidades").innerHTML = `<thead><tr><th>Entidad</th><th>Mes</th><th>Personas</th><th>Planilla del mes</th><th>Sueldo mediano</th><th>Sueldo más alto</th></tr></thead><tbody>` +
+      filas.map((e) => `<tr><td><button type="button" class="enlace-btn" data-ent="${e.id}">${esc(e.nombre)}</button></td><td>${esc(periodoTexto(e.periodo))}</td>
+        <td>${nf0.format(e.personas)}</td><td>${corto(e.planilla / 1e6)}</td><td>${soles(e.mediana)}</td><td>${soles(e.maximo)}</td></tr>`).join("") + "</tbody>";
+    $$("[data-ent]").forEach((b) => b.addEventListener("click", () => {
+      $("#sel-entidad").value = b.dataset.ent; abrirPlanilla(+b.dataset.ent);
+      $("#planillas-card").scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
+    abrirPlanilla(+$("#sel-entidad").value);
+  }
+
+  async function abrirPlanilla(id) {
+    const e = SUE.entidades.find((x) => x.id === id);
+    $("#lista-planilla").innerHTML = '<p class="vacio">Cargando planilla…</p>';
+    if (!cachePlanillas[id]) cachePlanillas[id] = await cargar(`sueldos/${id}.json`);
+    planilla = cachePlanillas[id];
+    mostrarP = 50;
+    if (!planilla) { $("#lista-planilla").innerHTML = '<p class="vacio">No se pudo cargar esta planilla.</p>'; return; }
+    $("#planilla-periodo").textContent = "Planilla de " + periodoTexto(planilla.periodo);
+    $("#planilla-kpis").innerHTML = [
+      ["Personas en planilla", nf0.format(e.personas), "sin contar pensionistas"],
+      ["Pago total del mes", millones(e.planilla / 1e6), `≈ ${millones((e.planilla * 14) / 1e6)} al año (con gratificaciones)`],
+      ["Sueldo mediano", soles(e.mediana), `la mitad gana menos de esto · máx. ${soles(e.maximo)}`]
+    ].map(kpiHTML).join("");
+    pintarListaPlanilla(e);
+  }
+
+  function pintarListaPlanilla(e) {
+    e = e || SUE.entidades.find((x) => x.id === planilla.id);
+    const q = normal($("#buscar-planilla").value.trim());
+    const lista = planilla.personas.filter((p) => !q || normal(p[0] + " " + p[1] + " " + p[2]).includes(q));
+    const max = planilla.personas.length ? planilla.personas[0][6] : 1;
+    $("#lista-planilla").innerHTML = lista.length ? lista.slice(0, mostrarP).map(([nombre, cargo, dep, reg, rem, otros, total]) => `
+      <div class="persona">
+        <div class="persona__top">
+          <div><p class="persona__nombre">${esc(propio(nombre))}</p><p class="persona__cargo">${esc(propio(cargo))}</p></div>
+          <p class="persona__monto">${soles(total)}</p>
+        </div>
+        <div class="pista" aria-hidden="true"><div class="pista__barra" style="width:${((total / max) * 100).toFixed(1)}%"></div></div>
+        <p class="persona__extra">${esc(propio(dep))} · ${esc(reg)}${otros > 0 ? ` · sueldo ${soles(rem)} + otros ${soles(otros)}` : ""}</p>
+      </div>`).join("")
+      : '<p class="vacio">No encontramos a nadie con ese nombre o cargo en esta entidad.</p>';
+    $("#mas-planilla").hidden = lista.length <= mostrarP;
+    $("#mas-planilla").textContent = `Ver más (${nf0.format(lista.length - mostrarP)} restantes)`;
+    const fuente = e ? `<a href="${esc(e.fuente)}" target="_blank" rel="noopener">Portal de Transparencia Estándar — ${esc(e.nombre)}</a>` : "";
+    $("#lista-planilla").insertAdjacentHTML("beforeend", `<p class="fuente">Fuente: ${fuente}. Montos brutos mensuales, antes de descuentos.</p>`);
+  }
+  $("#sel-entidad").addEventListener("change", (ev) => { $("#buscar-planilla").value = ""; abrirPlanilla(+ev.target.value); });
+  $("#buscar-planilla").addEventListener("input", () => { if (planilla) { mostrarP = 50; pintarListaPlanilla(); } });
+  $("#mas-planilla").addEventListener("click", () => { mostrarP += 50; pintarListaPlanilla(); });
+
+  // ---------- PROYECTOS DE LEY ----------
+  let pCamara = "", ranking = "autores", mostrarL = 30;
+  const esLey = (est) => /publicad|promulgad|^ley/i.test(est);
+  const contarLeyes = () => (PROY ? PROY.proyectos.filter((p) => esLey(p.estado)).length : 0);
+  const fraseL = (s) => (s && s === s.toUpperCase() ? s.charAt(0) + s.slice(1).toLowerCase() : s || "");
+  function claseEstado(est) {
+    if (esLey(est)) return "etapa--ley";
+    if (/archiv|retirad|improcedente|rechaz/i.test(est)) return "etapa--fin";
+    if (/agenda|dictamen|aprobad|pleno|autógrafa|autografa|remitid/i.test(est)) return "etapa--avanza";
+    return "etapa--inicio";
+  }
+  function pintarLeyes() {
+    if (!PROY) { $("#lista-leyes").innerHTML = '<p class="vacio">Aún no hay datos de proyectos de ley.</p>'; return; }
+    const ejecutivo = PROY.proyectos.filter((p) => /ejecutivo/i.test(p.proponente)).length;
+    const ultimos7 = PROY.proyectos.filter((p) => (Date.now() - new Date(p.fecha)) / 864e5 <= 7).length;
+    $("#leyes-kpis").innerHTML = [
+      ["Proyectos presentados", nf0.format(PROY.total), `${nf0.format(PROY.porCamara.D || 0)} en Diputados · ${nf0.format(PROY.porCamara.S || 0)} en el Senado`],
+      ["Ya son ley", nf0.format(contarLeyes()), "publicados en El Peruano"],
+      ["Enviados por el Ejecutivo", nf0.format(ejecutivo), `${pct(ejecutivo, PROY.total)} del total`],
+      ["Últimos 7 días", nf0.format(ultimos7), "proyectos nuevos"]
+    ].map(kpiHTML).join("");
+
+    const maxE = PROY.porEstado[0][1];
+    $("#leyes-estados").innerHTML = PROY.porEstado.slice(0, 10).map(([e, n]) => filaSimple(fraseL(e), n, maxE, `${nf0.format(n)}`)).join("");
+    $("#sel-estado").innerHTML = '<option value="">Todas</option>' + PROY.porEstado.map(([e, n]) => `<option value="${esc(e)}">${esc(fraseL(e))} (${n})</option>`).join("");
+    pintarRanking();
+    pintarListaLeyes();
+    $("#leyes-fuente").innerHTML = `Fuente: <a href="${esc(PROY.fuente)}" target="_blank" rel="noopener">Sistema de Proposiciones Legislativas del Congreso</a>. Actualizado: ${new Date(PROY.actualizado).toLocaleDateString("es-PE")}.`;
+  }
+  function pintarRanking() {
+    const lista = ranking === "autores" ? PROY.autoresPrincipales.slice(0, 12) : PROY.porProponente.slice(0, 10);
+    $("#leyes-ranking-ayuda").textContent = ranking === "autores"
+      ? "Congresistas que más proyectos presentaron como autor principal. Presentar muchos proyectos no significa que sean buenos: revisa de qué tratan."
+      : "Quién envía los proyectos: congresistas (por cámara), el Poder Ejecutivo u otras instituciones.";
+    const max = lista.length ? lista[0][1] : 1;
+    $("#leyes-ranking").innerHTML = lista.map(([n, v]) => filaSimple(n, v, max, `${v}`)).join("");
+  }
+  function pintarListaLeyes() {
+    const q = normal($("#buscar-leyes").value.trim());
+    const est = $("#sel-estado").value;
+    const lista = PROY.proyectos.filter((p) => (!pCamara || p.camara === pCamara) && (!est || p.estado === est) &&
+      (!q || normal(`${p.numero} ${p.titulo} ${p.autores.join(" ")} ${p.proponente}`).includes(q)));
+    $("#leyes-conteo").textContent = `${nf0.format(lista.length)} proyecto${lista.length === 1 ? "" : "s"}`;
+    $("#lista-leyes").innerHTML = lista.length ? lista.slice(0, mostrarL).map((p) => `
+      <article class="ley">
+        <div class="ley__cab">
+          <span class="ley__num">${esc(p.numero)}</span>
+          <span class="etapa ${claseEstado(p.estado)}">${esc(fraseL(p.estado))}</span>
+        </div>
+        <p class="ley__titulo">${esc(fraseL(p.titulo))}</p>
+        <p class="ley__meta">${fechaLarga(p.fecha)} · ${p.camara === "S" ? "Senado" : "Diputados"} · ${esc(p.autores.length ? p.autores[0] + (p.autores.length > 1 ? ` y ${p.autores.length - 1} más` : "") : p.proponente)}</p>
+        <a class="ley__link" href="${esc(p.url)}" target="_blank" rel="noopener">Ver expediente oficial ↗</a>
+      </article>`).join("") : '<p class="vacio">No hay proyectos que coincidan con la búsqueda.</p>';
+    $("#mas-leyes").hidden = lista.length <= mostrarL;
+    $("#mas-leyes").textContent = `Ver más (${nf0.format(lista.length - mostrarL)} restantes)`;
+  }
+  grupoBotones("pcamara", (v) => { pCamara = v; mostrarL = 30; PROY && pintarListaLeyes(); });
+  grupoBotones("ranking", (v) => { ranking = v; PROY && pintarRanking(); });
+  $("#buscar-leyes").addEventListener("input", () => { mostrarL = 30; PROY && pintarListaLeyes(); });
+  $("#sel-estado").addEventListener("change", () => { mostrarL = 30; PROY && pintarListaLeyes(); });
+  $("#mas-leyes").addEventListener("click", () => { mostrarL += 30; pintarListaLeyes(); });
+
   // ---------- CALCULADORA ----------
   function rentaQuinta(sueldoMensual) {
     let base = Math.max(0, sueldoMensual * 14 - 7 * D.uit); // 12 sueldos + 2 gratificaciones
@@ -446,7 +638,10 @@
       { nombre: "Actas del Pleno del Senado", url: "https://senado.congreso.gob.pe/", que: "De aquí se lee la asistencia de los senadores." },
       { nombre: "Actas del Pleno de la Cámara de Diputados", url: "https://diputados.congreso.gob.pe/", que: "De aquí se lee la asistencia de los diputados." },
       { nombre: "Registro de visitas del Despacho Presidencial", url: "https://consulta-visitas.presidencia.gob.pe/", que: "Visitas a Palacio de Gobierno, día por día." },
-      { nombre: "SUNAT — Estadísticas y estudios", url: "https://www.sunat.gob.pe/estadisticasestudios/", que: "Recaudación mensual por tipo de impuesto (Nota Tributaria)." }
+      { nombre: "BCRP — Ingresos tributarios del Gobierno Central", url: "https://estadisticas.bcrp.gob.pe/estadisticas/series/mensuales/ingresos-tributarios-del-gobierno-central", que: "Recaudación mensual por impuesto, con datos de SUNAT y MEF. De aquí sale la sección de impuestos." },
+      { nombre: "Portal de Transparencia Estándar — Personal", url: "https://www.transparencia.gob.pe/", que: "Planilla mensual de cada entidad. De aquí sale el buscador de sueldos por persona." },
+      { nombre: "Sistema de Proposiciones Legislativas", url: "https://wb2server.congreso.gob.pe/spley-portal/", que: "Todos los proyectos de ley del Congreso y su estado." },
+      { nombre: "SUNAT — Estadísticas y estudios", url: "https://www.sunat.gob.pe/estadisticasestudios/", que: "Notas tributarias y reportes de recaudación." }
     ];
     $("#fuentes-lista").innerHTML = enlacesHTML([...extra, ...D.buscadoresOficiales]);
   }
@@ -471,12 +666,15 @@
 
   // ---------- Arranque ----------
   (async function iniciar() {
-    const [mef, cong, vis] = await Promise.all([cargar("presupuesto.json"), cargar("congreso.json"), cargar("visitas.json")]);
+    const [mef, cong, vis, rec, sue, proy] = await Promise.all(["presupuesto.json", "congreso.json", "visitas.json", "recaudacion.json", "sueldos.json", "proyectos.json"].map(cargar));
+    REC = rec; ING = modeloIngresos(rec);
+    SUE = sue && sue.entidades ? sue : null;
+    PROY = proy && proy.proyectos ? proy : null;
     PR = modeloPresupuesto(mef);
     CONG = cong && cong.camaras ? cong : null;
     VIS = vis && vis.semanas ? vis : null;
     try { const v = localStorage.getItem("vistaGastos"); if (v === "arbol") { vista = "arbol"; $$("[data-vista]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.vista === "arbol"))); } } catch (e) {}
-    const fechas = [mef && mef.actualizado, cong && cong.actualizado, vis && vis.actualizado].filter(Boolean).sort();
+    const fechas = [mef, cong, vis, rec, sue, proy].map((x) => x && x.actualizado).filter(Boolean).sort();
     if (fechas.length) {
       const f = new Date(fechas[fechas.length - 1]);
       const chip = $("#chip-act");
@@ -488,6 +686,8 @@
     pintarIngresos();
     pintarGastos();
     pintarSueldos();
+    pintarPlanillas();
+    pintarLeyes();
     $("#buscadores").innerHTML = enlacesHTML(D.buscadoresOficiales);
     pintarCongreso();
     pintarVisitas();
