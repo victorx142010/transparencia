@@ -5,19 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Plata Clara Perú</title>
   <meta name="description" content="Portal ciudadano para entender cuánto recauda el Estado peruano, en qué lo gasta y cuánto ganan sus autoridades. En lenguaje simple.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔎</text></svg>">
+  <meta name="theme-color" content="#f7f4ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1720" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='14' cy='14' r='9' fill='none' stroke='%230e6e6e' stroke-width='3.5'/><path d='M21 21l7 7' stroke='%230e6e6e' stroke-width='4' stroke-linecap='round'/><text x='14' y='18.5' font-size='11' font-family='Arial' font-weight='700' text-anchor='middle' fill='%23c8102e'>S/</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
   <a class="saltar" href="#contenido">Saltar al contenido</a>
 
   <header class="cabecera">
+    <div class="franja" aria-hidden="true"></div>
     <div class="contenedor cabecera__fila">
       <a href="#inicio" class="marca" aria-label="Plata Clara Perú, ir al inicio">
-        <span class="marca__icono" aria-hidden="true">🔎</span>
-        <span>Plata Clara <strong>Perú</strong></span>
+        <svg class="marca__logo" viewBox="0 0 32 32" aria-hidden="true"><circle cx="14" cy="14" r="9" fill="none" stroke="currentColor" stroke-width="3"/><path d="M21 21l7 7" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><text x="14" y="18" font-size="10" font-weight="700" text-anchor="middle" fill="var(--rojo)">S/</text></svg>
+        <span class="marca__texto">Plata Clara <span>Perú</span></span>
       </a>
-      <button class="menu-btn" aria-expanded="false" aria-controls="nav">Menú</button>
+      <span class="chip-act" id="chip-act" hidden></span>
+      <button class="menu-btn" aria-expanded="false" aria-controls="nav"><span aria-hidden="true">☰</span> Menú</button>
     </div>
     <nav id="nav" class="nav contenedor" aria-label="Secciones">
       <a href="#inicio">Inicio</a>
@@ -36,29 +43,49 @@
     <!-- ===================== INICIO ===================== -->
     <section id="inicio" class="vista" aria-labelledby="t-inicio">
       <div class="hero">
-        <p class="hero__pre">La plata del Estado es <em>tu</em> plata</p>
-        <h1 id="t-inicio">¿Cuánto recauda el Perú, en qué lo gasta y cuánto ganan sus autoridades?</h1>
-        <p class="hero__sub">Información pública, explicada en simple. Sin tecnicismos.</p>
+        <p class="eyebrow">Portal ciudadano · Datos públicos del Estado peruano</p>
+        <h1 id="t-inicio">La plata del Estado es <em>tu</em> plata. Aquí puedes ver a dónde va.</h1>
+        <p class="hero__sub">Cuánto se recauda, en qué se gasta, cuánto ganan las autoridades, si el Congreso asiste y quién visita Palacio. Explicado en simple, con la fuente oficial al lado de cada número.</p>
+        <ul class="promesas" aria-label="Nuestros compromisos">
+          <li><span aria-hidden="true">✓</span> Solo datos oficiales, con enlace</li>
+          <li><span aria-hidden="true">✓</span> Sin publicidad ni partido político</li>
+          <li><span aria-hidden="true">✓</span> Código abierto y revisable</li>
+          <li><span aria-hidden="true">✓</span> Se actualiza solo cada semana</li>
+        </ul>
       </div>
 
+      <h2 class="titulo-seccion">Lo más importante, en números</h2>
       <div class="kpis" id="kpis"></div>
 
-      <h2>El dinero del Estado en 3 pasos</h2>
+      <h2 class="titulo-seccion">¿Qué quieres saber?</h2>
+      <div class="temas">
+        <a class="tema" href="#ingresos"><span class="tema__icono" aria-hidden="true">🧾</span><span class="tema__t">¿Cuánto entra?</span><span class="tema__d">Los impuestos que pagamos todos</span></a>
+        <a class="tema" href="#gastos"><span class="tema__icono" aria-hidden="true">🏗️</span><span class="tema__t">¿En qué se gasta?</span><span class="tema__d">Educación, salud, obras, deuda…</span></a>
+        <a class="tema" href="#sueldos"><span class="tema__icono" aria-hidden="true">💵</span><span class="tema__t">Sueldos</span><span class="tema__d">Cuánto gana cada autoridad</span></a>
+        <a class="tema" href="#congreso"><span class="tema__icono" aria-hidden="true">🏛️</span><span class="tema__t">Congreso</span><span class="tema__d">¿Van a trabajar senadores y diputados?</span></a>
+        <a class="tema" href="#visitas"><span class="tema__icono" aria-hidden="true">🚪</span><span class="tema__t">Visitas a Palacio</span><span class="tema__d">Quién se reúne con la Presidencia</span></a>
+        <a class="tema tema--destacado" href="#mi-impuesto"><span class="tema__icono" aria-hidden="true">🧮</span><span class="tema__t">Mi impuesto</span><span class="tema__d">Calcula cuánto aportas y a dónde va</span></a>
+      </div>
+
+      <h2 class="titulo-seccion">El dinero del Estado en 3 pasos</h2>
       <ol class="pasos">
         <li><span class="pasos__n">1</span><div><strong>Pagamos impuestos.</strong> Cada vez que compras algo pagas 18% de IGV. Si trabajas o tienes empresa, pagas Impuesto a la Renta. <a href="#ingresos">Ver cuánto entra →</a></div></li>
         <li><span class="pasos__n">2</span><div><strong>El Congreso aprueba el presupuesto.</strong> Cada año decide cuánto recibe cada ministerio, región y municipalidad. Además de impuestos, se usan regalías mineras, préstamos y otros ingresos. <a href="#gastos">Ver en qué se gasta →</a></div></li>
         <li><span class="pasos__n">3</span><div><strong>Las entidades lo gastan.</strong> En sueldos, obras, medicinas, colegios, pensiones y pago de deuda. Tú puedes revisarlo. <a href="#sueldos">Ver sueldos →</a></div></li>
       </ol>
 
-      <div class="tarjeta tarjeta--acento">
-        <h2>¿Cuánto aportas tú?</h2>
-        <p>Calcula cuánto pagas de impuestos al año y a qué se destina, sol por sol.</p>
-        <a class="boton" href="#mi-impuesto">Usar la calculadora</a>
+      <div class="tarjeta tarjeta--acento cta">
+        <div>
+          <h2>¿Cuánto aportas tú?</h2>
+          <p>Calcula cuánto pagas de impuestos al año y a qué se destina, sol por sol. No guardamos nada de lo que escribas.</p>
+        </div>
+        <a class="boton" href="#mi-impuesto">Usar la calculadora →</a>
       </div>
     </section>
 
     <!-- ===================== INGRESOS ===================== -->
     <section id="ingresos" class="vista" aria-labelledby="t-ingresos" hidden>
+      <p class="eyebrow">🧾 Impuestos</p>
       <h1 id="t-ingresos">¿Cuánto dinero entra por impuestos?</h1>
       <p class="intro" id="ingresos-intro"></p>
       <div class="tarjeta">
@@ -74,6 +101,7 @@
 
     <!-- ===================== GASTOS ===================== -->
     <section id="gastos" class="vista" aria-labelledby="t-gastos" hidden>
+      <p class="eyebrow">🏗️ Presupuesto público</p>
       <h1 id="t-gastos">¿En qué se gasta el dinero?</h1>
       <p class="intro" id="gastos-intro"></p>
 
@@ -112,6 +140,7 @@
 
     <!-- ===================== SUELDOS ===================== -->
     <section id="sueldos" class="vista" aria-labelledby="t-sueldos" hidden>
+      <p class="eyebrow">💵 Sueldos públicos</p>
       <h1 id="t-sueldos">¿Cuánto ganan las autoridades?</h1>
       <p class="intro">Sueldo mensual bruto por cargo, comparado con el sueldo mínimo. Por ley (Ley 27806), los sueldos de quienes trabajan en el Estado son públicos.</p>
 
@@ -132,6 +161,7 @@
 
     <!-- ===================== CONGRESO ===================== -->
     <section id="congreso" class="vista" aria-labelledby="t-congreso" hidden>
+      <p class="eyebrow">🏛️ Congreso de la República</p>
       <h1 id="t-congreso">¿Van a trabajar los congresistas?</h1>
       <p class="intro">Asistencia a las sesiones del Pleno, leída automáticamente de las actas oficiales que publica cada cámara. Una <strong>licencia</strong> es una falta justificada (viaje oficial, enfermedad, motivo personal); una <strong>ausencia</strong> no tiene justificación registrada.</p>
 
@@ -158,9 +188,9 @@
           <input type="search" id="buscar-congreso" placeholder="Buscar por apellido…" autocomplete="off">
         </label>
         <ul class="leyenda leyenda--fila">
-          <li><i style="background:var(--oficial)"></i>Presente</li>
-          <li><i style="background:var(--estimado)"></i>Con licencia</li>
-          <li><i style="background:var(--acento)"></i>Ausente</li>
+          <li><i style="background:var(--ok)"></i>Presente</li>
+          <li><i style="background:var(--aviso)"></i>Con licencia</li>
+          <li><i style="background:var(--mal)"></i>Ausente</li>
         </ul>
         <div id="lista-congreso" class="asistencias"></div>
       </div>
@@ -174,6 +204,7 @@
 
     <!-- ===================== VISITAS ===================== -->
     <section id="visitas" class="vista" aria-labelledby="t-visitas" hidden>
+      <p class="eyebrow">🚪 Despacho Presidencial</p>
       <h1 id="t-visitas">¿Quién visita Palacio de Gobierno?</h1>
       <p class="intro" id="visitas-intro">Registro oficial de visitas al Despacho Presidencial: quién entra, a quién visita, para qué y cuánto tiempo se queda.</p>
 
@@ -216,6 +247,7 @@
 
     <!-- ===================== MI IMPUESTO ===================== -->
     <section id="mi-impuesto" class="vista" aria-labelledby="t-mi" hidden>
+      <p class="eyebrow">🧮 Calculadora</p>
       <h1 id="t-mi">¿Cuánto aportas y a dónde va?</h1>
       <p class="intro">Ingresa tus datos aproximados. Nada se envía a ningún lado: el cálculo ocurre en tu teléfono o computadora.</p>
 
@@ -250,6 +282,7 @@
 
     <!-- ===================== FUENTES ===================== -->
     <section id="fuentes" class="vista" aria-labelledby="t-fuentes" hidden>
+      <p class="eyebrow">🔍 Metodología</p>
       <h1 id="t-fuentes">Fuentes y cómo leer este portal</h1>
       <div class="tarjeta">
         <h2>Etiquetas de confianza</h2>
@@ -276,9 +309,27 @@
   </main>
 
   <footer class="pie">
-    <div class="contenedor">
-      <p><strong>Plata Clara Perú</strong> es una iniciativa ciudadana independiente. <strong>No es una página oficial del Estado peruano.</strong> Toda la información proviene de fuentes públicas enlazadas en cada dato.</p>
-      <p>¿Encontraste un error? Revisa la fuente oficial y ayúdanos a corregirlo.</p>
+    <div class="contenedor pie__grid">
+      <div>
+        <p class="pie__marca">Plata Clara <span>Perú</span></p>
+        <p>Una iniciativa ciudadana independiente. <strong>No es una página oficial del Estado peruano</strong> ni pertenece a ningún partido o empresa.</p>
+      </div>
+      <div>
+        <p class="pie__titulo">Cómo trabajamos</p>
+        <ul>
+          <li>Cada número enlaza a su fuente oficial.</li>
+          <li>Marcamos qué es <span class="sello sello--oficial">Oficial</span> y qué es <span class="sello sello--estimado">Estimado</span>.</li>
+          <li>Los datos se descargan solos cada lunes; nadie los edita a mano.</li>
+        </ul>
+      </div>
+      <div>
+        <p class="pie__titulo">Revísalo tú</p>
+        <ul>
+          <li><a href="https://github.com/victorx142010/transparencia" target="_blank" rel="noopener">Código y datos en GitHub ↗</a></li>
+          <li><a href="#fuentes">Fuentes y glosario</a></li>
+          <li><a href="https://github.com/victorx142010/transparencia/issues" target="_blank" rel="noopener">¿Encontraste un error? Avísanos ↗</a></li>
+        </ul>
+      </div>
     </div>
   </footer>
 

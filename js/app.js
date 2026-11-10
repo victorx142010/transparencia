@@ -373,10 +373,16 @@
     const maxE = Math.max(1, ...VIS.topEntidadesPresidencia.map((e) => e[1]));
     $("#top-entidades").innerHTML = VIS.topEntidadesPresidencia.map(([n, v]) => filaSimple(n === "PARTICULAR" ? "Particulares (sin entidad)" : n, v, maxE, `${v} reuniones`)).join("");
     const maxF = Math.max(1, ...VIS.topFuncionarios.map((e) => e[1]));
-    $("#top-funcionarios").innerHTML = VIS.topFuncionarios.map(([[n, cargo], v]) => filaSimple(`${n} — ${cargo}`, v, maxF, `${v}`)).join("");
+    $("#top-funcionarios").innerHTML = VIS.topFuncionarios.map(([[n, cargo], v]) => filaSimple(`${nombrePropio(n)} — ${frase(cargo)}`, v, maxF, `${v} visitas`)).join("");
     $("#visitas-fuente").innerHTML = `Fuente: <a href="${esc(VIS.fuente)}" target="_blank" rel="noopener">Registro de visitas del Despacho Presidencial</a> (Ley 28024 y Directiva 003-2026-PCM/SIP). Por privacidad no mostramos el DNI de los visitantes. Actualizado: ${new Date(VIS.actualizado).toLocaleDateString("es-PE")}.`;
     pintarListaVisitas();
   }
+  // El registro publica todo en MAYÚSCULAS; se muestra con mayúscula inicial.
+  const MINUS = new Set(["de", "del", "la", "las", "los", "y", "e", "el", "en", "a"]);
+  const nombrePropio = (s) => (s && s === s.toUpperCase()
+    ? s.toLowerCase().replace(/\p{L}+/gu, (w, i) => (i > 0 && MINUS.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    : s);
+  const frase = (s) => (s && s === s.toUpperCase() ? s.charAt(0) + s.slice(1).toLowerCase() : s);
   function pintarListaVisitas() {
     const q = normal($("#buscar-visitas").value.trim());
     const base = modoVisitas === "presidencia" ? VIS.presidencia : VIS.recientes;
@@ -388,10 +394,10 @@
       return `<article class="visita">
         <div class="visita__fecha"><b>${fechaCorta(fecha)}</b><span>${esc(ing)}${sal ? "–" + esc(sal) : ""}</span>${dur ? `<small>${dur}</small>` : ""}</div>
         <div class="visita__cuerpo">
-          <p class="visita__quien">${esc(visitante)}</p>
-          <p class="visita__entidad">${esc(entidad || "—")}</p>
-          <p class="visita__motivo">${esc(motivo)}${obs ? ` · <em>${esc(obs)}</em>` : ""}</p>
-          ${modoVisitas === "recientes" ? `<p class="visita__a">Visitó a: ${esc(funcionario)} <small>(${esc(cargo)})</small></p>` : ""}
+          <p class="visita__quien">${esc(nombrePropio(visitante))}</p>
+          <p class="visita__entidad">${esc(entidad === "PARTICULAR" ? "Particular (sin entidad)" : nombrePropio(entidad) || "—")}</p>
+          <p class="visita__motivo">${esc(frase(motivo))}${obs ? ` · <em>${esc(frase(obs))}</em>` : ""}</p>
+          ${modoVisitas === "recientes" ? `<p class="visita__a">Visitó a: ${esc(nombrePropio(funcionario))} <small>(${esc(frase(cargo))})</small></p>` : ""}
         </div></article>`;
     }).join("") : '<p class="vacio">No hay visitas que coincidan con la búsqueda.</p>';
     $("#mas-visitas").hidden = lista.length <= mostrarN;
@@ -470,6 +476,14 @@
     CONG = cong && cong.camaras ? cong : null;
     VIS = vis && vis.semanas ? vis : null;
     try { const v = localStorage.getItem("vistaGastos"); if (v === "arbol") { vista = "arbol"; $$("[data-vista]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.vista === "arbol"))); } } catch (e) {}
+    const fechas = [mef && mef.actualizado, cong && cong.actualizado, vis && vis.actualizado].filter(Boolean).sort();
+    if (fechas.length) {
+      const f = new Date(fechas[fechas.length - 1]);
+      const chip = $("#chip-act");
+      chip.textContent = "Actualizado el " + f.toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" });
+      chip.title = "Los datos se descargan automáticamente de fuentes oficiales cada lunes";
+      chip.hidden = false;
+    }
     pintarInicio();
     pintarIngresos();
     pintarGastos();
