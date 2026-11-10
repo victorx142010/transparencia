@@ -69,5 +69,6 @@ jobs:
             echo "Sin cambios en los datos."
           else
             git commit -m "Datos actualizados $(TZ=America/Lima date +'%Y-%m-%d')"
+            git pull --rebase -X theirs origin main   # por si hubo cambios mientras corría
             git push
           fi
