@@ -20,7 +20,8 @@ scripts/                   Scrapers en Python
 | Sección | Fuente oficial | Script | Archivo |
 |---|---|---|---|
 | Impuestos | API de BCRPData: ingresos tributarios del Gobierno Central (datos de SUNAT y MEF), mensual | `actualizar_recaudacion.py` | `data/recaudacion.json` |
-| ¿En qué se gasta? (hasta cada proyecto) | MEF — Datos Abiertos, *Presupuesto y Ejecución de Gasto* (CSV diario de ~2.6 GB) | `actualizar_presupuesto.py` | `data/presupuesto.json`, `data/gasto/<funcion>.json` |
+| Gastos: por función, por entidad (~2,900 unidades ejecutoras), por partida específica y por proyecto (CUI) | MEF — Datos Abiertos, *Presupuesto y Ejecución de Gasto* (CSV diario de ~2.6 GB) | `actualizar_presupuesto.py` | `data/presupuesto.json`, `data/gasto/`, `data/entidades.json`, `data/entidades/`, `data/partidas.json` |
+| Contratos y proveedores | OECE — Portal de Contrataciones Abiertas (OCDS, paquetes CSV mensuales) | `actualizar_contratos.py` | `data/contratos.json`, `data/contratos/<mes>.json` |
 | Obras paralizadas | Contraloría — *Informe de obras paralizadas* (anexo Excel, trimestral, en gob.pe) | `actualizar_obras.py` | `data/obras.json` |
 | Sueldos por persona | Portal de Transparencia Estándar → Personal (CSV oficial de cada entidad, mensual) | `actualizar_sueldos.py` | `data/sueldos.json`, `data/sueldos/<id>.json` |
 | Congreso | Actas del Pleno en senado.congreso.gob.pe y diputados.congreso.gob.pe (PDF) | `actualizar_congreso.py` | `data/congreso.json` |
@@ -42,9 +43,11 @@ pip install -r scripts/requirements.txt
 cd scripts
 python actualizar_recaudacion.py   # segundos
 python actualizar_presupuesto.py   # ~10 min, descarga 2.6 GB en streaming
-python actualizar_sueldos.py       # ~15 min, 30 entidades
+python actualizar_sueldos.py       # ~40 min, ~80 entidades
 python actualizar_congreso.py      # solo lee actas nuevas
 python actualizar_proyectos.py     # ~1 min
+python actualizar_obras.py         # segundos
+python actualizar_contratos.py     # ~10 min, 11 paquetes mensuales
 python actualizar_visitas.py       # solo consulta los días nuevos
 ```
 

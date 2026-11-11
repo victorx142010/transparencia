@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=202611110950">
+  <link rel="stylesheet" href="css/styles.css?v=202611111021">
 </head>
 <body>
   <a class="saltar" href="#contenido">Saltar al contenido</a>
@@ -30,6 +30,8 @@
       <a href="#inicio">Inicio</a>
       <a href="#ingresos">Impuestos</a>
       <a href="#gastos">Gastos</a>
+      <a href="#entidades">Tu municipio</a>
+      <a href="#contratos">Contratos</a>
       <a href="#sueldos">Sueldos</a>
       <a href="#congreso">Congreso</a>
       <a href="#leyes">Leyes</a>
@@ -63,6 +65,9 @@
       <div class="temas">
         <a class="tema" href="#ingresos"><span class="tema__icono" aria-hidden="true">🧾</span><span class="tema__t">¿Cuánto entra?</span><span class="tema__d">Los impuestos que pagamos todos</span></a>
         <a class="tema" href="#gastos"><span class="tema__icono" aria-hidden="true">🏗️</span><span class="tema__t">¿En qué se gasta?</span><span class="tema__d">Educación, salud, obras, deuda…</span></a>
+        <a class="tema" href="#entidades"><span class="tema__icono" aria-hidden="true">🏘️</span><span class="tema__t">¿Cuánto gasta tu municipio?</span><span class="tema__d">Municipalidades, regiones, UGEL y hospitales</span></a>
+        <a class="tema" href="#contratos"><span class="tema__icono" aria-hidden="true">🤝</span><span class="tema__t">Contratos</span><span class="tema__d">A qué empresas les paga el Estado</span></a>
+        <a class="tema" href="#gastos-partidas"><span class="tema__icono" aria-hidden="true">🛒</span><span class="tema__t">¿Qué se compra?</span><span class="tema__d">Pasajes, publicidad, combustible…</span></a>
         <a class="tema" href="#sueldos"><span class="tema__icono" aria-hidden="true">💵</span><span class="tema__t">Sueldos</span><span class="tema__d">Cuánto gana cada autoridad</span></a>
         <a class="tema" href="#congreso"><span class="tema__icono" aria-hidden="true">🏛️</span><span class="tema__t">Congreso</span><span class="tema__d">¿Van a trabajar senadores y diputados?</span></a>
         <a class="tema" href="#leyes"><span class="tema__icono" aria-hidden="true">📜</span><span class="tema__t">Proyectos de ley</span><span class="tema__d">Qué leyes proponen y quién las firma</span></a>
@@ -155,6 +160,21 @@
         </div>
         <nav class="migas" id="exp-migas" aria-label="Nivel del explorador"></nav>
         <div id="exp-contenido"></div>
+      </div>
+
+      <div class="tarjeta" id="partidas-card">
+        <div class="tarjeta__cabeza">
+          <h2 id="gastos-partidas">🛒 ¿Qué se compra exactamente?</h2>
+          <span class="chip-dato" id="partidas-total"></span>
+        </div>
+        <p class="ayuda">Todo el presupuesto del Estado (nacional, regiones y municipios) por <strong>partida específica</strong>: el nivel más detallado de "en qué" se gasta. Toca un tema rápido o busca.</p>
+        <div class="chips" id="partidas-chips"></div>
+        <div class="filtros">
+          <label class="campo"><span>Buscar partida</span><input type="search" id="partidas-q" placeholder="Pasajes, publicidad, combustible, alimentos…" autocomplete="off"></label>
+          <label class="campo"><span>Tipo de gasto</span><select id="partidas-gen" class="select-grande"><option value="">Todos</option></select></label>
+        </div>
+        <div id="partidas-lista" class="barras"></div>
+        <button type="button" class="boton boton--secundario" id="partidas-mas" hidden>Ver más</button>
       </div>
     </section>
 
@@ -298,6 +318,60 @@
         <h2>Sesiones leídas</h2>
         <div id="sesiones-congreso" class="tabla-scroll"></div>
         <p class="fuente" id="congreso-fuente"></p>
+      </div>
+    </section>
+
+    <!-- ===================== ENTIDADES ===================== -->
+    <section id="entidades" class="vista" aria-labelledby="t-entidades" hidden>
+      <p class="eyebrow">🏘️ Quién gasta</p>
+      <h1 id="t-entidades">¿Cuánto gasta tu municipalidad, tu región o tu hospital?</h1>
+      <p class="intro">Elige cualquiera de las <strong id="ent-n">2,800</strong> entidades que manejan presupuesto (municipalidades, gobiernos regionales, UGEL, hospitales, ministerios…) y mira cuánto tiene, cuánto gastó, <strong>qué compra</strong> y en qué <strong>proyectos</strong>.</p>
+      <div class="tarjeta">
+        <div class="filtros filtros--3">
+          <label class="campo"><span>Buscar entidad o distrito</span><input type="search" id="ent-q" placeholder="Ej.: Municipalidad de Miraflores, UGEL, hospital…" autocomplete="off"></label>
+          <label class="campo"><span>Departamento</span><select id="ent-dep" class="select-grande"><option value="">Todos</option></select></label>
+          <label class="campo"><span>Tipo</span><select id="ent-nivel" class="select-grande">
+            <option value="">Todas</option><option value="GOBIERNOS LOCALES">Municipalidades</option>
+            <option value="GOBIERNOS REGIONALES">Gobiernos regionales (incl. UGEL y hospitales)</option>
+            <option value="GOBIERNO NACIONAL">Gobierno nacional</option></select></label>
+        </div>
+        <p class="ayuda" id="ent-conteo"></p>
+        <div id="ent-lista" class="entidades-lista"></div>
+        <button type="button" class="boton boton--secundario" id="ent-mas" hidden>Ver más</button>
+      </div>
+      <div class="tarjeta tarjeta--explorador" id="ent-detalle" hidden></div>
+    </section>
+
+    <!-- ===================== CONTRATOS ===================== -->
+    <section id="contratos" class="vista" aria-labelledby="t-contratos" hidden>
+      <p class="eyebrow">🤝 Contrataciones del Estado</p>
+      <h1 id="t-contratos">¿A quién le paga el Estado?</h1>
+      <p class="intro" id="con-intro"></p>
+      <div class="kpis kpis--4" id="con-kpis"></div>
+      <div class="dos-col">
+        <div class="tarjeta">
+          <div class="tarjeta__cabeza"><h2>Empresas que más contratos ganaron</h2></div>
+          <p class="ayuda">Monto total adjudicado en el año. Muchos son consorcios formados para una sola obra.</p>
+          <div id="con-proveedores" class="barras"></div>
+        </div>
+        <div class="tarjeta">
+          <h2>Entidades que más contrataron</h2>
+          <p class="ayuda">Monto total adjudicado por cada entidad compradora.</p>
+          <div id="con-entidades" class="barras"></div>
+        </div>
+      </div>
+      <div class="tarjeta">
+        <h2>Busca cualquier contrato</h2>
+        <p class="ayuda">Busca por empresa, RUC, entidad o lo que se compró. La primera búsqueda descarga todos los contratos del año (puede tardar unos segundos).</p>
+        <div class="filtros filtros--3">
+          <label class="campo"><span>Buscar</span><input type="search" id="con-q" placeholder="Empresa, RUC, entidad, &quot;ambulancia&quot;, &quot;colegio&quot;…" autocomplete="off"></label>
+          <label class="campo"><span>Tipo</span><select id="con-cat" class="select-grande"><option value="">Todos</option><option>Obras</option><option>Servicios</option><option>Bienes</option><option>Consultoría</option></select></label>
+          <label class="campo"><span>Ordenar</span><select id="con-orden" class="select-grande"><option value="monto">Mayor monto</option><option value="fecha">Más recientes</option></select></label>
+        </div>
+        <p class="ayuda" id="con-conteo"></p>
+        <div id="con-lista" class="proyectos"></div>
+        <button type="button" class="boton boton--secundario" id="con-mas" hidden>Ver más</button>
+        <p class="fuente" id="con-fuente"></p>
       </div>
     </section>
 
@@ -456,8 +530,8 @@
     </div>
   </footer>
 
-  <script src="js/datos.js?v=202611110950"></script>
-  <script src="js/arbol.js?v=202611110950"></script>
-  <script src="js/app.js?v=202611110950"></script>
+  <script src="js/datos.js?v=202611111021"></script>
+  <script src="js/arbol.js?v=202611111021"></script>
+  <script src="js/app.js?v=202611111021"></script>
 </body>
 </html>

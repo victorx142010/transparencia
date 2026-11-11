@@ -5,6 +5,10 @@ y lo resume en:
   data/gasto/<funcion>.json     detalle de cada función para "bajar de nivel":
                                 división → grupo → en qué se gasta, actividades y
                                 cada proyecto de inversión (con su CUI)
+  data/entidades.json           índice de las ~2,800 unidades ejecutoras (quién gasta)
+  data/entidades/<depto>.json   detalle de cada unidad ejecutora: en qué gasta, qué
+                                compra (partida específica), para qué y sus proyectos
+  data/partidas.json            gasto nacional por partida específica (qué se compra)
 
 El archivo pesa ~2.6 GB, así que se procesa en streaming (sin guardarlo en disco).
 
@@ -26,6 +30,8 @@ from comun import DATA, ahora_lima, guardar_json, http
 
 URL = "https://fs.datosabiertos.mef.gob.pe/datastorefiles/{anio}-Gasto-Devengado-Diario.csv"
 TOP_ACTIVIDADES = 15
+TOP_ESPECIFICAS = 15
+TOP_PROYECTOS_ENTIDAD = 150
 
 csv.field_size_limit(10_000_000)
 
@@ -69,6 +75,8 @@ def main():
     c_sector, c_pliego, c_gen, c_dep = i["SECTOR_NOMBRE"], i["PLIEGO_NOMBRE"], i["GENERICA_NOMBRE"], i["DEPARTAMENTO_META_NOMBRE"]
     c_tipo, c_cui, c_proy, c_act, c_ejec = (i["TIPO_ACT_PROY"], i["PRODUCTO_PROYECTO"], i["PRODUCTO_PROYECTO_NOMBRE"],
                                             i["ACTIVIDAD_ACCION_OBRA_NOMBRE"], i["EJECUTORA_NOMBRE"])
+    c_sec, c_dep_ej, c_prov_ej, c_dist_ej = i["SEC_EJEC"], i["DEPARTAMENTO_EJECUTORA_NOMBRE"], i["PROVINCIA_EJECUTORA_NOMBRE"], i["DISTRITO_EJECUTORA_NOMBRE"]
+    c_esp, c_subgen = i["ESPECIFICA_DET_NOMBRE"], i["SUBGENERICA_NOMBRE"]
     c_meses = [i[f"MONTO_DEVENGADO_{m}"] for m in (
         "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO",
         "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE")]
@@ -82,6 +90,16 @@ def main():
     actividades = defaultdict(nuevo)         # (fun, div, grp, actividad)
     proyectos = {}                           # (fun, div, grp, cui, ejecutora) -> [nombre, depto, pia, pim, dev]
     meses = [0.0] * 12
+    # Quién gasta (unidad ejecutora) y qué se compra (partida específica)
+    ej_info = {}                             # sec -> [nombre, pliego, nivel, depto, prov, dist]
+    ej_acc = defaultdict(nuevo)              # sec
+    ej_gen = defaultdict(nuevo)              # (sec, genérica)
+    ej_esp = defaultdict(nuevo)              # (sec, específica)
+    ej_fun = defaultdict(nuevo)              # (sec, función)
+    ej_pry = {}                              # (sec, cui) -> [nombre, función, pia, pim, dev]
+    esp_nac = defaultdict(nuevo)             # (genérica, específica)
+    esp_niv = defaultdict(nuevo)             # (específica, nivel)
+    grp_esp = defaultdict(nuevo)             # (fun, div, grp, específica)
 
     n = 0
     for fila in lector:
@@ -93,7 +111,19 @@ def main():
                     gen_grupo[(fun, div, grp, fila[c_gen])], dep_grupo[(fun, div, grp, fila[c_dep])],
                     sectores[fila[c_sector]], pliegos[fila[c_pliego]], genericas[fila[c_gen]], deptos[fila[c_dep]]):
             sumar(acc, v)
+        sec, esp, gen = fila[c_sec], fila[c_esp].strip(), fila[c_gen].strip()
+        if sec not in ej_info:
+            ej_info[sec] = [fila[c_ejec].strip(), fila[c_pliego].strip(), fila[c_nivel].strip(),
+                            fila[c_dep_ej].strip(), fila[c_prov_ej].strip(), fila[c_dist_ej].strip()]
+        for acc in (ej_acc[sec], ej_gen[(sec, gen)], ej_esp[(sec, esp)], ej_fun[(sec, fun)],
+                    esp_nac[(gen, esp)], esp_niv[(esp, fila[c_nivel])], grp_esp[(fun, div, grp, esp)]):
+            sumar(acc, v)
         if fila[c_tipo] == "PROYECTO":
+            kp = (sec, fila[c_cui])
+            q = ej_pry.get(kp)
+            if q is None:
+                q = ej_pry[kp] = [fila[c_proy].strip(), fun, 0.0, 0.0, 0.0]
+            q[2] += v[0]; q[3] += v[1]; q[4] += v[2]
             k = (fun, div, grp, fila[c_cui], fila[c_ejec])
             p = proyectos.get(k)
             if p is None:
@@ -129,7 +159,10 @@ def main():
     idx_grp = defaultdict(list)
     for (f, d, g) in grupos:
         idx_grp[(f, d)].append(g)
-    idx_gen, idx_dep, idx_act, idx_pry = (defaultdict(list) for _ in range(4))
+    idx_gen, idx_dep, idx_act, idx_pry, idx_esp = (defaultdict(list) for _ in range(5))
+    for (f, d, g, x), acc in grp_esp.items():
+        if acc[1] > 0 or acc[2] > 0:
+            idx_esp[(f, d, g)].append([x, round(acc[1]), round(acc[2])])
     for (f, d, g, x), acc in gen_grupo.items():
         idx_gen[(f, d, g)].append([x.strip(), round(acc[1]), round(acc[2])])
     for (f, d, g, x), acc in dep_grupo.items():
@@ -153,6 +186,7 @@ def main():
                 grps.append({
                     "nombre": g, **R(grupos[k]),
                     "genericas": sorted(idx_gen[k], key=lambda x: -x[1]),
+                    "especificas": sorted(idx_esp[k], key=lambda x: -x[1])[:TOP_ESPECIFICAS],
                     "departamentos": sorted(idx_dep[k], key=lambda x: -x[1]),
                     "actividades": sorted(idx_act[k], key=lambda x: -x[1])[:TOP_ACTIVIDADES],
                     "proyectos": sorted(idx_pry[k], key=lambda x: -x[5]),
@@ -164,6 +198,56 @@ def main():
             "divisiones": sorted(divs, key=lambda x: -x["pim"]),
         })
 
+    # ---------- Quién gasta: unidades ejecutoras ----------
+    os.makedirs(os.path.join(DATA, "entidades"), exist_ok=True)
+    por_sec = defaultdict(lambda: {"gen": [], "esp": [], "fun": [], "pry": []})
+    for (s, x), a in ej_gen.items():
+        por_sec[s]["gen"].append([x, round(a[1]), round(a[2])])
+    for (s, x), a in ej_esp.items():
+        if a[1] > 0 or a[2] > 0:
+            por_sec[s]["esp"].append([x, round(a[1]), round(a[2])])
+    for (s, x), a in ej_fun.items():
+        por_sec[s]["fun"].append([x, round(a[1]), round(a[2])])
+    for (s, cui), q in ej_pry.items():
+        if q[3] > 0 or q[4] > 0:
+            por_sec[s]["pry"].append([cui, q[0], q[1], round(q[2]), round(q[3]), round(q[4])])
+    indice, por_depto = [], defaultdict(list)
+    for s, info in ej_info.items():
+        a = ej_acc[s]
+        if a[1] <= 0 and a[2] <= 0:
+            continue
+        nombre, pliego, nivel, dep, prov, dist = info
+        ds = slug(dep) or "otros"
+        x = por_sec[s]
+        pry = sorted(x["pry"], key=lambda r: -r[4])
+        indice.append([s, nombre, pliego, nivel, dep, prov, dist, round(a[1]), round(a[2]), len(pry), ds])
+        por_depto[ds].append({
+            "id": s, "nombre": nombre, "pliego": pliego, "nivel": nivel, "departamento": dep, "provincia": prov, "distrito": dist,
+            **R(a),
+            "genericas": sorted(x["gen"], key=lambda r: -r[1]),
+            "especificas": sorted(x["esp"], key=lambda r: -r[1])[:40],
+            "funciones": sorted(x["fun"], key=lambda r: -r[1]),
+            "proyectos": pry[:TOP_PROYECTOS_ENTIDAD], "totalProyectos": len(pry),
+        })
+    for ds, lst in por_depto.items():
+        guardar_json(f"entidades/{ds}.json", {"anio": args.anio, "entidades": lst})
+    guardar_json("entidades.json", {
+        "anio": args.anio, "actualizado": ahora_lima().isoformat(timespec="minutes"),
+        "campos": ["id", "nombre", "pliego", "nivel", "departamento", "provincia", "distrito", "pim", "dev", "proyectos", "archivo"],
+        "entidades": sorted(indice, key=lambda r: -r[7]),
+    })
+
+    # ---------- Qué se compra: partidas específicas a nivel nacional ----------
+    niv_esp = defaultdict(dict)
+    for (e, nv), a in esp_niv.items():
+        niv_esp[e][nv] = [round(a[1]), round(a[2])]
+    partidas = [[g, e, round(a[0]), round(a[1]), round(a[2]), niv_esp.get(e, {})] for (g, e), a in esp_nac.items() if a[1] > 0 or a[2] > 0]
+    guardar_json("partidas.json", {
+        "anio": args.anio, "actualizado": ahora_lima().isoformat(timespec="minutes"),
+        "campos": ["generica", "especifica", "pia", "pim", "dev", "porNivel"],
+        "partidas": sorted(partidas, key=lambda r: -r[3]),
+    })
+
     datos = {
         "anio": args.anio,
         "actualizado": ahora_lima().isoformat(timespec="minutes"),
@@ -171,6 +255,7 @@ def main():
         "parcial": bool(args.max_filas),
         "fuente": url,
         "filas": n,
+        "entidades": len(indice),
         "total": R(total),
         "devengadoMensual": [round(x) for x in meses],
         "niveles": lista(niveles),

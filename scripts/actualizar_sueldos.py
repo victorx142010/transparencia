@@ -63,6 +63,57 @@ ENTIDADES = [
     (146, "Banco Central de Reserva del Perú", "Organismos autónomos"),
     # SUNAT (id 83) no publica montos en el PTE: remite a su propia web.
     (1434, "Municipalidad Metropolitana de Lima", "Gobiernos locales"),
+    (11796, "Gobierno Regional de Amazonas", "Gobiernos regionales"),
+    (10129, "Gobierno Regional de Áncash", "Gobiernos regionales"),
+    (10130, "Gobierno Regional de Apurímac", "Gobiernos regionales"),
+    (10131, "Gobierno Regional de Arequipa", "Gobiernos regionales"),
+    (10135, "Gobierno Regional de Ayacucho", "Gobiernos regionales"),
+    (10137, "Gobierno Regional de Cajamarca", "Gobiernos regionales"),
+    (180, "Gobierno Regional de Callao", "Gobiernos regionales"),
+    (10139, "Gobierno Regional de Cusco", "Gobiernos regionales"),
+    (10142, "Gobierno Regional de Huancavelica", "Gobiernos regionales"),
+    (10146, "Gobierno Regional de Huánuco", "Gobiernos regionales"),
+    (10147, "Gobierno Regional de Ica", "Gobiernos regionales"),
+    (10148, "Gobierno Regional de Junín", "Gobiernos regionales"),
+    (10149, "Gobierno Regional de La Libertad", "Gobiernos regionales"),
+    (10151, "Gobierno Regional de Lambayeque", "Gobiernos regionales"),
+    (10012, "Gobierno Regional de Lima (provincias)", "Gobiernos regionales"),
+    (10152, "Gobierno Regional de Loreto", "Gobiernos regionales"),
+    (10153, "Gobierno Regional de Madre de Dios", "Gobiernos regionales"),
+    (10154, "Gobierno Regional de Moquegua", "Gobiernos regionales"),
+    (10157, "Gobierno Regional de Pasco", "Gobiernos regionales"),
+    (10161, "Gobierno Regional de Piura", "Gobiernos regionales"),
+    (10163, "Gobierno Regional de Puno", "Gobiernos regionales"),
+    (10166, "Gobierno Regional de San Martín", "Gobiernos regionales"),
+    (10167, "Gobierno Regional de Tacna", "Gobiernos regionales"),
+    (10170, "Gobierno Regional de Tumbes", "Gobiernos regionales"),
+    (10174, "Gobierno Regional de Ucayali", "Gobiernos regionales"),
+    (193, "Municipalidad Provincial de Chachapoyas", "Gobiernos locales"),
+    (11824, "Municipalidad Provincial de Huaraz", "Gobiernos locales"),
+    (11851, "Municipalidad Provincial de Abancay", "Gobiernos locales"),
+    (11859, "Municipalidad Provincial de Arequipa", "Gobiernos locales"),
+    (11868, "Municipalidad Provincial de Huamanga (Ayacucho)", "Gobiernos locales"),
+    (739, "Municipalidad Provincial de Cajamarca", "Gobiernos locales"),
+    (866, "Municipalidad Provincial de Callao", "Gobiernos locales"),
+    (872, "Municipalidad Provincial de Cusco", "Gobiernos locales"),
+    (980, "Municipalidad Provincial de Huancavelica", "Gobiernos locales"),
+    (1073, "Municipalidad Provincial de Huánuco", "Gobiernos locales"),
+    (1147, "Municipalidad Provincial de Ica", "Gobiernos locales"),
+    (1190, "Municipalidad Provincial de Huancayo", "Gobiernos locales"),
+    (1313, "Municipalidad Provincial de Trujillo", "Gobiernos locales"),
+    (1396, "Municipalidad Provincial de Chiclayo", "Gobiernos locales"),
+    (1605, "Municipalidad Provincial de Maynas (Iquitos)", "Gobiernos locales"),
+    (1652, "Municipalidad Provincial de Tambopata (Puerto Maldonado)", "Gobiernos locales"),
+    (1662, "Municipalidad Provincial de Mariscal Nieto (Moquegua)", "Gobiernos locales"),
+    (1682, "Municipalidad Provincial de Pasco", "Gobiernos locales"),
+    (1710, "Municipalidad Provincial de Piura", "Gobiernos locales"),
+    (1772, "Municipalidad Provincial de Puno", "Gobiernos locales"),
+    (12195, "Municipalidad Provincial de Moyobamba", "Gobiernos locales"),
+    (1957, "Municipalidad Provincial de Tacna", "Gobiernos locales"),
+    (1983, "Municipalidad Provincial de Tumbes", "Gobiernos locales"),
+    (1995, "Municipalidad Provincial de Coronel Portillo (Pucallpa)", "Gobiernos locales"),
+    (107, "EsSalud", "Organismos autónomos"),
+    (10428, "Universidad Nacional Mayor de San Marcos", "Universidades"),
 ]
 REGIMEN = {"1": "CAS", "2": "D. Leg. 276", "3": "728 / otros", "4": "PAC", "5": "FAG", "6": "PNUD",
            "7": "Alto funcionario", "8": "Pensionista", "9": "Ley Servir"}
@@ -143,6 +194,14 @@ def main():
                 filas = []
             if filas:
                 periodo = f"{a}-{m:02d}"
+                # Si el mes recién empezó a publicarse (muy pocas filas), usar el anterior
+                pa, pm = (a, m - 1) if m > 1 else (a - 1, 12)
+                try:
+                    previas = descargar(id_ent, pa, pm)
+                except Exception:
+                    previas = []
+                if len(previas) > 1.5 * len(filas):
+                    filas, periodo = previas, f"{pa}-{pm:02d}"
                 break
             m -= 1
             if m == 0:

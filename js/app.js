@@ -82,7 +82,7 @@
       return {
         anio: mef.anio, oficial: true, parcial: mef.parcial,
         pia: mef.total.pia / M, pim: mef.total.pim / M, dev: mef.total.dev / M,
-        corte: mef.corteMEF ? new Date(mef.corteMEF) : null,
+        corte: mef.corteMEF ? new Date(mef.corteMEF) : null, nEntidades: mef.entidades || 0,
         fuente: { nombre: "MEF — Datos Abiertos, Presupuesto y Ejecución de Gasto " + mef.anio, url: mef.fuente },
         niveles: mef.niveles.map((n) => ({
           nombre: { "GOBIERNO NACIONAL": "Gobierno Nacional (ministerios, Congreso, Poder Judicial…)", "GOBIERNOS REGIONALES": "Gobiernos Regionales", "GOBIERNOS LOCALES": "Municipalidades" }[n.nombre] || bonito(n.nombre),
@@ -189,6 +189,10 @@
     }
     if (PROY) kpis.push(["Proyectos de ley presentados", nf0.format(PROY.total), `${nf0.format(contarLeyes())} ya publicados como ley · desde jul. 2026`, "#leyes"]);
     if (VIS) kpis.push(["Reuniones con la Presidencia", nf0.format(VIS.totalPresidencia), `desde el ${fechaLarga(VIS.desde)} · ${nf0.format(VIS.total)} visitas a Palacio`, "#visitas"]);
+    if (CON) kpis.push(["Contratos adjudicados " + CON.anio, millones(CON.monto / 1e6), `${nf0.format(CON.total)} contratos con ${nf0.format(CON.proveedoresDistintos)} empresas`, "#contratos"]);
+    if (OBRAS) kpis.push(["Obras paralizadas", nf0.format(OBRAS.total), `falta ejecutar ${millones(OBRAS.saldoObras / 1e6)} · Contraloría`, "#obras"]);
+    if (PR.oficial) kpis.push(["Entidades que gastan", nf0.format(PR.nEntidades || 0) || "—", "municipios, regiones, UGEL, hospitales… búscalas", "#entidades"]);
+    if (PR.oficial) kpis.push(["Proyectos de inversión " + PR.anio, nf0.format(PR.funciones.reduce((a, f) => a + (f.proyectos || 0), 0)), "con su avance y presupuesto, uno por uno", "#gastos"]);
     if (SUE) kpis.push(["Personas en planillas revisadas", nf0.format(SUE.entidades.reduce((a, e) => a + e.personas, 0)), `${SUE.entidades.length} entidades del Estado`, "#sueldos"]);
     $("#kpis").innerHTML = kpis.map(kpiHTML).join("");
   }
@@ -446,6 +450,8 @@
           <p class="ayuda">"Personal" son sueldos; "bienes y servicios", compras y contratos; "activos no financieros", obras y equipos.</p></div>
         <div><h3 class="exp-sub">¿Dónde se gasta?</h3><div class="barras">${porDep}</div></div>
       </div>
+      ${grp.especificas && grp.especificas.length ? `<h3 class="exp-sub">¿Qué se compra exactamente? <small>(partidas específicas)</small></h3>
+      <ul class="actividades">${grp.especificas.map(([n, pim, dev]) => `<li><span>${esc(bonito(n))}</span><b>${corto(pim / M)}</b><small>${nf0.format(avance(dev, pim))}% gastado</small></li>`).join("")}</ul>` : ""}
       <h3 class="exp-sub">Actividades permanentes <small>(lo que se paga todos los años: sueldos, mantenimiento, servicios)</small></h3>${acts}
       <h3 class="exp-sub" id="exp-proy-t">Proyectos de inversión (${nf0.format(grp.proyectos.length)})${paralizadas ? ` · <span class="etapa etapa--fin">${paralizadas} con obra paralizada</span>` : ""}</h3>
       <p class="ayuda">Obras y proyectos con presupuesto este año. La barra muestra cuánto de su presupuesto ya se gastó (avance financiero). Las obras marcadas como paralizadas vienen del último informe de la Contraloría.</p>
@@ -540,6 +546,253 @@
   $("#obras-dep").addEventListener("change", (e) => { OB.dep = e.target.value; OB.n = 30; OBRAS && pintarListaObras(); });
   $("#obras-causal").addEventListener("change", (e) => { OB.causal = e.target.value; OB.n = 30; OBRAS && pintarListaObras(); });
   $("#mas-obras").addEventListener("click", () => { OB.n += 30; pintarListaObras(); });
+
+  // ---------- Tarjeta de proyecto reutilizable ----------
+  function tarjetaProyecto(cui, nombre, sub, pim, dev) {
+    const av = avance(dev, pim);
+    const obra = OBRAS_CUI.get(cui);
+    const etiqueta = obra ? `<span class="etapa etapa--fin">Obra paralizada · ${nf0.format(obra.avance)}% avance físico</span>`
+      : pim > 0 && dev === 0 ? '<span class="etapa etapa--avanza">Sin gasto este año</span>'
+      : av < 30 ? '<span class="etapa etapa--avanza">Avance bajo</span>' : av >= 95 ? '<span class="etapa etapa--ley">Casi todo gastado</span>' : "";
+    return `<article class="proyecto">
+      <div class="ley__cab"><span class="ley__num">CUI ${esc(cui)}</span>${etiqueta}</div>
+      <p class="ley__titulo">${esc(fraseL(nombre))}</p>
+      ${sub ? `<p class="ley__meta">${esc(sub)}</p>` : ""}
+      <div class="proyecto__montos"><span>Presupuesto ${soles(pim)}</span><span>Gastado ${soles(dev)} (${nf0.format(av)}%)</span></div>
+      <div class="pista" aria-hidden="true"><div class="pista__barra pista__barra--suave" style="width:100%"><div class="pista__gastado" style="width:${av.toFixed(1)}%"></div></div></div>
+      ${obra ? `<p class="proyecto__alerta">⚠️ La Contraloría reporta esta obra como <strong>paralizada</strong>. Causa: ${esc(obra.causal || "no registrada")}. Falta ejecutar ${soles(obra.saldo)}.</p>` : ""}
+      <a class="ley__link" href="${SSI(cui)}" target="_blank" rel="noopener">Ver ficha oficial del proyecto (MEF) ↗</a>
+    </article>`;
+  }
+  function ordenarProyectos(lista, orden, iPim, iDev) {
+    if (orden === "lento") return lista.filter((p) => p[iPim] >= 100000).sort((a, b) => avance(a[iDev], a[iPim]) - avance(b[iDev], b[iPim]) || b[iPim] - a[iPim]);
+    if (orden === "paralizadas") return lista.filter((p) => OBRAS_CUI.has(p[0]));
+    if (orden === "sinavance") return lista.filter((p) => p[iPim] > 0 && p[iDev] === 0).sort((a, b) => b[iPim] - a[iPim]);
+    return [...lista].sort((a, b) => b[iPim] - a[iPim]);
+  }
+
+  // ---------- ENTIDADES: quién gasta ----------
+  let ENT = null, entActual = null;
+  const cacheEnt = {};
+  const EN = { q: "", dep: "", nivel: "", n: 30, pq: "", porden: "pim", pn: 20 };
+  const NIVEL_TXT = { "GOBIERNO NACIONAL": "Gobierno nacional", "GOBIERNOS REGIONALES": "Gobierno regional", "GOBIERNOS LOCALES": "Municipalidad" };
+
+  async function prepararEntidades() {
+    if (ENT) return true;
+    $("#ent-lista").innerHTML = '<p class="vacio">Cargando entidades…</p>';
+    ENT = await cargar("entidades.json");
+    if (!ENT) { $("#ent-lista").innerHTML = '<p class="vacio">Aún no hay datos de entidades.</p>'; return false; }
+    $("#ent-n").textContent = nf0.format(ENT.entidades.length);
+    const deps = [...new Set(ENT.entidades.map((e) => e[4]).filter(Boolean))].sort();
+    $("#ent-dep").innerHTML = '<option value="">Todos</option>' + deps.map((d) => `<option value="${esc(d)}">${esc(propio(d))}</option>`).join("");
+    pintarListaEntidades();
+    return true;
+  }
+  function pintarListaEntidades() {
+    const q = normal(EN.q.trim());
+    const lista = ENT.entidades.filter((e) => (!EN.dep || e[4] === EN.dep) && (!EN.nivel || e[3] === EN.nivel) &&
+      (!q || normal(`${e[1]} ${e[2]} ${e[5]} ${e[6]}`).includes(q)));
+    $("#ent-conteo").textContent = `${nf0.format(lista.length)} entidades · ordenadas por presupuesto`;
+    const max = Math.max(1, ...lista.slice(0, EN.n).map((e) => e[7]));
+    $("#ent-lista").innerHTML = lista.length ? lista.slice(0, EN.n).map((e) => `
+      <button type="button" class="fila-btn" data-ent-id="${esc(e[0])}">
+        <div class="fila__top"><span class="fila__nombre">${esc(propio(e[1]))} ›</span>
+          <span class="fila__valor">${corto(e[7] / 1e6)}<span class="fila__pct">${nf0.format(avance(e[8], e[7]))}% gastado</span></span></div>
+        <div class="pista" aria-hidden="true"><div class="pista__barra" style="width:${Math.max(0.6, (e[7] / max) * 100).toFixed(1)}%"><div class="pista__gastado" style="width:${avance(e[8], e[7]).toFixed(1)}%"></div></div></div>
+        <span class="fila-btn__meta">${esc(NIVEL_TXT[e[3]] || e[3])} · ${esc(propio(e[6]))}, ${esc(propio(e[5]))}, ${esc(propio(e[4]))}${e[9] ? ` · ${nf0.format(e[9])} proyectos` : ""}</span>
+      </button>`).join("") : '<p class="vacio">No encontramos esa entidad. Prueba con otra palabra o quita filtros.</p>';
+    $("#ent-mas").hidden = lista.length <= EN.n;
+    $("#ent-mas").textContent = `Ver más (${nf0.format(lista.length - EN.n)} restantes)`;
+    $$("#ent-lista [data-ent-id]").forEach((b) => b.addEventListener("click", () => abrirEntidad(b.dataset.entId)));
+  }
+  async function abrirEntidad(id) {
+    if (!(await prepararEntidades())) return;
+    const fila = ENT.entidades.find((e) => e[0] === String(id));
+    if (!fila) return;
+    const box = $("#ent-detalle");
+    box.hidden = false;
+    box.innerHTML = '<p class="vacio">Cargando el detalle…</p>';
+    box.scrollIntoView({ behavior: "smooth", block: "start" });
+    const arch = fila[10];
+    if (!cacheEnt[arch]) cacheEnt[arch] = await cargar(`entidades/${arch}.json`);
+    const e = cacheEnt[arch] && cacheEnt[arch].entidades.find((x) => x.id === fila[0]);
+    if (!e) { box.innerHTML = '<p class="vacio">No se pudo cargar el detalle.</p>'; return; }
+    entActual = e; EN.pq = ""; EN.porden = "pim"; EN.pn = 20;
+    try { history.replaceState(null, "", "#entidades?id=" + encodeURIComponent(e.id)); } catch (er) {}
+    pintarEntidad();
+  }
+  function pintarEntidad() {
+    const e = entActual, M = 1e6, box = $("#ent-detalle");
+    const sueldo = SUE && SUE.entidades.find((s) => clave(s.nombre) === clave(e.nombre) || clave(e.nombre).includes(clave(s.nombre).replace(/^(gobiernoregionalde|municipalidadprovincialde)/, "")) && clave(s.nombre).length > 25 && clave(e.nombre).startsWith(clave(s.nombre).slice(0, 12)));
+    const maxG = Math.max(1, ...e.genericas.map((g) => g[1]));
+    const maxF = Math.max(1, ...e.funciones.map((g) => g[1]));
+    box.innerHTML = `
+      <div class="tarjeta__cabeza">
+        <div><h2>${esc(propio(e.nombre))}</h2>
+          <p class="ayuda">${esc(NIVEL_TXT[e.nivel] || e.nivel)} · ${esc(propio(e.distrito))}, ${esc(propio(e.provincia))}, ${esc(propio(e.departamento))}${e.pliego ? ` · ${esc(propio(e.pliego))}` : ""}</p></div>
+        <div class="controles">
+          <button type="button" class="boton boton--secundario boton--chico" id="ent-copiar">🔗 Copiar enlace</button>
+          <button type="button" class="boton boton--secundario boton--chico" id="ent-cerrar">Cerrar ✕</button>
+        </div>
+      </div>
+      <div class="kpis kpis--4">${[
+        ["Presupuesto actual", millones(e.pim / M), `aprobado al inicio: ${millones(e.pia / M)}`],
+        ["Ya gastado", millones(e.dev / M), `${nf1.format(avance(e.dev, e.pim))}% del presupuesto`],
+        ["Falta gastar", millones(Math.max(0, e.pim - e.dev) / M), "en lo que queda del año"],
+        ["Proyectos de inversión", nf0.format(e.totalProyectos), e.totalProyectos > e.proyectos.length ? `se muestran los ${e.proyectos.length} más grandes` : "con presupuesto este año"]
+      ].map(kpiHTML).join("")}</div>
+      <div class="controles controles--enlaces">
+        <a class="boton boton--secundario boton--chico" href="#contratos" id="ent-a-contratos">🤝 Ver sus contratos</a>
+        ${sueldo ? `<a class="boton boton--secundario boton--chico" href="#sueldos" id="ent-a-sueldos" data-sue="${sueldo.id}">💵 Ver sueldos de su personal</a>` : ""}
+      </div>
+      <div class="dos-col dos-col--plano">
+        <div><h3 class="exp-sub">¿En qué gasta?</h3><div class="barras">${e.genericas.filter((g) => g[1] > 0).map(([n, p, d]) => filaSimple(bonito(n), p, maxG, `${corto(p / M)} · ${nf0.format(avance(d, p))}%`)).join("")}</div></div>
+        <div><h3 class="exp-sub">¿Para qué?</h3><div class="barras">${e.funciones.filter((g) => g[1] > 0).slice(0, 10).map(([n, p]) => filaSimple(bonito(n), p, maxF, corto(p / M))).join("")}</div></div>
+      </div>
+      <h3 class="exp-sub">¿Qué compra exactamente? <small>(partidas específicas, de mayor a menor)</small></h3>
+      <ul class="actividades">${e.especificas.map(([n, p, d]) => `<li><span>${esc(bonito(n))}</span><b>${soles(p)}</b><small>gastado ${soles(d)} (${nf0.format(avance(d, p))}%)</small></li>`).join("")}</ul>
+      ${e.proyectos.length ? `
+      <h3 class="exp-sub">Proyectos de inversión</h3>
+      <div class="filtros">
+        <label class="campo"><span>Buscar proyecto</span><input type="search" id="ent-pq" placeholder="Colegio, pista, agua, CUI…" autocomplete="off"></label>
+        <label class="campo"><span>Ordenar</span><select id="ent-porden" class="select-grande">
+          <option value="pim">Más presupuesto</option><option value="lento">Menos avance</option>
+          <option value="sinavance">Sin gasto este año</option><option value="paralizadas">Solo obras paralizadas</option></select></label>
+      </div>
+      <div id="ent-proyectos" class="proyectos"></div>
+      <button type="button" class="boton boton--secundario" id="ent-pmas" hidden>Ver más</button>` : ""}
+      <p class="fuente">Fuente: MEF — Datos Abiertos, presupuesto y ejecución ${ENT.anio}. "Gastado" es el monto devengado (el bien o servicio ya se recibió).</p>`;
+    $("#ent-cerrar").addEventListener("click", () => { box.hidden = true; try { history.replaceState(null, "", "#entidades"); } catch (er) {} });
+    $("#ent-copiar").addEventListener("click", async (ev) => {
+      const url = location.origin + location.pathname + "#entidades?id=" + encodeURIComponent(e.id);
+      try { await navigator.clipboard.writeText(url); ev.target.textContent = "✓ Enlace copiado"; } catch (er) { prompt("Copia este enlace:", url); }
+    });
+    $("#ent-a-contratos").addEventListener("click", () => { CO.q = e.nombre.split("-")[0].trim(); setTimeout(() => { $("#con-q").value = CO.q; buscarContratos(); }, 50); });
+    if (sueldo) $("#ent-a-sueldos").addEventListener("click", () => setTimeout(() => { $("#sel-entidad").value = String(sueldo.id); abrirPlanilla(sueldo.id); }, 50));
+    if (e.proyectos.length) {
+      $("#ent-pq").addEventListener("input", (ev) => { EN.pq = ev.target.value; EN.pn = 20; pintarProyectosEntidad(); });
+      $("#ent-porden").addEventListener("change", (ev) => { EN.porden = ev.target.value; EN.pn = 20; pintarProyectosEntidad(); });
+      $("#ent-pmas").addEventListener("click", () => { EN.pn += 20; pintarProyectosEntidad(); });
+      pintarProyectosEntidad();
+    }
+  }
+  function pintarProyectosEntidad() {
+    const q = normal(EN.pq.trim());
+    const lista = ordenarProyectos(entActual.proyectos.filter((p) => !q || normal(p[0] + " " + p[1]).includes(q)), EN.porden, 4, 5);
+    $("#ent-proyectos").innerHTML = lista.length ? lista.slice(0, EN.pn).map((p) => tarjetaProyecto(p[0], p[1], bonito(p[2]), p[4], p[5])).join("") : '<p class="vacio">No hay proyectos que coincidan.</p>';
+    $("#ent-pmas").hidden = lista.length <= EN.pn;
+    $("#ent-pmas").textContent = `Ver más (${nf0.format(lista.length - EN.pn)} restantes)`;
+  }
+  $("#ent-q").addEventListener("input", (ev) => { EN.q = ev.target.value; EN.n = 30; ENT && pintarListaEntidades(); });
+  $("#ent-dep").addEventListener("change", (ev) => { EN.dep = ev.target.value; EN.n = 30; ENT && pintarListaEntidades(); });
+  $("#ent-nivel").addEventListener("change", (ev) => { EN.nivel = ev.target.value; EN.n = 30; ENT && pintarListaEntidades(); });
+  $("#ent-mas").addEventListener("click", () => { EN.n += 30; pintarListaEntidades(); });
+
+  // ---------- PARTIDAS: qué se compra ----------
+  let PART = null;
+  const PA = { q: "", gen: "", n: 25 };
+  const CHIPS = ["Pasajes", "Publicidad", "Combustibles", "Celebraciones", "Consultorías", "Locación de servicios", "Viáticos", "Alimentos", "Vehículos", "Medicamentos", "Seguridad y vigilancia", "Limpieza"];
+  function pintarPartidas() {
+    if (!PART) { $("#partidas-card").hidden = true; return; }
+    $("#partidas-total").textContent = `${nf0.format(PART.partidas.length)} partidas · ${PART.anio}`;
+    $("#partidas-chips").innerHTML = CHIPS.map((c) => `<button type="button" class="chip" data-chip="${esc(c)}">${esc(c)}</button>`).join("");
+    $$("#partidas-chips [data-chip]").forEach((b) => b.addEventListener("click", () => {
+      const v = b.dataset.chip.replace(/s$/, "").replace("Celebracione", "celebracion").replace("Consultoría", "consultori");
+      $("#partidas-q").value = v; PA.q = v; PA.n = 25; pintarListaPartidas();
+    }));
+    const gens = [...new Set(PART.partidas.map((p) => p[0]))];
+    $("#partidas-gen").innerHTML = '<option value="">Todos</option>' + gens.map((g) => `<option value="${esc(g)}">${esc(bonito(g))}</option>`).join("");
+    pintarListaPartidas();
+  }
+  function pintarListaPartidas() {
+    const q = normal(PA.q.trim());
+    const lista = PART.partidas.filter((p) => (!PA.gen || p[0] === PA.gen) && (!q || normal(p[1] + " " + p[0]).includes(q)));
+    const max = Math.max(1, ...lista.map((p) => p[3]));
+    const NIV = { "GOBIERNO NACIONAL": "Gobierno nacional", "GOBIERNOS REGIONALES": "Regiones", "GOBIERNOS LOCALES": "Municipios" };
+    $("#partidas-lista").innerHTML = lista.length ? lista.slice(0, PA.n).map(([g, e, pia, pim, dev, niv]) => filaHTML({
+      nombre: esc(bonito(e)), valorTexto: millones(pim / 1e6), pctTexto: `${nf0.format(avance(dev, pim))}% gastado`,
+      ancho: (pim / max) * 100, ancho2: avance(dev, pim),
+      detalle: `<p>Tipo de gasto: <strong>${esc(bonito(g))}</strong>. Presupuesto actual ${soles(pim)}; ya gastado ${soles(dev)}.</p>` +
+        `<ul class="subdiv">${Object.entries(niv).sort((a, b) => b[1][0] - a[1][0]).map(([n, [p, d]]) => `<li><span>${esc(NIV[n] || n)}</span><b>${corto(p / 1e6)} · gastado ${corto(d / 1e6)}</b></li>`).join("")}</ul>`
+    })).join("") : '<p class="vacio">No hay partidas con ese nombre.</p>';
+    $("#partidas-mas").hidden = lista.length <= PA.n;
+    $("#partidas-mas").textContent = `Ver más (${nf0.format(lista.length - PA.n)} restantes)`;
+  }
+  $("#partidas-q").addEventListener("input", (ev) => { PA.q = ev.target.value; PA.n = 25; PART && pintarListaPartidas(); });
+  $("#partidas-gen").addEventListener("change", (ev) => { PA.gen = ev.target.value; PA.n = 25; PART && pintarListaPartidas(); });
+  $("#partidas-mas").addEventListener("click", () => { PA.n += 25; pintarListaPartidas(); });
+
+  // ---------- CONTRATOS: a quién le paga el Estado ----------
+  let CON = null, CON_LISTA = null, cargandoCon = null;
+  const CO = { q: "", cat: "", orden: "monto", n: 20 };
+  const esRUC = (r) => /^\d{11}$/.test(r || "");
+  function tarjetaContrato([fecha, ent, prov, ruc, monto, objeto, metodo, cat, ocid]) {
+    return `<article class="proyecto">
+      <div class="ley__cab"><span class="ley__num">${fechaLarga(fecha)} · ${esc(cat)}</span><span class="etapa etapa--inicio">${esc(metodo)}</span></div>
+      <p class="ley__titulo">${esc(fraseL(objeto))}</p>
+      <div class="proyecto__montos"><span>${esc(propio(prov))}${esRUC(ruc) ? ` <small>(RUC ${esc(ruc)})</small>` : ""}</span><span>${soles(monto)}</span></div>
+      <p class="ley__meta">Contrató: ${esc(propio(ent))}</p>
+      <a class="ley__link" href="${CON.urlProceso}${esc(ocid.replace(/^ocds-dgv273-/, ""))}" target="_blank" rel="noopener">Ver proceso oficial (OECE) ↗</a>
+    </article>`;
+  }
+  function pintarContratos() {
+    if (!CON) { $("#con-lista").innerHTML = '<p class="vacio">Aún no hay datos de contratos.</p>'; return; }
+    $("#con-intro").innerHTML = `En <strong>${CON.anio}</strong> las entidades públicas adjudicaron <strong>${nf0.format(CON.total)} contratos</strong> por <strong>${millones(CON.monto / 1e6)}</strong> mediante procesos registrados en el SEACE (licitaciones, concursos, adjudicaciones simplificadas…). No incluye compras pequeñas de menos de 8 UIT.`;
+    const cat = Object.fromEntries(CON.porCategoria);
+    $("#con-kpis").innerHTML = [
+      ["Monto adjudicado", millones(CON.monto / 1e6), `${nf0.format(CON.total)} contratos`],
+      ["En obras", millones((cat.Obras || 0) / 1e6), pct(cat.Obras || 0, CON.monto) + " del total"],
+      ["Empresas que ganaron", nf0.format(CON.proveedoresDistintos), "proveedores distintos"],
+      ["Entidades que compraron", nf0.format(CON.entidadesDistintas), "municipios, regiones, ministerios…"]
+    ].map(kpiHTML).join("");
+    const maxP = CON.topProveedores[0][2];
+    $("#con-proveedores").innerHTML = CON.topProveedores.slice(0, 15).map(([ruc, n, m, c, e]) => filaHTML({
+      nombre: esc(propio(n)), valorTexto: corto(m / 1e6), ancho: (m / maxP) * 100,
+      detalle: `<p>${esRUC(ruc) ? `RUC ${esc(ruc)} · ` : ""}${nf0.format(c)} contrato${c === 1 ? "" : "s"} con ${nf0.format(e)} entidad${e === 1 ? "" : "es"} · total ${soles(m)}.</p><p><button type="button" class="boton boton--secundario boton--chico" data-buscar="${esc(esRUC(ruc) ? ruc : n)}">Ver sus contratos</button></p>`
+    })).join("");
+    const maxE = CON.topEntidades[0][1];
+    $("#con-entidades").innerHTML = CON.topEntidades.slice(0, 15).map(([n, m, c]) => filaHTML({
+      nombre: esc(propio(n)), valorTexto: corto(m / 1e6), ancho: (m / maxE) * 100,
+      detalle: `<p>${nf0.format(c)} contratos · total ${soles(m)}.</p><p><button type="button" class="boton boton--secundario boton--chico" data-buscar="${esc(n)}">Ver sus contratos</button></p>`
+    })).join("");
+    $$("#contratos [data-buscar]").forEach((b) => b.addEventListener("click", () => { $("#con-q").value = b.dataset.buscar; CO.q = b.dataset.buscar; buscarContratos(); $("#con-q").scrollIntoView({ behavior: "smooth", block: "center" }); }));
+    $("#con-fuente").innerHTML = `Fuente: <a href="${esc(CON.fuente)}" target="_blank" rel="noopener">OECE — Portal de Contrataciones Abiertas (estándar OCDS)</a>. Actualizado: ${new Date(CON.actualizado).toLocaleDateString("es-PE")}.`;
+    $("#con-conteo").textContent = "Los 50 contratos más grandes del año:";
+    $("#con-lista").innerHTML = CON.mayores.slice(0, 20).map(tarjetaContrato).join("");
+    $("#con-mas").hidden = true;
+  }
+  async function cargarListaContratos() {
+    if (CON_LISTA) return CON_LISTA;
+    if (!cargandoCon) cargandoCon = (async () => {
+      let hechos = 0;
+      const partes = await Promise.all(CON.archivosMes.map(async (m) => {
+        const d = await cargar(`contratos/${m}.json`);
+        hechos++; $("#con-conteo").textContent = `Descargando contratos del año… (${hechos}/${CON.archivosMes.length} meses)`;
+        return d ? d.contratos : [];
+      }));
+      CON_LISTA = partes.flat();
+      return CON_LISTA;
+    })();
+    return cargandoCon;
+  }
+  async function buscarContratos() {
+    if (!CON) return;
+    const q = normal(CO.q.trim());
+    if (!q && !CO.cat) { pintarContratos(); return; }
+    const todos = await cargarListaContratos();
+    let lista = todos.filter((r) => (!CO.cat || r[7] === CO.cat) && (!q || normal(`${r[1]} ${r[2]} ${r[3]} ${r[5]}`).includes(q)));
+    lista = CO.orden === "fecha" ? lista.sort((a, b) => (b[0] > a[0] ? 1 : -1)) : lista.sort((a, b) => b[4] - a[4]);
+    const suma = lista.reduce((a, r) => a + r[4], 0);
+    $("#con-conteo").textContent = `${nf0.format(lista.length)} contratos · ${soles(suma)} en total`;
+    $("#con-lista").innerHTML = lista.length ? lista.slice(0, CO.n).map(tarjetaContrato).join("") : '<p class="vacio">No hay contratos que coincidan.</p>';
+    $("#con-mas").hidden = lista.length <= CO.n;
+    $("#con-mas").textContent = `Ver más (${nf0.format(lista.length - CO.n)} restantes)`;
+  }
+  let tCon;
+  $("#con-q").addEventListener("input", (ev) => { CO.q = ev.target.value; CO.n = 20; clearTimeout(tCon); tCon = setTimeout(buscarContratos, 250); });
+  $("#con-cat").addEventListener("change", (ev) => { CO.cat = ev.target.value; CO.n = 20; buscarContratos(); });
+  $("#con-orden").addEventListener("change", (ev) => { CO.orden = ev.target.value; CO.n = 20; buscarContratos(); });
+  $("#con-mas").addEventListener("click", () => { CO.n += 20; buscarContratos(); });
 
   // ---------- SUELDOS ----------
   function pintarSueldos(filtro = "") {
@@ -865,12 +1118,19 @@
   const vistas = $$(".vista");
   function mostrar() {
     const id = (location.hash || "#inicio").slice(1).split("?")[0];
-    const v = vistas.find((x) => x.id === id) || vistas[0];
+    let v = vistas.find((x) => x.id === id);
+    const ancla = !v && id ? document.getElementById(id) : null;
+    if (ancla) v = ancla.closest(".vista");
+    v = v || vistas[0];
     vistas.forEach((x) => (x.hidden = x !== v));
     $$(".nav a").forEach((a) => (a.getAttribute("href") === "#" + v.id ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
     $("#nav").classList.remove("abierto");
     $(".menu-btn").setAttribute("aria-expanded", "false");
-    window.scrollTo(0, 0);
+    if (ancla) setTimeout(() => ancla.scrollIntoView({ block: "start" }), 50); else window.scrollTo(0, 0);
+    if (v.id === "entidades") {
+      const pid = new URLSearchParams(location.hash.split("?")[1] || "").get("id");
+      prepararEntidades().then((ok) => { if (ok && pid && (!entActual || entActual.id !== pid)) abrirEntidad(pid); });
+    }
     if (v.id === "gastos" && vista === "arbol") pintarArbol(); // el árbol necesita el ancho visible
   }
   window.addEventListener("hashchange", mostrar);
@@ -881,8 +1141,10 @@
 
   // ---------- Arranque ----------
   (async function iniciar() {
-    const [mef, cong, vis, rec, sue, proy, obras] = await Promise.all(["presupuesto.json", "congreso.json", "visitas.json", "recaudacion.json", "sueldos.json", "proyectos.json", "obras.json"].map(cargar));
+    const [mef, cong, vis, rec, sue, proy, obras, part, con] = await Promise.all(["presupuesto.json", "congreso.json", "visitas.json", "recaudacion.json", "sueldos.json", "proyectos.json", "obras.json", "partidas.json", "contratos.json"].map(cargar).concat([]));
     OBRAS = obras && obras.obras ? obras : null;
+    PART = part && part.partidas ? part : null;
+    CON = con && con.topProveedores ? con : null;
     if (OBRAS) OBRAS.obras.forEach((o) => { if (!OBRAS_CUI.has(o.cui)) OBRAS_CUI.set(o.cui, o); });
     REC = rec; ING = modeloIngresos(rec);
     SUE = sue && sue.entidades ? sue : null;
@@ -891,7 +1153,7 @@
     CONG = cong && cong.camaras ? cong : null;
     VIS = vis && vis.semanas ? vis : null;
     try { const v = localStorage.getItem("vistaGastos"); if (v === "arbol") { vista = "arbol"; $$("[data-vista]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.vista === "arbol"))); } } catch (e) {}
-    const fechas = [mef, cong, vis, rec, sue, proy, obras].map((x) => x && x.actualizado).filter(Boolean).sort();
+    const fechas = [mef, cong, vis, rec, sue, proy, obras, con].map((x) => x && x.actualizado).filter(Boolean).sort();
     if (fechas.length) {
       const f = new Date(fechas[fechas.length - 1]);
       const chip = $("#chip-act");
@@ -906,6 +1168,8 @@
     pintarPlanillas();
     pintarLeyes();
     pintarObras();
+    pintarPartidas();
+    pintarContratos();
     $("#buscadores").innerHTML = enlacesHTML(D.buscadoresOficiales);
     pintarCongreso();
     pintarVisitas();

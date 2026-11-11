@@ -17,7 +17,7 @@ concurrency:
 jobs:
   actualizar:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v5
 
@@ -49,6 +49,11 @@ jobs:
         continue-on-error: true
         working-directory: scripts
         run: python -u actualizar_visitas.py
+
+      - name: Contratos y proveedores (OECE)
+        continue-on-error: true
+        working-directory: scripts
+        run: python -u actualizar_contratos.py
 
       - name: Obras paralizadas (Contraloría)
         continue-on-error: true
