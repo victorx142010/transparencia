@@ -23,7 +23,7 @@ scripts/                   Scrapers en Python
 | Gastos: por función, por entidad (~2,900 unidades ejecutoras), por partida específica y por proyecto (CUI) | MEF — Datos Abiertos, *Presupuesto y Ejecución de Gasto* (CSV diario de ~2.6 GB) | `actualizar_presupuesto.py` | `data/presupuesto.json`, `data/gasto/`, `data/entidades.json`, `data/entidades/`, `data/partidas.json` |
 | Contratos y proveedores | OECE — Portal de Contrataciones Abiertas (OCDS, paquetes CSV mensuales) | `actualizar_contratos.py` | `data/contratos.json`, `data/contratos/<mes>.json` |
 | Obras paralizadas | Contraloría — *Informe de obras paralizadas* (anexo Excel, trimestral, en gob.pe) | `actualizar_obras.py` | `data/obras.json` |
-| Sueldos por persona | Portal de Transparencia Estándar → Personal (CSV oficial de cada entidad, mensual) | `actualizar_sueldos.py` | `data/sueldos.json`, `data/sueldos/<id>.json` |
+| Sueldos por persona (~1,400 entidades: ministerios, regiones, municipalidades provinciales y distritales, UGEL) | Portal de Transparencia Estándar → Personal (CSV oficial de cada entidad, mensual) | `actualizar_sueldos.py` (robot aparte, domingos) | `data/sueldos.json`, `data/sueldos/<id>.json` |
 | Congreso | Actas del Pleno en senado.congreso.gob.pe y diputados.congreso.gob.pe (PDF) | `actualizar_congreso.py` | `data/congreso.json` |
 | Proyectos de ley | Sistema de Proposiciones Legislativas (api.congreso.gob.pe/spley-portal-service) | `actualizar_proyectos.py` | `data/proyectos.json` |
 | Visitas a Palacio | consulta-visitas.presidencia.gob.pe (Despacho Presidencial) | `actualizar_visitas.py` | `data/visitas.json` |
@@ -43,7 +43,7 @@ pip install -r scripts/requirements.txt
 cd scripts
 python actualizar_recaudacion.py   # segundos
 python actualizar_presupuesto.py   # ~10 min, descarga 2.6 GB en streaming
-python actualizar_sueldos.py       # ~40 min, ~80 entidades
+python actualizar_sueldos.py       # ~1-2 h, ~1,400 entidades (6 descargas a la vez)
 python actualizar_congreso.py      # solo lee actas nuevas
 python actualizar_proyectos.py     # ~1 min
 python actualizar_obras.py         # segundos
@@ -64,6 +64,6 @@ Abre http://localhost:8080 (abrir `index.html` con doble clic también funciona,
 1. Crea un repositorio en GitHub y sube esta carpeta.
 2. En el repositorio: **Settings → Pages → Branch: main / root** → Save. Tu web queda en `https://TU-USUARIO.github.io/NOMBRE-REPO/`.
 3. En **Settings → Actions → General → Workflow permissions** marca **Read and write permissions**.
-4. Listo: cada **lunes a las 6:00 a. m. (hora de Lima)** el robot descarga los datos nuevos, los guarda y la web se actualiza sola. Para forzarlo: pestaña **Actions → Actualizar datos → Run workflow**.
+4. Listo: hay dos robots. **Actualizar datos** corre cada **lunes 6:00 a. m.** (hora de Lima) y **Actualizar sueldos** cada **domingo 4:00 a. m.** Ambos guardan los datos nuevos y la web se actualiza sola. Para forzarlo: pestaña **Actions → Actualizar datos → Run workflow**.
 
 Si una web oficial está caída, ese paso falla pero los demás siguen, y se conservan los datos de la semana anterior.

@@ -173,28 +173,32 @@
 
   // ---------- INICIO ----------
   function pintarInicio() {
-    const porPersona = (PR.pia * 1e6) / D.poblacion;
-    const pres = sueldoPresidente();
     const ac = ING.acumulado;
+    // 4 cifras clave
     const kpis = [
-      ac ? ["Recaudación de impuestos " + ac.anio, millones(ac.total), `enero–${MESES_LARGO[ac.hastaMes - 1]} · ${ac.variacion >= 0 ? "+" : ""}${nf1.format(ac.variacion)}% vs. ${ac.anio - 1}`, "#ingresos"]
-         : [`Recaudación de impuestos ${ING.anio}`, millones(ING.totalNeto), `+${nf1.format(ING.crecimiento)}% vs. año anterior`, "#ingresos"],
-      [`Presupuesto aprobado ${PR.anio}`, millones(PR.pia), PR.dev ? `Ya se gastó el ${pct(PR.dev, PR.pim)} del presupuesto actual` : "Lo aprobado por el Congreso", "#gastos"],
-      ["Presupuesto por peruano", soles(porPersona), `≈ ${soles(porPersona / 12)} al mes por persona`, "#gastos"],
-      ["Sueldo del Presidente(a)", soles(pres.monto), `= ${nf1.format(pres.monto / D.rmv)} sueldos mínimos · ${pres.fuente}`, "#sueldos"]
+      ac ? ["Impuestos recaudados " + ac.anio, millones(ac.total), `enero–${MESES_LARGO[ac.hastaMes - 1]} · ${ac.variacion >= 0 ? "+" : ""}${nf1.format(ac.variacion)}% vs. ${ac.anio - 1}`, "#ingresos"]
+         : [`Impuestos recaudados ${ING.anio}`, millones(ING.totalNeto), `+${nf1.format(ING.crecimiento)}% vs. año anterior`, "#ingresos"],
+      [`Presupuesto ${PR.anio}`, millones(PR.pim || PR.pia), PR.dev ? `ya se gastó el ${pct(PR.dev, PR.pim)}` : "lo aprobado por el Congreso", "#gastos"]
     ];
-    if (CONG) {
-      const s = resumenCamara(CONG.camaras.senado), d = resumenCamara(CONG.camaras.diputados);
-      kpis.push(["Asistencia promedio al Pleno", `${nf0.format(s.prom)}% · ${nf0.format(d.prom)}%`, "Senado · Diputados (según actas)", "#congreso"]);
-    }
-    if (PROY) kpis.push(["Proyectos de ley presentados", nf0.format(PROY.total), `${nf0.format(contarLeyes())} ya publicados como ley · desde jul. 2026`, "#leyes"]);
-    if (VIS) kpis.push(["Reuniones con la Presidencia", nf0.format(VIS.totalPresidencia), `desde el ${fechaLarga(VIS.desde)} · ${nf0.format(VIS.total)} visitas a Palacio`, "#visitas"]);
     if (CON) kpis.push(["Contratos adjudicados " + CON.anio, millones(CON.monto / 1e6), `${nf0.format(CON.total)} contratos con ${nf0.format(CON.proveedoresDistintos)} empresas`, "#contratos"]);
-    if (OBRAS) kpis.push(["Obras paralizadas", nf0.format(OBRAS.total), `falta ejecutar ${millones(OBRAS.saldoObras / 1e6)} · Contraloría`, "#obras"]);
-    if (PR.oficial) kpis.push(["Entidades que gastan", nf0.format(PR.nEntidades || 0) || "—", "municipios, regiones, UGEL, hospitales… búscalas", "#entidades"]);
-    if (PR.oficial) kpis.push(["Proyectos de inversión " + PR.anio, nf0.format(PR.funciones.reduce((a, f) => a + (f.proyectos || 0), 0)), "con su avance y presupuesto, uno por uno", "#gastos"]);
-    if (SUE) kpis.push(["Personas en planillas revisadas", nf0.format(SUE.entidades.reduce((a, e) => a + e.personas, 0)), `${SUE.entidades.length} entidades del Estado`, "#sueldos"]);
+    if (OBRAS) kpis.push(["Obras paralizadas", nf0.format(OBRAS.total), `falta ejecutar ${millones(OBRAS.saldoObras / 1e6)}`, "#obras"]);
     $("#kpis").innerHTML = kpis.map(kpiHTML).join("");
+
+    // Un dato corto al lado de cada tema
+    const pres = sueldoPresidente();
+    const dato = {
+      ingresos: ac ? `${corto(ac.total)} en ${ac.anio}` : corto(ING.totalNeto),
+      gastos: PR.oficial ? `${nf0.format(PR.funciones.reduce((a, f) => a + (f.proyectos || 0), 0))} proyectos` : corto(PR.pia),
+      partidas: PART ? `${nf0.format(PART.partidas.length)} partidas` : "",
+      entidades: PR.nEntidades ? `${nf0.format(PR.nEntidades)} entidades` : "",
+      contratos: CON ? `${nf0.format(CON.total)} contratos` : "",
+      obras: OBRAS ? `${nf0.format(OBRAS.total)} obras` : "",
+      sueldos: SUE ? `${nf0.format(SUE.entidades.reduce((a, e) => a + e.personas, 0))} personas` : `Presidente(a): ${soles(pres.monto)}`,
+      congreso: CONG ? (() => { const s = resumenCamara(CONG.camaras.senado), d = resumenCamara(CONG.camaras.diputados); return `${nf0.format(s.prom)}% · ${nf0.format(d.prom)}% asistencia`; })() : "",
+      leyes: PROY ? `${nf0.format(PROY.total)} proyectos` : "",
+      visitas: VIS ? `${nf0.format(VIS.totalPresidencia)} reuniones` : ""
+    };
+    $$("#grupos-inicio [data-dato]").forEach((s) => (s.textContent = dato[s.dataset.dato] || ""));
   }
 
   // ---------- INGRESOS ----------
@@ -623,7 +627,11 @@
   }
   function pintarEntidad() {
     const e = entActual, M = 1e6, box = $("#ent-detalle");
-    const sueldo = SUE && SUE.entidades.find((s) => clave(s.nombre) === clave(e.nombre) || clave(e.nombre).includes(clave(s.nombre).replace(/^(gobiernoregionalde|municipalidadprovincialde)/, "")) && clave(s.nombre).length > 25 && clave(e.nombre).startsWith(clave(s.nombre).slice(0, 12)));
+    // Emparejar con su planilla: mismo nombre (sin siglas entre paréntesis) y mismo departamento
+    const base = (n) => clave(String(n).replace(/\s*\([^)]*\)\s*$/, "").split(" - ")[0]);
+    const sueldo = SUE && (SUE.entidades.find((s) => base(s.nombre) === base(e.nombre) && (!s.departamento || s.departamento === e.departamento))
+      || SUE.entidades.find((s) => clave(s.nombre).length > 25 && clave(e.nombre).startsWith(clave(s.nombre).slice(0, 12)) &&
+        clave(e.nombre).includes(clave(s.nombre).replace(/^(gobiernoregionalde|municipalidadprovincialde)/, ""))));
     const maxG = Math.max(1, ...e.genericas.map((g) => g[1]));
     const maxF = Math.max(1, ...e.funciones.map((g) => g[1]));
     box.innerHTML = `
@@ -642,8 +650,8 @@
         ["Proyectos de inversión", nf0.format(e.totalProyectos), e.totalProyectos > e.proyectos.length ? `se muestran los ${e.proyectos.length} más grandes` : "con presupuesto este año"]
       ].map(kpiHTML).join("")}</div>
       <div class="controles controles--enlaces">
-        <a class="boton boton--secundario boton--chico" href="#contratos" id="ent-a-contratos">🤝 Ver sus contratos</a>
-        ${sueldo ? `<a class="boton boton--secundario boton--chico" href="#sueldos" id="ent-a-sueldos" data-sue="${sueldo.id}">💵 Ver sueldos de su personal</a>` : ""}
+        <a class="boton boton--secundario boton--chico" href="#contratos?q=${encodeURIComponent(e.nombre.split("-")[0].trim())}" id="ent-a-contratos">🤝 Ver sus contratos</a>
+        ${sueldo ? `<a class="boton boton--secundario boton--chico" href="#sueldos?ent=${sueldo.id}" id="ent-a-sueldos">💵 Ver sueldos de su personal</a>` : ""}
       </div>
       <div class="dos-col dos-col--plano">
         <div><h3 class="exp-sub">¿En qué gasta?</h3><div class="barras">${e.genericas.filter((g) => g[1] > 0).map(([n, p, d]) => filaSimple(bonito(n), p, maxG, `${corto(p / M)} · ${nf0.format(avance(d, p))}%`)).join("")}</div></div>
@@ -667,8 +675,6 @@
       const url = location.origin + location.pathname + "#entidades?id=" + encodeURIComponent(e.id);
       try { await navigator.clipboard.writeText(url); ev.target.textContent = "✓ Enlace copiado"; } catch (er) { prompt("Copia este enlace:", url); }
     });
-    $("#ent-a-contratos").addEventListener("click", () => { CO.q = e.nombre.split("-")[0].trim(); setTimeout(() => { $("#con-q").value = CO.q; buscarContratos(); }, 50); });
-    if (sueldo) $("#ent-a-sueldos").addEventListener("click", () => setTimeout(() => { $("#sel-entidad").value = String(sueldo.id); abrirPlanilla(sueldo.id); }, 50));
     if (e.proyectos.length) {
       $("#ent-pq").addEventListener("input", (ev) => { EN.pq = ev.target.value; EN.pn = 20; pintarProyectosEntidad(); });
       $("#ent-porden").addEventListener("change", (ev) => { EN.porden = ev.target.value; EN.pn = 20; pintarProyectosEntidad(); });
@@ -755,7 +761,7 @@
       nombre: esc(propio(n)), valorTexto: corto(m / 1e6), ancho: (m / maxE) * 100,
       detalle: `<p>${nf0.format(c)} contratos · total ${soles(m)}.</p><p><button type="button" class="boton boton--secundario boton--chico" data-buscar="${esc(n)}">Ver sus contratos</button></p>`
     })).join("");
-    $$("#contratos [data-buscar]").forEach((b) => b.addEventListener("click", () => { $("#con-q").value = b.dataset.buscar; CO.q = b.dataset.buscar; buscarContratos(); $("#con-q").scrollIntoView({ behavior: "smooth", block: "center" }); }));
+    $$("#contratos [data-buscar]").forEach((b) => b.addEventListener("click", () => { activarTab("contratos:buscar"); $("#con-q").value = b.dataset.buscar; CO.q = b.dataset.buscar; buscarContratos(); $("#con-q").scrollIntoView({ behavior: "smooth", block: "center" }); }));
     $("#con-fuente").innerHTML = `Fuente: <a href="${esc(CON.fuente)}" target="_blank" rel="noopener">OECE — Portal de Contrataciones Abiertas (estándar OCDS)</a>. Actualizado: ${new Date(CON.actualizado).toLocaleDateString("es-PE")}.`;
     $("#con-conteo").textContent = "Los 50 contratos más grandes del año:";
     $("#con-lista").innerHTML = CON.mayores.slice(0, 20).map(tarjetaContrato).join("");
@@ -947,26 +953,65 @@
     : s || "");
   const periodoTexto = (p) => (p ? `${MESES_LARGO[+p.slice(5) - 1]} ${p.slice(0, 4)}` : "");
 
+  // Grupos para filtrar (las entidades principales se agrupan como "Gobierno nacional y autónomos")
+  const GRUPOS_P = [["", "Todas"], ["nacional", "Ministerios, poderes y autónomos"], ["Gobiernos regionales", "Gobiernos regionales"],
+    ["Municipalidades provinciales", "Municipalidades provinciales"], ["Municipalidades distritales", "Municipalidades distritales"], ["UGEL", "UGEL"]];
+  const grupoDe = (e) => (["Gobiernos regionales", "Municipalidades provinciales", "Municipalidades distritales", "UGEL"].includes(e.grupo) ? e.grupo
+    : e.grupo === "Gobiernos locales" ? "Municipalidades provinciales" : "nacional");
+  const PL = { grupo: "", dep: "", q: "", orden: "maximo", n: 25 };
+  const entidadesFiltradas = () => SUE.entidades.filter((e) => (!PL.grupo || grupoDe(e) === PL.grupo) && (!PL.dep || e.departamento === PL.dep));
+
   function pintarPlanillas() {
     if (!SUE || !SUE.entidades.length) { $("#planillas-card").hidden = true; return; }
-    const grupos = {};
-    SUE.entidades.forEach((e) => (grupos[e.grupo] = grupos[e.grupo] || []).push(e));
-    $("#sel-entidad").innerHTML = Object.entries(grupos).map(([g, es]) =>
-      `<optgroup label="${esc(g)}">${es.map((e) => `<option value="${e.id}">${esc(e.nombre)}</option>`).join("")}</optgroup>`).join("");
+    $("#planilla-n-ent").textContent = `(${nf0.format(SUE.entidades.length)} disponibles)`;
+    $("#planilla-grupos").innerHTML = GRUPOS_P.map(([v, t]) => {
+      const n = v ? SUE.entidades.filter((e) => grupoDe(e) === v).length : SUE.entidades.length;
+      return n ? `<button type="button" class="chip${v === PL.grupo ? " chip--activo" : ""}" data-pgrupo="${esc(v)}">${esc(t)} <small>${nf0.format(n)}</small></button>` : "";
+    }).join("");
+    $$("#planilla-grupos [data-pgrupo]").forEach((b) => b.addEventListener("click", () => { PL.grupo = b.dataset.pgrupo; PL.n = 25; pintarPlanillas(); }));
+    const deps = [...new Set(SUE.entidades.map((e) => e.departamento).filter(Boolean))].sort();
+    if ($("#planilla-dep").options.length <= 1) $("#planilla-dep").innerHTML = '<option value="">Todos</option>' + deps.map((d) => `<option value="${esc(d)}">${esc(propio(d))}</option>`).join("");
     $("#entidades-card").hidden = false;
-    const filas = [...SUE.entidades].sort((a, b) => b.maximo - a.maximo);
+    pintarTablaEntidades();
+    if (!planilla) abrirPlanilla(SUE.entidades[0].id);
+  }
+
+  function pintarTablaEntidades() {
+    const filas = entidadesFiltradas().sort((a, b) => b[PL.orden] - a[PL.orden]);
     $("#tabla-entidades").innerHTML = `<thead><tr><th>Entidad</th><th>Mes</th><th>Personas</th><th>Planilla del mes</th><th>Sueldo mediano</th><th>Sueldo más alto</th></tr></thead><tbody>` +
-      filas.map((e) => `<tr><td><button type="button" class="enlace-btn" data-ent="${e.id}">${esc(e.nombre)}</button></td><td>${esc(periodoTexto(e.periodo))}</td>
+      filas.slice(0, PL.n).map((e) => `<tr><td><button type="button" class="enlace-btn" data-ent="${e.id}">${esc(propio(e.nombre))}</button>${e.departamento ? `<small class="tabla__sub">${esc(propio(e.departamento))}</small>` : ""}</td><td>${esc(periodoTexto(e.periodo))}</td>
         <td>${nf0.format(e.personas)}</td><td>${corto(e.planilla / 1e6)}</td><td>${soles(e.mediana)}</td><td>${soles(e.maximo)}</td></tr>`).join("") + "</tbody>";
-    $$("[data-ent]").forEach((b) => b.addEventListener("click", () => {
-      $("#sel-entidad").value = b.dataset.ent; abrirPlanilla(+b.dataset.ent);
+    $$("#tabla-entidades [data-ent]").forEach((b) => b.addEventListener("click", () => {
+      activarTab("sueldos:planilla");
+      abrirPlanilla(+b.dataset.ent);
       $("#planillas-card").scrollIntoView({ behavior: "smooth", block: "start" });
     }));
-    abrirPlanilla(+$("#sel-entidad").value);
+    $("#tabla-mas").hidden = filas.length <= PL.n;
+    $("#tabla-mas").textContent = `Ver más (${nf0.format(filas.length - PL.n)} restantes)`;
+  }
+
+  function pintarCombo() {
+    const q = normal(PL.q.trim());
+    const box = $("#combo-entidades");
+    if (!q) { box.hidden = true; $("#buscar-entidad-planilla").setAttribute("aria-expanded", "false"); return; }
+    const lista = entidadesFiltradas().filter((e) => normal(e.nombre + " " + (e.departamento || "")).includes(q)).slice(0, 12);
+    box.innerHTML = lista.length ? lista.map((e) => `<button type="button" role="option" class="combo__op" data-cent="${e.id}">
+        <span>${esc(propio(e.nombre))}</span><small>${esc(GRUPOS_P.find((g) => g[0] === grupoDe(e))[1])}${e.departamento ? " · " + esc(propio(e.departamento)) : ""} · ${nf0.format(e.personas)} personas</small></button>`).join("")
+      : '<p class="vacio">No encontramos esa entidad con los filtros elegidos.</p>';
+    box.hidden = false;
+    $("#buscar-entidad-planilla").setAttribute("aria-expanded", "true");
+    $$("#combo-entidades [data-cent]").forEach((b) => b.addEventListener("click", () => {
+      box.hidden = true; $("#buscar-entidad-planilla").value = ""; PL.q = "";
+      abrirPlanilla(+b.dataset.cent);
+    }));
   }
 
   async function abrirPlanilla(id) {
+    id = +id;
+    $("#sel-entidad").value = String(id);
     const e = SUE.entidades.find((x) => x.id === id);
+    if (!e) return;
+    $("#planilla-elegida").innerHTML = `Viendo: <strong>${esc(propio(e.nombre))}</strong>${e.departamento ? ` · ${esc(propio(e.departamento))}` : ""}`;
     $("#lista-planilla").innerHTML = '<p class="vacio">Cargando planilla…</p>';
     if (!cachePlanillas[id]) cachePlanillas[id] = await cargar(`sueldos/${id}.json`);
     planilla = cachePlanillas[id];
@@ -1001,7 +1046,15 @@
     const fuente = e ? `<a href="${esc(e.fuente)}" target="_blank" rel="noopener">Portal de Transparencia Estándar — ${esc(e.nombre)}</a>` : "";
     $("#lista-planilla").insertAdjacentHTML("beforeend", `<p class="fuente">Fuente: ${fuente}. Montos brutos mensuales, antes de descuentos.</p>`);
   }
-  $("#sel-entidad").addEventListener("change", (ev) => { $("#buscar-planilla").value = ""; abrirPlanilla(+ev.target.value); });
+  $("#buscar-entidad-planilla").addEventListener("input", (ev) => { PL.q = ev.target.value; SUE && pintarCombo(); });
+  $("#buscar-entidad-planilla").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") { const b = $("#combo-entidades [data-cent]"); if (b) { ev.preventDefault(); b.click(); } }
+    if (ev.key === "Escape") $("#combo-entidades").hidden = true;
+  });
+  document.addEventListener("click", (ev) => { if (!ev.target.closest(".combo")) $("#combo-entidades").hidden = true; });
+  $("#planilla-dep").addEventListener("change", (ev) => { PL.dep = ev.target.value; PL.n = 25; SUE && (pintarTablaEntidades(), pintarCombo()); });
+  $("#tabla-orden").addEventListener("change", (ev) => { PL.orden = ev.target.value; PL.n = 25; pintarTablaEntidades(); });
+  $("#tabla-mas").addEventListener("click", () => { PL.n += 25; pintarTablaEntidades(); });
   $("#buscar-planilla").addEventListener("input", () => { if (planilla) { mostrarP = 50; pintarListaPlanilla(); } });
   $("#mas-planilla").addEventListener("click", () => { mostrarP += 50; pintarListaPlanilla(); });
 
@@ -1114,30 +1167,137 @@
     $("#fuentes-lista").innerHTML = enlacesHTML([...extra, ...D.buscadoresOficiales]);
   }
 
+  // ---------- Menú agrupado ----------
+  const GRUPO_DE = { ingresos: "dinero", gastos: "dinero", "mi-impuesto": "dinero", entidades: "quien", contratos: "quien", obras: "quien",
+    sueldos: "quien", congreso: "poder", leyes: "poder", visitas: "poder", inicio: "inicio", fuentes: "fuentes" };
+  function cerrarMenus(excepto) {
+    $$(".nav__grupo").forEach((g) => {
+      if (g === excepto) return;
+      $(".nav__menu", g).hidden = true;
+      $("button", g).setAttribute("aria-expanded", "false");
+    });
+    document.body.classList.toggle("menu-abierto", !!excepto);
+  }
+  $$(".nav__grupo").forEach((g) => {
+    const btn = $("button", g), menu = $(".nav__menu", g);
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const abrir = menu.hidden;
+      cerrarMenus(abrir ? g : null);
+      menu.hidden = !abrir;
+      btn.setAttribute("aria-expanded", String(abrir));
+    });
+  });
+  document.addEventListener("click", (ev) => { if (!ev.target.closest(".nav__grupo")) cerrarMenus(null); });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") cerrarMenus(null); });
+  const irABuscar = (ev) => {
+    ev.preventDefault();
+    if (location.hash && location.hash !== "#inicio") location.hash = "inicio";
+    setTimeout(() => { const i = $("#busqueda-global"); i.scrollIntoView({ block: "center" }); i.focus(); }, 80);
+  };
+  $("#buscar-btn").addEventListener("click", irABuscar);
+  $("#nav-buscar").addEventListener("click", irABuscar);
+
+  // ---------- Pestañas dentro de secciones ----------
+  function activarTab(clave) {
+    const [grupo] = clave.split(":");
+    $$(`[data-tab^="${grupo}:"]`).forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === clave)));
+    $$(`[data-panel^="${grupo}:"]`).forEach((p) => (p.hidden = p.dataset.panel !== clave));
+    if (clave === "gastos:tema" && vista === "arbol") pintarArbol();
+  }
+  $$("[data-tab]").forEach((b) => b.addEventListener("click", () => activarTab(b.dataset.tab)));
+  $$("[data-ir-tab]").forEach((b) => b.addEventListener("click", () => { activarTab(b.dataset.irTab); b.closest(".vista").scrollIntoView({ block: "start" }); }));
+
   // ---------- Navegación ----------
   const vistas = $$(".vista");
   function mostrar() {
-    const id = (location.hash || "#inicio").slice(1).split("?")[0];
+    const [id, query] = (location.hash || "#inicio").slice(1).split("?");
+    const p = new URLSearchParams(query || "");
     let v = vistas.find((x) => x.id === id);
     const ancla = !v && id ? document.getElementById(id) : null;
     if (ancla) v = ancla.closest(".vista");
     v = v || vistas[0];
     vistas.forEach((x) => (x.hidden = x !== v));
-    $$(".nav a").forEach((a) => (a.getAttribute("href") === "#" + v.id ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
-    $("#nav").classList.remove("abierto");
-    $(".menu-btn").setAttribute("aria-expanded", "false");
+    cerrarMenus(null);
+    const grupo = GRUPO_DE[v.id];
+    $$(".nav__grupo").forEach((g) => $("button", g).classList.toggle("nav__item--activo", g.dataset.grupo === grupo));
+    $$("[data-grupo-link]").forEach((a) => a.classList.toggle("nav__item--activo", a.dataset.grupoLink === grupo));
+    $$(".nav__menu a").forEach((a) => (a.getAttribute("href") === "#" + (ancla ? id : v.id) ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
+    // Si el destino está dentro de una pestaña, abrirla
+    const panel = ancla && ancla.closest("[data-panel]");
+    if (panel) activarTab(panel.dataset.panel);
     if (ancla) setTimeout(() => ancla.scrollIntoView({ block: "start" }), 50); else window.scrollTo(0, 0);
+
+    // Parámetros en la dirección: #seccion?q=...
+    const q = p.get("q");
     if (v.id === "entidades") {
-      const pid = new URLSearchParams(location.hash.split("?")[1] || "").get("id");
-      prepararEntidades().then((ok) => { if (ok && pid && (!entActual || entActual.id !== pid)) abrirEntidad(pid); });
+      const pid = p.get("id");
+      if (q) { EN.q = q; $("#ent-q").value = q; }
+      prepararEntidades().then((ok) => { if (!ok) return; if (q) pintarListaEntidades(); if (pid && (!entActual || entActual.id !== pid)) abrirEntidad(pid); });
     }
-    if (v.id === "gastos" && vista === "arbol") pintarArbol(); // el árbol necesita el ancho visible
+    if (v.id === "gastos") {
+      if (p.get("f")) activarTab("gastos:tema");
+      if (id === "gastos-partidas" && q && PART) { PA.q = q; $("#partidas-q").value = q; pintarListaPartidas(); }
+      if (vista === "arbol" && !$('[data-panel="gastos:tema"]').hidden) pintarArbol(); // el árbol necesita el ancho visible
+    }
+    if (v.id === "contratos" && q && CON) { activarTab("contratos:buscar"); CO.q = q; $("#con-q").value = q; buscarContratos(); }
+    if (v.id === "obras" && q && OBRAS) { OB.q = q; $("#obras-q").value = q; pintarListaObras(); }
+    if (v.id === "leyes" && q && PROY) { $("#buscar-leyes").value = q; mostrarL = 30; pintarListaLeyes(); }
+    if (v.id === "congreso" && CONG) {
+      if (p.get("c") && p.get("c") !== camara) { const b = $(`[data-camara="${p.get("c")}"]`); if (b) b.click(); }
+      if (q) { $("#buscar-congreso").value = q; pintarListaCongreso(); }
+    }
+    if (v.id === "sueldos" && SUE && p.get("ent")) { activarTab("sueldos:planilla"); abrirPlanilla(+p.get("ent")); }
   }
   window.addEventListener("hashchange", mostrar);
-  $(".menu-btn").addEventListener("click", (e) => {
-    const abierto = $("#nav").classList.toggle("abierto");
-    e.currentTarget.setAttribute("aria-expanded", String(abierto));
-  });
+
+  // ---------- Buscador general ----------
+  const SECCIONES = [
+    ["Impuestos", "#ingresos", "impuestos recaudacion igv renta sunat"], ["Gastos del presupuesto", "#gastos", "gastos presupuesto educacion salud transporte"],
+    ["¿Qué se compra?", "#gastos-partidas", "partidas compras pasajes publicidad combustible"], ["Mi impuesto (calculadora)", "#mi-impuesto", "calculadora mi impuesto cuanto pago"],
+    ["Tu municipio", "#entidades", "municipio municipalidad region ugel hospital entidad"], ["Contratos", "#contratos", "contratos empresas proveedores licitacion"],
+    ["Obras paralizadas", "#obras", "obras paralizadas contraloria"], ["Sueldos", "#sueldos", "sueldos planilla salario remuneracion"],
+    ["Asistencia al Congreso", "#congreso", "congreso asistencia senado diputados faltas"], ["Proyectos de ley", "#leyes", "leyes proyectos de ley congreso"],
+    ["Visitas a Palacio", "#visitas", "visitas palacio presidencia presidenta"], ["Fuentes y glosario", "#fuentes", "fuentes glosario metodologia"]
+  ];
+  let tBus;
+  async function buscarTodo(texto) {
+    const q = normal(texto.trim());
+    const box = $("#busqueda-resultados");
+    if (q.length < 3) { box.hidden = true; return; }
+    if (!ENT) await prepararEntidades();
+    const hay = (s) => normal(s).includes(q);
+    const grupos = [];
+    const add = (titulo, items, verTodo) => { if (items.length) grupos.push({ titulo, items, verTodo }); };
+    const enc = encodeURIComponent(texto.trim());
+    add("Secciones", SECCIONES.filter(([t, , k]) => hay(t + " " + k)).slice(0, 3).map(([t, h]) => [t, "", h]));
+    // Primero las que tienen la palabra en el nombre (municipalidades primero), luego las ubicadas en ese lugar
+    const puntaje = (e) => (hay(e[1]) ? (e[3] === "GOBIERNOS LOCALES" ? 3 : 2) : hay(`${e[5]} ${e[6]}`) ? 1 : 0);
+    if (ENT) add("Entidades: cuánto gastan", ENT.entidades.map((e) => [puntaje(e), e]).filter(([s]) => s > 0)
+      .sort((a, b) => b[0] - a[0] || b[1][7] - a[1][7]).slice(0, 5).map(([, e]) => e)
+      .map((e) => [propio(e[1]), `${propio(e[6])}, ${propio(e[4])} · ${corto(e[7] / 1e6)}`, `#entidades?id=${encodeURIComponent(e[0])}`]), `#entidades?q=${enc}`);
+    if (SUE) add("Sueldos: planillas", SUE.entidades.filter((e) => hay(`${e.nombre} ${e.departamento || ""}`)).slice(0, 4)
+      .map((e) => [propio(e.nombre), `${nf0.format(e.personas)} personas · sueldo mediano ${soles(e.mediana)}`, `#sueldos?ent=${e.id}`]));
+    if (CON) add("Contratos: empresas", CON.topProveedores.filter((r) => hay(`${r[1]} ${r[0]}`)).slice(0, 3)
+      .map((r) => [propio(r[1]), `${corto(r[2] / 1e6)} en ${nf0.format(r[3])} contratos`, `#contratos?q=${encodeURIComponent(r[1])}`]), `#contratos?q=${enc}`);
+    if (OBRAS) add("Obras paralizadas", OBRAS.obras.filter((o) => hay(`${o.cui} ${o.nombre} ${o.distrito} ${o.provincia} ${o.entidad}`)).slice(0, 4)
+      .map((o) => [fraseL(o.nombre).slice(0, 90), `${propio(o.distrito)}, ${propio(o.departamento)} · ${nf0.format(o.avance)}% de avance`, `#obras?q=${o.cui}`]), `#obras?q=${enc}`);
+    if (PROY) add("Proyectos de ley", PROY.proyectos.filter((x) => hay(`${x.numero} ${x.titulo} ${x.autores.join(" ")}`)).slice(0, 4)
+      .map((x) => [fraseL(x.titulo).slice(0, 90), `${x.numero} · ${fraseL(x.estado)}`, `#leyes?q=${x.numero}`]), `#leyes?q=${enc}`);
+    if (CONG) {
+      const m = [];
+      for (const c of ["senado", "diputados"]) CONG.camaras[c].miembros.filter((x) => hay(x.nombre)).forEach((x) => m.push([x.nombre, `${c === "senado" ? "Senado" : "Diputados"} · asistió a ${x.presente} de ${x.sesiones} sesiones`, `#congreso?c=${c}&q=${encodeURIComponent(x.nombre)}`]));
+      add("Congresistas", m.slice(0, 4));
+    }
+    if (PART) add("¿Qué se compra?", PART.partidas.filter((x) => hay(x[1])).slice(0, 3).map((x) => [bonito(x[1]), `${corto(x[3] / 1e6)} en todo el Estado`, `#gastos-partidas?q=${encodeURIComponent(x[1])}`]));
+    box.hidden = false;
+    box.innerHTML = grupos.length ? grupos.map((g) => `<div class="res-grupo"><p class="res-grupo__t">${esc(g.titulo)}</p>
+      ${g.items.map(([t, s, h]) => `<a class="res" href="${h}"><span>${esc(t)}</span>${s ? `<small>${esc(s)}</small>` : ""}</a>`).join("")}
+      ${g.verTodo ? `<a class="res res--todo" href="${g.verTodo}">Ver todos los resultados en esta sección →</a>` : ""}</div>`).join("")
+      : `<p class="vacio">No encontramos "${esc(texto)}". Prueba con el nombre de tu distrito o de una empresa.</p>`;
+  }
+  $("#busqueda-global").addEventListener("input", (ev) => { clearTimeout(tBus); tBus = setTimeout(() => buscarTodo(ev.target.value), 200); });
+  $$("#busqueda-ejemplos [data-ej]").forEach((b) => b.addEventListener("click", () => { $("#busqueda-global").value = b.dataset.ej; buscarTodo(b.dataset.ej); }));
 
   // ---------- Arranque ----------
   (async function iniciar() {

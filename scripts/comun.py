@@ -41,14 +41,15 @@ def leer_json(nombre, por_defecto=None):
         return json.load(f)
 
 
-def guardar_json(nombre, obj):
+def guardar_json(nombre, obj, silencioso=False):
     os.makedirs(DATA, exist_ok=True)
     ruta = os.path.join(DATA, nombre)
     tmp = ruta + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
     os.replace(tmp, ruta)
-    print(f"  -> {ruta} ({os.path.getsize(ruta) / 1024:.0f} KB)")
+    if not silencioso:
+        print(f"  -> {ruta} ({os.path.getsize(ruta) / 1024:.0f} KB)")
 
 
 def clave(texto):

@@ -65,10 +65,6 @@ jobs:
         working-directory: scripts
         run: python -u actualizar_proyectos.py
 
-      - name: Sueldos por persona (Portal de Transparencia Estándar)
-        continue-on-error: true
-        working-directory: scripts
-        run: python -u actualizar_sueldos.py
 
       - name: Guardar cambios
         run: |

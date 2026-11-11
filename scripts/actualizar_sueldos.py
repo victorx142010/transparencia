@@ -12,17 +12,22 @@ Salidas:
   data/sueldos.json            resumen por entidad (para la web)
   data/sueldos/<id>.json       planilla completa de cada entidad (se carga al elegirla)
 
-Uso:  python scripts/actualizar_sueldos.py [--solo 10031,145]
+Además de la lista ENTIDADES, recorre el directorio del Portal de Transparencia
+para sumar municipalidades distritales y provinciales y UGEL (más de 1,300).
+
+Uso:  python scripts/actualizar_sueldos.py [--solo 10031,145] [--sin-directorio] [--max 50]
 """
 import argparse
 import csv
 import io
 import os
+import html
+import re
 import statistics
 import sys
-import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from comun import DATA, ahora_lima, guardar_json, http, leer_json
+from comun import DATA, ahora_lima, clave, guardar_json, http, leer_json
 
 URL = ("https://www.transparencia.gob.pe/personal/pte_transparencia_personal_genera.aspx?id_entidad={id}"
        "&in_anno_consulta={anio}&ch_mes_consulta={mes:02d}&ch_tipo_regimen=0&vc_dni_funcionario="
@@ -151,99 +156,180 @@ def descargar(id_ent, anio, mes):
     return leer_csv(crudo.decode("utf-8-sig", "replace"))
 
 
-def resumir(id_ent, nombre, grupo, periodo, personas):
+DIRECTORIO = "https://www.transparencia.gob.pe/buscador/pte_transparencia_listado_entidades_poder.aspx?Tipo_Pod={tipo}"
+DEPARTAMENTOS = ["AMAZONAS", "ANCASH", "APURIMAC", "AREQUIPA", "AYACUCHO", "CAJAMARCA", "CALLAO", "CUSCO", "HUANCAVELICA",
+                 "HUANUCO", "ICA", "JUNIN", "LA LIBERTAD", "LAMBAYEQUE", "LIMA", "LORETO", "MADRE DE DIOS", "MOQUEGUA",
+                 "PASCO", "PIURA", "PUNO", "SAN MARTIN", "TACNA", "TUMBES", "UCAYALI"]
+
+
+def resumir(id_ent, nombre, grupo, periodo, personas, departamento="", top=5):
     totales = [p[6] for p in personas]
     return {
-        "id": id_ent, "nombre": nombre, "grupo": grupo, "periodo": periodo,
+        "id": id_ent, "nombre": nombre, "grupo": grupo, "periodo": periodo, "departamento": departamento,
         "personas": len(personas),
         "planilla": round(sum(totales)),
         "mediana": round(statistics.median(totales)) if totales else 0,
         "maximo": round(totales[0]) if totales else 0,
-        "top": [[p[0], p[1], round(p[6])] for p in personas[:5]],
+        "top": [[p[0], p[1], round(p[6])] for p in personas[:top]],
         "fuente": PAGINA.format(id=id_ent),
     }
 
 
+def directorio():
+    """Municipalidades (distritales y provinciales) y UGEL del directorio del Portal de Transparencia."""
+    # Mapas del MEF (data/entidades.json) para ubicar el departamento de cada entidad
+    mef = (leer_json("entidades.json", {}) or {}).get("entidades", [])
+    por_nombre, por_prov, por_dist = {}, {}, {}
+    for e in mef:
+        por_nombre.setdefault(clave(e[1]), set()).add(e[4])
+        por_prov.setdefault(clave(e[5]), set()).add(e[4])
+        por_dist.setdefault(clave(e[6]), set()).add(e[4])
+    deps = {clave(d): d for d in DEPARTAMENTOS}
+
+    def ubicar(nombre, lugar):
+        base = re.sub(r"\s*\([^)]*\)\s*$", "", nombre).strip()
+        partes = re.split(r"\s*-\s*", base)
+        for parte in reversed(partes):
+            if clave(parte) in deps:
+                return deps[clave(parte)]
+        for parte in reversed(partes[1:]):  # "BELLAVISTA-SULLANA": la provincia viene después del guion
+            s = por_prov.get(clave(parte))
+            if s and len(s) == 1:
+                return next(iter(s))
+        candidatos = [(por_nombre, clave(base))]
+        sitio = re.sub(r"^(MUNICIPALIDAD (DISTRITAL|PROVINCIAL) DE[L]?|UNIDAD DE GESTI.N EDUCATIVA( LOCAL)?( DE)?|UGEL)\s*[-N°º0-9.\s]*",
+                       "", base.split(" - ")[0], flags=re.I)
+        candidatos.append((lugar, clave(sitio)))
+        for mapa, k in candidatos:
+            s = mapa.get(k)
+            if s and len(s) == 1:
+                return next(iter(s))
+        return ""
+
+    out = []
+    for tipo in (5, 7):
+        t = http(DIRECTORIO.format(tipo=tipo), timeout=120).decode("utf-8", "replace")
+        vistos = set()
+        for i, n in re.findall(r'id_entidad=(\d+)[^>]*>\s*(?:<[^>]+>\s*)*([^<]{3,160})', t):
+            n = re.sub(r"\s+", " ", html.unescape(n)).strip()
+            if i in vistos:
+                continue
+            vistos.add(i)
+            u = clave(n)
+            if tipo == 5 and "municipalidaddistrital" in u:
+                out.append((int(i), n, "Municipalidades distritales", ubicar(n, por_dist)))
+            elif tipo == 5 and "municipalidadprovincial" in u:
+                out.append((int(i), n, "Municipalidades provinciales", ubicar(n, por_prov)))
+            elif tipo == 7 and ("ugel" in u or "gestioneducativa" in u):
+                out.append((int(i), n, "UGEL", ubicar(n, por_prov)))
+    return out
+
+
+def procesar(id_ent, nombre, hoy, meses_atras):
+    """Descarga la planilla más reciente de una entidad. Devuelve (periodo, personas)."""
+    filas, periodo = [], None
+    a, m = hoy.year, hoy.month
+    for _ in range(meses_atras):
+        try:
+            filas = descargar(id_ent, a, m)
+        except Exception as e:
+            print(f"  ! {nombre} {a}-{m:02d}: {e}")
+            filas = []
+        if filas:
+            periodo = f"{a}-{m:02d}"
+            pa, pm = (a, m - 1) if m > 1 else (a - 1, 12)
+            try:
+                previas = descargar(id_ent, pa, pm)
+            except Exception:
+                previas = []
+            if len(previas) > 1.5 * len(filas):  # el mes recién empezó a publicarse
+                filas, periodo = previas, f"{pa}-{pm:02d}"
+            break
+        m -= 1
+        if m == 0:
+            a, m = a - 1, 12
+    personas = []
+    for r in filas:
+        reg = (r.get("VC_PERSONAL_REGIMEN_LABORAL") or "").strip()
+        if reg == "8":
+            continue  # pensionistas
+        total = f(r.get("MO_PERSONAL_TOTAL"))
+        if total <= 0:
+            continue
+        nombre_p = " ".join(x.strip() for x in (r.get("VC_PERSONAL_PATERNO"), r.get("VC_PERSONAL_MATERNO"), r.get("VC_PERSONAL_NOMBRES")) if x and x.strip())
+        personas.append([
+            nombre_p,
+            (r.get("VC_PERSONAL_CARGO") or "").strip(),
+            (r.get("VC_PERSONAL_DEPENDENCIA") or "").strip(),
+            REGIMEN.get(reg, reg or "—"),
+            f(r.get("MO_PERSONAL_REMUNERACIONES")) + f(r.get("MO_PERSONAL_HONORARIOS")),
+            round(f(r.get("MO_PERSONAL_INCENTIVO")) + f(r.get("MO_PERSONAL_GRATIFICACION")) + f(r.get("MO_PERSONAL_OTROS_BENEFICIOS")), 2),
+            total,
+        ])
+    personas.sort(key=lambda p: -p[6])
+    return periodo, personas
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--solo", default="", help="ids separados por coma")
+    ap.add_argument("--solo", default="", help="ids separados por coma (los demás se conservan)")
+    ap.add_argument("--sin-directorio", action="store_true", help="solo las entidades principales")
+    ap.add_argument("--max", type=int, default=0, help="máximo de entidades del directorio (pruebas)")
+    ap.add_argument("--hilos", type=int, default=6)
     args = ap.parse_args()
     solo = {int(x) for x in args.solo.split(",") if x}
 
     previo = {e["id"]: e for e in (leer_json("sueldos.json", {}) or {}).get("entidades", [])}
     hoy = ahora_lima()
-    resumen = []
     os.makedirs(os.path.join(DATA, "sueldos"), exist_ok=True)
 
-    for id_ent, nombre, grupo in ENTIDADES:
-        if solo and id_ent not in solo:
-            guardado = leer_json(f"sueldos/{id_ent}.json")
-            if guardado:
-                resumen.append(resumir(id_ent, nombre, grupo, guardado["periodo"], guardado["personas"]))
-            elif id_ent in previo:
-                resumen.append(previo[id_ent])
-            continue
-        # Buscar el mes más reciente publicado (las entidades publican con retraso)
-        filas, periodo = [], None
-        a, m = hoy.year, hoy.month
-        for _ in range(6):
-            try:
-                filas = descargar(id_ent, a, m)
-            except Exception as e:
-                print(f"  ! {nombre} {a}-{m:02d}: {e}")
-                filas = []
-            if filas:
-                periodo = f"{a}-{m:02d}"
-                # Si el mes recién empezó a publicarse (muy pocas filas), usar el anterior
-                pa, pm = (a, m - 1) if m > 1 else (a - 1, 12)
-                try:
-                    previas = descargar(id_ent, pa, pm)
-                except Exception:
-                    previas = []
-                if len(previas) > 1.5 * len(filas):
-                    filas, periodo = previas, f"{pa}-{pm:02d}"
-                break
-            m -= 1
-            if m == 0:
-                a, m = a - 1, 12
-            time.sleep(0.5)
-        if not filas:
-            print(f"  - {nombre}: sin datos recientes; se conserva lo anterior")
-            if id_ent in previo:
-                resumen.append(previo[id_ent])
-            continue
+    tareas = [(i, n, g, "", 6, 5) for i, n, g in ENTIDADES]
+    if not args.sin_directorio:
+        principales = {i for i, _, _ in ENTIDADES}
+        dirs = [d for d in directorio() if d[0] not in principales]
+        if args.max:
+            dirs = dirs[:args.max]
+        print(f"Directorio: {len(dirs)} municipalidades y UGEL")
+        tareas += [(i, n, g, dep, 4, 3) for i, n, g, dep in dirs]
 
-        personas = []
-        for r in filas:
-            reg = (r.get("VC_PERSONAL_REGIMEN_LABORAL") or "").strip()
-            if reg == "8":
-                continue  # pensionistas
-            total = f(r.get("MO_PERSONAL_TOTAL"))
-            if total <= 0:
-                continue
-            nombre_p = " ".join(x.strip() for x in (r.get("VC_PERSONAL_PATERNO"), r.get("VC_PERSONAL_MATERNO"), r.get("VC_PERSONAL_NOMBRES")) if x and x.strip())
-            personas.append([
-                nombre_p,
-                (r.get("VC_PERSONAL_CARGO") or "").strip(),
-                (r.get("VC_PERSONAL_DEPENDENCIA") or "").strip(),
-                REGIMEN.get(reg, reg or "—"),
-                f(r.get("MO_PERSONAL_REMUNERACIONES")) + f(r.get("MO_PERSONAL_HONORARIOS")),
-                round(f(r.get("MO_PERSONAL_INCENTIVO")) + f(r.get("MO_PERSONAL_GRATIFICACION")) + f(r.get("MO_PERSONAL_OTROS_BENEFICIOS")), 2),
-                total,
-            ])
-        personas.sort(key=lambda p: -p[6])
+    def conservar(id_ent, nombre, grupo, dep, top):
+        guardado = leer_json(f"sueldos/{id_ent}.json")
+        if guardado and guardado.get("personas"):
+            return resumir(id_ent, nombre, grupo, guardado["periodo"], guardado["personas"], dep, top)
+        return previo.get(id_ent)
+
+    def trabajo(t):
+        id_ent, nombre, grupo, dep, meses, top = t
+        if solo and id_ent not in solo:
+            return conservar(id_ent, nombre, grupo, dep, top)
+        periodo, personas = procesar(id_ent, nombre, hoy, meses)
         if not personas:
-            print(f"  - {nombre}: la planilla no trae montos; se omite")
-            continue
+            return conservar(id_ent, nombre, grupo, dep, top)
         guardar_json(f"sueldos/{id_ent}.json", {
             "id": id_ent, "entidad": nombre, "periodo": periodo,
             "campos": ["nombre", "cargo", "dependencia", "regimen", "remuneracion", "otros", "total"],
             "personas": personas,
-        })
-        resumen.append(resumir(id_ent, nombre, grupo, periodo, personas))
-        print(f"  + {nombre} ({periodo}): {len(personas)} personas, máx S/ {personas[0][6]:,.0f}")
-        time.sleep(1)
+        }, silencioso=True)
+        return resumir(id_ent, nombre, grupo, periodo, personas, dep, top)
 
+    resumen, hechos = [], 0
+    with ThreadPoolExecutor(max_workers=args.hilos) as ex:
+        futuros = {ex.submit(trabajo, t): t for t in tareas}
+        for fu in as_completed(futuros):
+            hechos += 1
+            try:
+                r = fu.result()
+            except Exception as e:
+                print(f"  ! {futuros[fu][1]}: {e}")
+                r = None
+            if r:
+                resumen.append(r)
+            if hechos % 50 == 0:
+                print(f"  {hechos}/{len(tareas)} entidades revisadas, {len(resumen)} con planilla", flush=True)
+
+    orden = {i: k for k, (i, _, _) in enumerate(ENTIDADES)}
+    resumen.sort(key=lambda e: (orden.get(e["id"], 10**6), e["grupo"], e["nombre"]))
+    print(f"{len(resumen)} entidades con planilla, {sum(e['personas'] for e in resumen):,} personas")
     guardar_json("sueldos.json", {
         "actualizado": hoy.isoformat(timespec="minutes"),
         "fuente": "https://www.transparencia.gob.pe/",

@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=202611111021">
+  <link rel="stylesheet" href="css/styles.css?v=202611111046">
 </head>
 <body>
   <a class="saltar" href="#contenido">Saltar al contenido</a>
@@ -24,21 +24,43 @@
         <span class="marca__texto">Plata Clara <span>Perú</span></span>
       </a>
       <span class="chip-act" id="chip-act" hidden></span>
-      <button class="menu-btn" aria-expanded="false" aria-controls="nav"><span aria-hidden="true">☰</span> Menú</button>
+      <a class="buscar-btn" href="#inicio" id="buscar-btn" aria-label="Buscar"><span aria-hidden="true">🔎</span><span class="buscar-btn__txt"> Buscar</span></a>
     </div>
-    <nav id="nav" class="nav contenedor" aria-label="Secciones">
-      <a href="#inicio">Inicio</a>
-      <a href="#ingresos">Impuestos</a>
-      <a href="#gastos">Gastos</a>
-      <a href="#entidades">Tu municipio</a>
-      <a href="#contratos">Contratos</a>
-      <a href="#sueldos">Sueldos</a>
-      <a href="#congreso">Congreso</a>
-      <a href="#leyes">Leyes</a>
-      <a href="#obras">Obras</a>
-      <a href="#visitas">Visitas</a>
-      <a href="#mi-impuesto">Mi impuesto</a>
-      <a href="#fuentes">Fuentes</a>
+    <nav id="nav" class="nav" aria-label="Secciones">
+      <div class="contenedor nav__fila">
+        <a href="#inicio" class="nav__item nav__item--inicio" data-grupo-link="inicio"><span class="nav__ico" aria-hidden="true">🏠</span><span class="nav__txt">Inicio</span></a>
+        <div class="nav__grupo" data-grupo="dinero">
+          <button type="button" class="nav__item" aria-expanded="false" aria-controls="m-dinero"><span class="nav__ico" aria-hidden="true">💰</span><span class="nav__txt">El dinero</span><span class="nav__flecha" aria-hidden="true">▾</span></button>
+          <div class="nav__menu" id="m-dinero" hidden>
+            <p class="nav__menu-t">💰 El dinero</p>
+            <a href="#ingresos"><b>Impuestos</b><small>Cuánto se recauda cada mes</small></a>
+            <a href="#gastos"><b>Gastos</b><small>En qué se gasta el presupuesto, hasta cada proyecto</small></a>
+            <a href="#gastos-partidas"><b>¿Qué se compra?</b><small>Pasajes, publicidad, combustible…</small></a>
+            <a href="#mi-impuesto"><b>Mi impuesto</b><small>Calcula cuánto aportas y a dónde va</small></a>
+          </div>
+        </div>
+        <div class="nav__grupo" data-grupo="quien">
+          <button type="button" class="nav__item" aria-expanded="false" aria-controls="m-quien"><span class="nav__ico" aria-hidden="true">🏛️</span><span class="nav__txt">Quién <span class="solo-pc">lo maneja</span></span><span class="nav__flecha" aria-hidden="true">▾</span></button>
+          <div class="nav__menu" id="m-quien" hidden>
+            <p class="nav__menu-t">🏛️ Quién lo maneja</p>
+            <a href="#entidades"><b>Tu municipio</b><small>Cuánto gasta cada municipalidad, región, UGEL u hospital</small></a>
+            <a href="#contratos"><b>Contratos</b><small>A qué empresas les paga el Estado</small></a>
+            <a href="#obras"><b>Obras paralizadas</b><small>Obras que empezaron y se detuvieron</small></a>
+            <a href="#sueldos"><b>Sueldos</b><small>Cuánto gana cada persona que trabaja en el Estado</small></a>
+          </div>
+        </div>
+        <div class="nav__grupo" data-grupo="poder">
+          <button type="button" class="nav__item" aria-expanded="false" aria-controls="m-poder"><span class="nav__ico" aria-hidden="true">⚖️</span><span class="nav__txt">El poder</span><span class="nav__flecha" aria-hidden="true">▾</span></button>
+          <div class="nav__menu" id="m-poder" hidden>
+            <p class="nav__menu-t">⚖️ El poder</p>
+            <a href="#congreso"><b>Congreso</b><small>¿Van a trabajar senadores y diputados?</small></a>
+            <a href="#leyes"><b>Proyectos de ley</b><small>Qué leyes proponen y quién las firma</small></a>
+            <a href="#visitas"><b>Visitas a Palacio</b><small>Quién se reúne con la Presidencia</small></a>
+          </div>
+        </div>
+        <a href="#fuentes" class="nav__item nav__item--fuentes" data-grupo-link="fuentes"><span class="nav__ico" aria-hidden="true">🔍</span><span class="nav__txt">Fuentes</span></a>
+        <a href="#inicio" class="nav__item nav__item--buscar" id="nav-buscar"><span class="nav__ico" aria-hidden="true">🔎</span><span class="nav__txt">Buscar</span></a>
+      </div>
     </nav>
   </header>
 
@@ -49,7 +71,13 @@
       <div class="hero">
         <p class="eyebrow">Portal ciudadano · Datos públicos del Estado peruano</p>
         <h1 id="t-inicio">La plata del Estado es <em>tu</em> plata. Aquí puedes ver a dónde va.</h1>
-        <p class="hero__sub">Cuánto se recauda, en qué se gasta, cuánto ganan las autoridades, si el Congreso asiste y quién visita Palacio. Explicado en simple, con la fuente oficial al lado de cada número.</p>
+        <p class="hero__sub">Impuestos, gastos, contratos, sueldos, obras y leyes. Explicado en simple, con la fuente oficial al lado de cada número.</p>
+        <div class="buscador" role="search">
+          <label for="busqueda-global" class="visualmente-oculto">Buscar en todo el portal</label>
+          <input type="search" id="busqueda-global" placeholder="Busca tu distrito, una empresa, una obra, una ley…" autocomplete="off" aria-controls="busqueda-resultados">
+          <div class="buscador__ej" id="busqueda-ejemplos">Prueba: <button type="button" data-ej="Miraflores">Miraflores</button> <button type="button" data-ej="UGEL Cusco">UGEL Cusco</button> <button type="button" data-ej="colegio">colegio</button> <button type="button" data-ej="pensiones">pensiones</button> <button type="button" data-ej="consorcio vial">consorcio vial</button></div>
+          <div class="buscador__res" id="busqueda-resultados" aria-live="polite" hidden></div>
+        </div>
         <ul class="promesas" aria-label="Nuestros compromisos">
           <li><span aria-hidden="true">✓</span> Solo datos oficiales, con enlace</li>
           <li><span aria-hidden="true">✓</span> Sin publicidad ni partido político</li>
@@ -61,27 +89,41 @@
       <h2 class="titulo-seccion">Lo más importante, en números</h2>
       <div class="kpis kpis--4" id="kpis"></div>
 
-      <h2 class="titulo-seccion">¿Qué quieres saber?</h2>
-      <div class="temas">
-        <a class="tema" href="#ingresos"><span class="tema__icono" aria-hidden="true">🧾</span><span class="tema__t">¿Cuánto entra?</span><span class="tema__d">Los impuestos que pagamos todos</span></a>
-        <a class="tema" href="#gastos"><span class="tema__icono" aria-hidden="true">🏗️</span><span class="tema__t">¿En qué se gasta?</span><span class="tema__d">Educación, salud, obras, deuda…</span></a>
-        <a class="tema" href="#entidades"><span class="tema__icono" aria-hidden="true">🏘️</span><span class="tema__t">¿Cuánto gasta tu municipio?</span><span class="tema__d">Municipalidades, regiones, UGEL y hospitales</span></a>
-        <a class="tema" href="#contratos"><span class="tema__icono" aria-hidden="true">🤝</span><span class="tema__t">Contratos</span><span class="tema__d">A qué empresas les paga el Estado</span></a>
-        <a class="tema" href="#gastos-partidas"><span class="tema__icono" aria-hidden="true">🛒</span><span class="tema__t">¿Qué se compra?</span><span class="tema__d">Pasajes, publicidad, combustible…</span></a>
-        <a class="tema" href="#sueldos"><span class="tema__icono" aria-hidden="true">💵</span><span class="tema__t">Sueldos</span><span class="tema__d">Cuánto gana cada autoridad</span></a>
-        <a class="tema" href="#congreso"><span class="tema__icono" aria-hidden="true">🏛️</span><span class="tema__t">Congreso</span><span class="tema__d">¿Van a trabajar senadores y diputados?</span></a>
-        <a class="tema" href="#leyes"><span class="tema__icono" aria-hidden="true">📜</span><span class="tema__t">Proyectos de ley</span><span class="tema__d">Qué leyes proponen y quién las firma</span></a>
-        <a class="tema" href="#visitas"><span class="tema__icono" aria-hidden="true">🚪</span><span class="tema__t">Visitas a Palacio</span><span class="tema__d">Quién se reúne con la Presidencia</span></a>
-        <a class="tema" href="#obras"><span class="tema__icono" aria-hidden="true">🚧</span><span class="tema__t">Obras paralizadas</span><span class="tema__d">Obras que empezaron y se detuvieron</span></a>
-        <a class="tema tema--destacado" href="#mi-impuesto"><span class="tema__icono" aria-hidden="true">🧮</span><span class="tema__t">Mi impuesto</span><span class="tema__d">Calcula cuánto aportas y a dónde va</span></a>
+      <h2 class="titulo-seccion">Explora por tema</h2>
+      <div class="grupos" id="grupos-inicio">
+        <div class="grupo">
+          <p class="grupo__t"><span aria-hidden="true">💰</span> El dinero</p>
+          <p class="grupo__d">Cuánto entra y en qué se gasta.</p>
+          <a href="#ingresos"><span>Impuestos</span><small data-dato="ingresos"></small></a>
+          <a href="#gastos"><span>Gastos del presupuesto</span><small data-dato="gastos"></small></a>
+          <a href="#gastos-partidas"><span>¿Qué se compra?</span><small data-dato="partidas"></small></a>
+          <a href="#mi-impuesto"><span>Mi impuesto</span><small>calculadora</small></a>
+        </div>
+        <div class="grupo">
+          <p class="grupo__t"><span aria-hidden="true">🏛️</span> Quién lo maneja</p>
+          <p class="grupo__d">Entidades, empresas, obras y personas.</p>
+          <a href="#entidades"><span>Tu municipio</span><small data-dato="entidades"></small></a>
+          <a href="#contratos"><span>Contratos</span><small data-dato="contratos"></small></a>
+          <a href="#obras"><span>Obras paralizadas</span><small data-dato="obras"></small></a>
+          <a href="#sueldos"><span>Sueldos</span><small data-dato="sueldos"></small></a>
+        </div>
+        <div class="grupo">
+          <p class="grupo__t"><span aria-hidden="true">⚖️</span> El poder</p>
+          <p class="grupo__d">Qué hacen el Congreso y la Presidencia.</p>
+          <a href="#congreso"><span>Asistencia al Congreso</span><small data-dato="congreso"></small></a>
+          <a href="#leyes"><span>Proyectos de ley</span><small data-dato="leyes"></small></a>
+          <a href="#visitas"><span>Visitas a Palacio</span><small data-dato="visitas"></small></a>
+        </div>
       </div>
 
-      <h2 class="titulo-seccion">El dinero del Estado en 3 pasos</h2>
-      <ol class="pasos">
-        <li><span class="pasos__n">1</span><div><strong>Pagamos impuestos.</strong> Cada vez que compras algo pagas 18% de IGV. Si trabajas o tienes empresa, pagas Impuesto a la Renta. <a href="#ingresos">Ver cuánto entra →</a></div></li>
-        <li><span class="pasos__n">2</span><div><strong>El Congreso aprueba el presupuesto.</strong> Cada año decide cuánto recibe cada ministerio, región y municipalidad. Además de impuestos, se usan regalías mineras, préstamos y otros ingresos. <a href="#gastos">Ver en qué se gasta →</a></div></li>
-        <li><span class="pasos__n">3</span><div><strong>Las entidades lo gastan.</strong> En sueldos, obras, medicinas, colegios, pensiones y pago de deuda. Tú puedes revisarlo. <a href="#sueldos">Ver sueldos →</a></div></li>
-      </ol>
+      <details class="tarjeta plegable">
+        <summary><h2>¿Cómo funciona el dinero del Estado? (3 pasos)</h2></summary>
+        <ol class="pasos">
+          <li><span class="pasos__n">1</span><div><strong>Pagamos impuestos.</strong> Cada vez que compras algo pagas 18% de IGV. Si trabajas o tienes empresa, pagas Impuesto a la Renta. <a href="#ingresos">Ver cuánto entra →</a></div></li>
+          <li><span class="pasos__n">2</span><div><strong>El Congreso aprueba el presupuesto.</strong> Cada año decide cuánto recibe cada ministerio, región y municipalidad. Además de impuestos, se usan regalías mineras, préstamos y otros ingresos. <a href="#gastos">Ver en qué se gasta →</a></div></li>
+          <li><span class="pasos__n">3</span><div><strong>Las entidades lo gastan.</strong> En sueldos, obras, medicinas, colegios, pensiones y pago de deuda. Tú puedes revisarlo. <a href="#entidades">Ver tu municipio →</a></div></li>
+        </ol>
+      </details>
 
       <div class="tarjeta tarjeta--acento cta">
         <div>
@@ -120,15 +162,20 @@
       <p class="eyebrow">🏗️ Presupuesto público</p>
       <h1 id="t-gastos">¿En qué se gasta el dinero?</h1>
       <p class="intro" id="gastos-intro"></p>
+      <div class="tabs" role="tablist" aria-label="Partes de esta sección"><button type="button" role="tab" data-tab="gastos:resumen" aria-selected="true">📊 Resumen</button><button type="button" role="tab" data-tab="gastos:tema" aria-selected="false">🗂️ Por tema y proyecto</button><button type="button" role="tab" data-tab="gastos:partidas" aria-selected="false">🛒 ¿Qué se compra?</button></div>
 
+      <div data-panel="gastos:resumen">
+      <div class="kpis kpis--3" id="ejecucion"></div>
       <div class="tarjeta">
         <h2>¿Quién lo administra?</h2>
         <div id="niveles" class="apilada"></div>
         <ul id="niveles-leyenda" class="leyenda"></ul>
         <p class="fuente" id="niveles-fuente"></p>
       </div>
+      <p class="siguiente">Sigue: <button type="button" class="enlace-btn" data-ir-tab="gastos:tema">ver en qué se gasta, hasta cada proyecto →</button></p>
+      </div>
 
-      <div class="kpis kpis--3" id="ejecucion"></div>
+      <div data-panel="gastos:tema" hidden>
 
       <div class="tarjeta">
         <div class="tarjeta__cabeza">
@@ -162,6 +209,9 @@
         <div id="exp-contenido"></div>
       </div>
 
+      </div>
+
+      <div data-panel="gastos:partidas" hidden>
       <div class="tarjeta" id="partidas-card">
         <div class="tarjeta__cabeza">
           <h2 id="gastos-partidas">🛒 ¿Qué se compra exactamente?</h2>
@@ -176,6 +226,7 @@
         <div id="partidas-lista" class="barras"></div>
         <button type="button" class="boton boton--secundario" id="partidas-mas" hidden>Ver más</button>
       </div>
+      </div>
     </section>
 
     <!-- ===================== SUELDOS ===================== -->
@@ -184,6 +235,9 @@
       <h1 id="t-sueldos">¿Cuánto ganan las autoridades?</h1>
       <p class="intro">Por ley (Ley 27806), el sueldo de quienes trabajan en el Estado es público. Aquí puedes ver los sueldos de las principales autoridades y buscar a cualquier persona en la planilla oficial de cada entidad.</p>
 
+      <div class="tabs" role="tablist" aria-label="Partes de esta sección"><button type="button" role="tab" data-tab="sueldos:autoridades" aria-selected="true">👔 Autoridades</button><button type="button" role="tab" data-tab="sueldos:planilla" aria-selected="false">🔎 Buscar en planillas</button><button type="button" role="tab" data-tab="sueldos:comparar" aria-selected="false">📋 Comparar entidades</button></div>
+
+      <div data-panel="sueldos:autoridades">
       <div class="tarjeta">
         <h2>Sueldos de las principales autoridades</h2>
         <label class="campo">
@@ -193,37 +247,57 @@
         <div id="lista-sueldos" class="sueldos"></div>
       </div>
 
+      </div>
+
+      <div data-panel="sueldos:planilla" hidden>
       <div class="tarjeta" id="planillas-card">
         <div class="tarjeta__cabeza">
           <h2>Busca a cualquier persona en la planilla</h2>
           <span class="chip-dato" id="planilla-periodo"></span>
         </div>
         <p class="ayuda">Planilla oficial que cada entidad publica en el Portal de Transparencia Estándar: nombre, cargo, oficina y lo que recibió en el mes (sueldo más bonos o incentivos). No mostramos el DNI.</p>
+        <div class="chips" id="planilla-grupos" role="group" aria-label="Tipo de entidad"></div>
         <div class="filtros">
+          <div class="campo combo">
+            <label for="buscar-entidad-planilla"><span>Entidad <small id="planilla-n-ent"></small></span></label>
+            <input type="search" id="buscar-entidad-planilla" placeholder="Escribe: ministerio, municipalidad de…, UGEL…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="combo-entidades">
+            <div class="combo__lista" id="combo-entidades" role="listbox" hidden></div>
+            <input type="hidden" id="sel-entidad">
+          </div>
           <label class="campo">
-            <span>Entidad</span>
-            <select id="sel-entidad" class="select-grande"></select>
-          </label>
-          <label class="campo">
-            <span>Nombre o cargo</span>
-            <input type="search" id="buscar-planilla" placeholder="Ej.: Pérez, director, asesor…" autocomplete="off">
+            <span>Departamento</span>
+            <select id="planilla-dep" class="select-grande"><option value="">Todos</option></select>
           </label>
         </div>
+        <p class="entidad-elegida" id="planilla-elegida"></p>
+        <label class="campo">
+          <span>Buscar persona o cargo dentro de esta entidad</span>
+          <input type="search" id="buscar-planilla" placeholder="Ej.: Pérez, director, asesor…" autocomplete="off">
+        </label>
         <div class="kpis kpis--3" id="planilla-kpis"></div>
         <div id="lista-planilla" class="planilla"></div>
         <button type="button" class="boton boton--secundario" id="mas-planilla" hidden>Ver más</button>
       </div>
 
-      <div class="tarjeta" id="entidades-card" hidden>
-        <h2>Comparación entre entidades</h2>
-        <p class="ayuda">Cuánta gente trabaja en cada entidad, cuánto se paga en total al mes y cuánto gana la persona del medio (mediana) y la que más gana.</p>
-        <div class="tabla-scroll"><table class="tabla" id="tabla-entidades"></table></div>
       </div>
 
-      <div class="tarjeta">
-        <h2>Otras fuentes oficiales</h2>
-        <ul class="enlaces" id="buscadores"></ul>
+      <div data-panel="sueldos:comparar" hidden>
+      <div class="tarjeta" id="entidades-card" hidden>
+        <h2>Comparación entre entidades</h2>
+        <p class="ayuda">Cuánta gente trabaja en cada entidad, cuánto se paga en total al mes y cuánto gana la persona del medio (mediana) y la que más gana. Usa los mismos filtros de arriba (tipo y departamento).</p>
+        <label class="selector">Ordenar:
+          <select id="tabla-orden"><option value="maximo">Sueldo más alto</option><option value="mediana">Sueldo mediano</option><option value="personas">Más personal</option><option value="planilla">Planilla más grande</option></select>
+        </label>
+        <div class="tabla-scroll"><table class="tabla" id="tabla-entidades"></table></div>
+        <button type="button" class="boton boton--secundario" id="tabla-mas" hidden>Ver más</button>
       </div>
+
+      </div>
+
+      <details class="tarjeta plegable">
+        <summary><h2>Otras fuentes oficiales sobre funcionarios</h2></summary>
+        <ul class="enlaces" id="buscadores"></ul>
+      </details>
     </section>
 
     <!-- ===================== PROYECTOS DE LEY ===================== -->
@@ -347,6 +421,9 @@
       <p class="eyebrow">🤝 Contrataciones del Estado</p>
       <h1 id="t-contratos">¿A quién le paga el Estado?</h1>
       <p class="intro" id="con-intro"></p>
+      <div class="tabs" role="tablist" aria-label="Partes de esta sección"><button type="button" role="tab" data-tab="contratos:resumen" aria-selected="true">📊 Resumen</button><button type="button" role="tab" data-tab="contratos:buscar" aria-selected="false">🔎 Buscar contratos</button></div>
+
+      <div data-panel="contratos:resumen">
       <div class="kpis kpis--4" id="con-kpis"></div>
       <div class="dos-col">
         <div class="tarjeta">
@@ -360,6 +437,10 @@
           <div id="con-entidades" class="barras"></div>
         </div>
       </div>
+      <p class="siguiente">Sigue: <button type="button" class="enlace-btn" data-ir-tab="contratos:buscar">buscar cualquier contrato →</button></p>
+      </div>
+
+      <div data-panel="contratos:buscar" hidden>
       <div class="tarjeta">
         <h2>Busca cualquier contrato</h2>
         <p class="ayuda">Busca por empresa, RUC, entidad o lo que se compró. La primera búsqueda descarga todos los contratos del año (puede tardar unos segundos).</p>
@@ -372,6 +453,7 @@
         <div id="con-lista" class="proyectos"></div>
         <button type="button" class="boton boton--secundario" id="con-mas" hidden>Ver más</button>
         <p class="fuente" id="con-fuente"></p>
+      </div>
       </div>
     </section>
 
@@ -491,8 +573,8 @@
         <h2>Fuentes oficiales para revisar tú mismo</h2>
         <ul class="enlaces" id="fuentes-lista"></ul>
       </div>
-      <div class="tarjeta">
-        <h2>Glosario</h2>
+      <details class="tarjeta plegable">
+        <summary><h2>Glosario</h2></summary>
         <dl class="glosario">
           <dt>PIA</dt><dd>Presupuesto Institucional de Apertura: lo que aprueba el Congreso para el año, antes de cambios.</dd>
           <dt>PIM</dt><dd>Presupuesto Institucional Modificado: el PIA más los cambios durante el año.</dd>
@@ -501,7 +583,7 @@
           <dt>IGV</dt><dd>Impuesto General a las Ventas: 18% incluido en el precio de casi todo lo que compras.</dd>
           <dt>Función</dt><dd>La gran finalidad del gasto (educación, salud, transporte…), sin importar qué entidad lo gaste.</dd>
         </dl>
-      </div>
+      </details>
     </section>
   </main>
 
@@ -530,8 +612,8 @@
     </div>
   </footer>
 
-  <script src="js/datos.js?v=202611111021"></script>
-  <script src="js/arbol.js?v=202611111021"></script>
-  <script src="js/app.js?v=202611111021"></script>
+  <script src="js/datos.js?v=202611111046"></script>
+  <script src="js/arbol.js?v=202611111046"></script>
+  <script src="js/app.js?v=202611111046"></script>
 </body>
 </html>
