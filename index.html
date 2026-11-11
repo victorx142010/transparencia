@@ -11,7 +11,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=202611111046">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="css/styles.css?v=202611111353">
 </head>
 <body>
   <a class="saltar" href="#contenido">Saltar al contenido</a>
@@ -36,6 +37,8 @@
             <a href="#ingresos"><b>Impuestos</b><small>Cuánto se recauda cada mes</small></a>
             <a href="#gastos"><b>Gastos</b><small>En qué se gasta el presupuesto, hasta cada proyecto</small></a>
             <a href="#gastos-partidas"><b>¿Qué se compra?</b><small>Pasajes, publicidad, combustible…</small></a>
+            <a href="#programas"><b>Programas sociales</b><small>Juntos y Pensión 65 en cada distrito</small></a>
+            <a href="#deuda"><b>Deuda pública</b><small>Cuánto debe el Perú y a quién</small></a>
             <a href="#mi-impuesto"><b>Mi impuesto</b><small>Calcula cuánto aportas y a dónde va</small></a>
           </div>
         </div>
@@ -43,10 +46,12 @@
           <button type="button" class="nav__item" aria-expanded="false" aria-controls="m-quien"><span class="nav__ico" aria-hidden="true">🏛️</span><span class="nav__txt">Quién <span class="solo-pc">lo maneja</span></span><span class="nav__flecha" aria-hidden="true">▾</span></button>
           <div class="nav__menu" id="m-quien" hidden>
             <p class="nav__menu-t">🏛️ Quién lo maneja</p>
+            <a href="#distrito"><b>Tu distrito</b><small>Mapa y ficha de cada distrito: plata, obras, programas, auditorías</small></a>
             <a href="#entidades"><b>Tu municipio</b><small>Cuánto gasta cada municipalidad, región, UGEL u hospital</small></a>
             <a href="#contratos"><b>Contratos</b><small>A qué empresas les paga el Estado</small></a>
             <a href="#obras"><b>Obras paralizadas</b><small>Obras que empezaron y se detuvieron</small></a>
             <a href="#sueldos"><b>Sueldos</b><small>Cuánto gana cada persona que trabaja en el Estado</small></a>
+            <a href="#control"><b>Auditorías</b><small>Informes de la Contraloría y responsables</small></a>
           </div>
         </div>
         <div class="nav__grupo" data-grupo="poder">
@@ -56,6 +61,7 @@
             <a href="#congreso"><b>Congreso</b><small>¿Van a trabajar senadores y diputados?</small></a>
             <a href="#leyes"><b>Proyectos de ley</b><small>Qué leyes proponen y quién las firma</small></a>
             <a href="#visitas"><b>Visitas a Palacio</b><small>Quién se reúne con la Presidencia</small></a>
+            <a href="#viajes"><b>Viajes de funcionarios</b><small>Pasajes y viáticos pagados por el Estado</small></a>
           </div>
         </div>
         <a href="#fuentes" class="nav__item nav__item--fuentes" data-grupo-link="fuentes"><span class="nav__ico" aria-hidden="true">🔍</span><span class="nav__txt">Fuentes</span></a>
@@ -97,15 +103,19 @@
           <a href="#ingresos"><span>Impuestos</span><small data-dato="ingresos"></small></a>
           <a href="#gastos"><span>Gastos del presupuesto</span><small data-dato="gastos"></small></a>
           <a href="#gastos-partidas"><span>¿Qué se compra?</span><small data-dato="partidas"></small></a>
+          <a href="#programas"><span>Programas sociales</span><small data-dato="programas"></small></a>
+          <a href="#deuda"><span>Deuda pública</span><small data-dato="deuda"></small></a>
           <a href="#mi-impuesto"><span>Mi impuesto</span><small>calculadora</small></a>
         </div>
         <div class="grupo">
           <p class="grupo__t"><span aria-hidden="true">🏛️</span> Quién lo maneja</p>
           <p class="grupo__d">Entidades, empresas, obras y personas.</p>
+          <a href="#distrito"><span>Tu distrito (mapa)</span><small>1,890 distritos</small></a>
           <a href="#entidades"><span>Tu municipio</span><small data-dato="entidades"></small></a>
           <a href="#contratos"><span>Contratos</span><small data-dato="contratos"></small></a>
           <a href="#obras"><span>Obras paralizadas</span><small data-dato="obras"></small></a>
           <a href="#sueldos"><span>Sueldos</span><small data-dato="sueldos"></small></a>
+          <a href="#control"><span>Auditorías</span><small data-dato="control"></small></a>
         </div>
         <div class="grupo">
           <p class="grupo__t"><span aria-hidden="true">⚖️</span> El poder</p>
@@ -113,6 +123,7 @@
           <a href="#congreso"><span>Asistencia al Congreso</span><small data-dato="congreso"></small></a>
           <a href="#leyes"><span>Proyectos de ley</span><small data-dato="leyes"></small></a>
           <a href="#visitas"><span>Visitas a Palacio</span><small data-dato="visitas"></small></a>
+          <a href="#viajes"><span>Viajes de funcionarios</span><small data-dato="viajes"></small></a>
         </div>
       </div>
 
@@ -162,7 +173,7 @@
       <p class="eyebrow">🏗️ Presupuesto público</p>
       <h1 id="t-gastos">¿En qué se gasta el dinero?</h1>
       <p class="intro" id="gastos-intro"></p>
-      <div class="tabs" role="tablist" aria-label="Partes de esta sección"><button type="button" role="tab" data-tab="gastos:resumen" aria-selected="true">📊 Resumen</button><button type="button" role="tab" data-tab="gastos:tema" aria-selected="false">🗂️ Por tema y proyecto</button><button type="button" role="tab" data-tab="gastos:partidas" aria-selected="false">🛒 ¿Qué se compra?</button></div>
+      <div class="tabs" role="tablist" aria-label="Partes de esta sección"><button type="button" role="tab" data-tab="gastos:resumen" aria-selected="true">📊 Resumen</button><button type="button" role="tab" data-tab="gastos:tema" aria-selected="false">🗂️ Por tema y proyecto</button><button type="button" role="tab" data-tab="gastos:partidas" aria-selected="false">🛒 ¿Qué se compra?</button><button type="button" role="tab" data-tab="gastos:historia" aria-selected="false">📈 Años anteriores</button></div>
 
       <div data-panel="gastos:resumen">
       <div class="kpis kpis--3" id="ejecucion"></div>
@@ -225,6 +236,21 @@
         </div>
         <div id="partidas-lista" class="barras"></div>
         <button type="button" class="boton boton--secundario" id="partidas-mas" hidden>Ver más</button>
+      </div>
+      </div>
+
+      <div data-panel="gastos:historia" hidden>
+      <div class="tarjeta">
+        <h2>📈 ¿Cómo ha cambiado el gasto año a año?</h2>
+        <p class="ayuda">Presupuesto final (PIM) y lo que realmente se gastó (devengado) cada año. La diferencia es plata que no se llegó a usar.</p>
+        <div id="historia-anios" class="columnas columnas--anios" role="img"></div>
+        <div class="kpis kpis--3" id="historia-kpis"></div>
+      </div>
+      <div class="tarjeta">
+        <h2>Por tema, año a año</h2>
+        <p class="ayuda">Lo gastado (devengado) en cada función. Las flechas comparan el último año completo con el anterior.</p>
+        <div class="tabla-scroll"><table class="tabla" id="historia-funciones"></table></div>
+        <p class="fuente" id="historia-fuente"></p>
       </div>
       </div>
     </section>
@@ -363,6 +389,8 @@
         <button data-camara="diputados" aria-pressed="false">Diputados (130)</button>
       </div>
 
+      <div class="tabs" role="tablist" aria-label="Partes de esta sección"><button type="button" role="tab" data-tab="congreso:asistencia" aria-selected="true">🙋 Asistencia</button><button type="button" role="tab" data-tab="congreso:votos" aria-selected="false">🗳️ Cómo votan</button></div>
+      <div data-panel="congreso:asistencia">
       <div class="kpis kpis--3" id="congreso-kpis"></div>
 
       <div class="tarjeta">
@@ -393,6 +421,17 @@
         <div id="sesiones-congreso" class="tabla-scroll"></div>
         <p class="fuente" id="congreso-fuente"></p>
       </div>
+      </div>
+
+      <div data-panel="congreso:votos" hidden>
+      <div class="tarjeta">
+        <h2>¿Cómo votó cada integrante?</h2>
+        <p class="ayuda">Votaciones nominales registradas en las actas del Pleno: quién votó a favor, en contra o se abstuvo. Escribe un apellido para ver sus votos, o mira cada votación.</p>
+        <label class="campo"><span>Buscar congresista</span><input type="search" id="votos-q" placeholder="Apellido…" autocomplete="off"></label>
+        <div id="votos-persona"></div>
+        <div id="votos-lista" class="votaciones"></div>
+      </div>
+      </div>
     </section>
 
     <!-- ===================== ENTIDADES ===================== -->
@@ -421,7 +460,7 @@
       <p class="eyebrow">🤝 Contrataciones del Estado</p>
       <h1 id="t-contratos">¿A quién le paga el Estado?</h1>
       <p class="intro" id="con-intro"></p>
-      <div class="tabs" role="tablist" aria-label="Partes de esta sección"><button type="button" role="tab" data-tab="contratos:resumen" aria-selected="true">📊 Resumen</button><button type="button" role="tab" data-tab="contratos:buscar" aria-selected="false">🔎 Buscar contratos</button></div>
+      <div class="tabs" role="tablist" aria-label="Partes de esta sección"><button type="button" role="tab" data-tab="contratos:resumen" aria-selected="true">📊 Resumen</button><button type="button" role="tab" data-tab="contratos:alertas" aria-selected="false">🚩 Señales de alerta</button><button type="button" role="tab" data-tab="contratos:buscar" aria-selected="false">🔎 Buscar contratos</button></div>
 
       <div data-panel="contratos:resumen">
       <div class="kpis kpis--4" id="con-kpis"></div>
@@ -438,6 +477,23 @@
         </div>
       </div>
       <p class="siguiente">Sigue: <button type="button" class="enlace-btn" data-ir-tab="contratos:buscar">buscar cualquier contrato →</button></p>
+      </div>
+
+      <div data-panel="contratos:alertas" hidden>
+      <div class="tarjeta tarjeta--aviso">
+        <h2>🚩 Señales de alerta</h2>
+        <p>Son <strong>patrones que conviene revisar</strong>, no pruebas de irregularidad: muchos tienen explicación válida. Sirven para saber dónde mirar primero.</p>
+        <div class="alertas-tipos" id="alertas-tipos"></div>
+      </div>
+      <div class="dos-col">
+        <div class="tarjeta"><h2>Entidades con más monto en contratos con alertas</h2><div id="alertas-entidades" class="barras"></div></div>
+        <div class="tarjeta">
+          <h2>Contratos con más señales</h2>
+          <div class="chips" id="alertas-filtro"></div>
+          <div id="alertas-lista" class="proyectos proyectos--1"></div>
+          <button type="button" class="boton boton--secundario" id="alertas-mas" hidden>Ver más</button>
+        </div>
+      </div>
       </div>
 
       <div data-panel="contratos:buscar" hidden>
@@ -478,6 +534,119 @@
         <div id="lista-obras" class="proyectos"></div>
         <button type="button" class="boton boton--secundario" id="mas-obras" hidden>Ver más</button>
         <p class="fuente">Ordenadas de mayor a menor costo. El avance físico es lo que realmente se construyó; lo informa cada entidad en Infobras.</p>
+      </div>
+    </section>
+
+    <!-- ===================== TU DISTRITO ===================== -->
+    <section id="distrito" class="vista" aria-labelledby="t-distrito" hidden>
+      <p class="eyebrow">🗺️ Tu distrito</p>
+      <h1 id="t-distrito">¿Qué pasa con la plata en tu distrito?</h1>
+      <p class="intro">Elige tu distrito en el mapa o búscalo por nombre. Verás cuánto recibe y gasta su municipalidad, de dónde viene esa plata (canon, FONCOMUN, impuestos…), sus obras, auditorías, contratos y programas sociales.</p>
+      <div class="tarjeta">
+        <div class="filtros">
+          <div class="campo combo">
+            <label for="dist-q"><span>Buscar distrito</span></label>
+            <input type="search" id="dist-q" placeholder="Ej.: Miraflores, Ayaviri, San Juan de Lurigancho…" autocomplete="off">
+            <div class="combo__lista" id="dist-combo" hidden></div>
+          </div>
+          <label class="campo"><span>Colorear el mapa por</span>
+            <select id="mapa-metrica" class="select-grande">
+              <option value="ejec">% del presupuesto ya gastado (municipalidades)</option>
+              <option value="obras">Obras paralizadas</option>
+              <option value="control">Informes de Contraloría con responsables</option>
+              <option value="juntos">Hogares en Juntos</option>
+              <option value="p65">Usuarios de Pensión 65</option>
+            </select></label>
+        </div>
+        <nav class="migas" id="mapa-migas" aria-label="Nivel del mapa"></nav>
+        <div id="mapa" class="mapa" role="application" aria-label="Mapa del Perú por departamentos y distritos"></div>
+        <div class="mapa-leyenda" id="mapa-leyenda"></div>
+        <p class="fuente">Mapas: <a href="https://github.com/juaneladio/peru-geojson" target="_blank" rel="noopener">peru-geojson</a> (MPL-2.0), con límites del INEI.</p>
+      </div>
+      <div class="tarjeta tarjeta--explorador" id="dist-ficha" hidden></div>
+    </section>
+
+    <!-- ===================== AUDITORÍAS ===================== -->
+    <section id="control" class="vista" aria-labelledby="t-control" hidden>
+      <p class="eyebrow">🔎 Contraloría General de la República</p>
+      <h1 id="t-control">¿Qué encontró la Contraloría?</h1>
+      <p class="intro" id="control-intro"></p>
+      <div class="kpis kpis--4" id="control-kpis"></div>
+      <div class="dos-col">
+        <div class="tarjeta"><h2>Entidades con más personas señaladas</h2><p class="ayuda">Personas con presunta responsabilidad en los informes publicados.</p><div id="control-entidades" class="barras"></div></div>
+        <div class="tarjeta"><h2>Informes por departamento</h2><div id="control-deps" class="barras"></div></div>
+      </div>
+      <div class="tarjeta">
+        <h2>Todos los informes</h2>
+        <div class="filtros filtros--3">
+          <label class="campo"><span>Buscar</span><input type="search" id="control-q" placeholder="Entidad, distrito, tema: obra, colegio, combustible…" autocomplete="off"></label>
+          <label class="campo"><span>Departamento</span><select id="control-dep" class="select-grande"><option value="">Todos</option></select></label>
+          <label class="campo"><span>Mostrar</span><select id="control-solo" class="select-grande"><option value="resp">Solo con presuntos responsables</option><option value="">Todos los informes</option></select></label>
+        </div>
+        <p class="ayuda" id="control-conteo"></p>
+        <div id="control-lista" class="proyectos"></div>
+        <button type="button" class="boton boton--secundario" id="control-mas" hidden>Ver más</button>
+        <p class="fuente" id="control-fuente"></p>
+      </div>
+    </section>
+
+    <!-- ===================== PROGRAMAS SOCIALES ===================== -->
+    <section id="programas" class="vista" aria-labelledby="t-programas" hidden>
+      <p class="eyebrow">🤝 Programas sociales</p>
+      <h1 id="t-programas">¿A cuántas familias llegan los programas sociales?</h1>
+      <p class="intro" id="programas-intro"></p>
+      <div class="kpis kpis--3" id="programas-kpis"></div>
+      <div class="tarjeta">
+        <h2>Por departamento</h2>
+        <div class="segmentado" role="group" aria-label="Programa">
+          <button data-prog="juntos" aria-pressed="true">Juntos (hogares)</button>
+          <button data-prog="p65" aria-pressed="false">Pensión 65 (adultos mayores)</button>
+        </div>
+        <div id="programas-deps" class="barras" style="margin-top:.8rem"></div>
+        <p class="ayuda">Para ver tu distrito, búscalo en <a href="#distrito">Tu distrito</a>.</p>
+        <p class="fuente" id="programas-fuente"></p>
+      </div>
+    </section>
+
+    <!-- ===================== DEUDA ===================== -->
+    <section id="deuda" class="vista" aria-labelledby="t-deuda" hidden>
+      <p class="eyebrow">🏦 Deuda pública</p>
+      <h1 id="t-deuda">¿Cuánto debe el Perú?</h1>
+      <p class="intro" id="deuda-intro"></p>
+      <div class="kpis kpis--4" id="deuda-kpis"></div>
+      <div class="tarjeta">
+        <h2>Cómo ha crecido la deuda</h2>
+        <p class="ayuda">Saldo al final de cada trimestre, en miles de millones de soles.</p>
+        <div id="deuda-trimestres" class="columnas columnas--meses" role="img"></div>
+      </div>
+      <div class="tarjeta">
+        <h2>¿A quién le debemos?</h2>
+        <div id="deuda-acreedores" class="barras"></div>
+        <p class="fuente" id="deuda-fuente"></p>
+      </div>
+    </section>
+
+    <!-- ===================== VIAJES ===================== -->
+    <section id="viajes" class="vista" aria-labelledby="t-viajes" hidden>
+      <p class="eyebrow">✈️ Viajes de funcionarios</p>
+      <h1 id="t-viajes">¿Quién viaja con dinero público?</h1>
+      <p class="intro" id="viajes-intro"></p>
+      <div class="kpis kpis--4" id="viajes-kpis"></div>
+      <div class="dos-col">
+        <div class="tarjeta"><h2>Personas con más gasto en viajes</h2><div id="viajes-personas" class="barras"></div></div>
+        <div class="tarjeta"><h2>Entidades que más gastan en viajes</h2><div id="viajes-entidades" class="barras"></div></div>
+      </div>
+      <div class="tarjeta">
+        <h2>Todos los viajes</h2>
+        <div class="filtros filtros--3">
+          <label class="campo"><span>Buscar</span><input type="search" id="viajes-q" placeholder="Nombre, entidad, destino…" autocomplete="off"></label>
+          <label class="campo"><span>Tipo</span><select id="viajes-tipo" class="select-grande"><option value="">Todos</option><option>Internacional</option><option>Nacional</option></select></label>
+          <label class="campo"><span>Ordenar</span><select id="viajes-orden" class="select-grande"><option value="monto">Más caros</option><option value="fecha">Más recientes</option></select></label>
+        </div>
+        <p class="ayuda" id="viajes-conteo"></p>
+        <div id="viajes-lista" class="proyectos"></div>
+        <button type="button" class="boton boton--secundario" id="viajes-mas" hidden>Ver más</button>
+        <p class="fuente" id="viajes-fuente"></p>
       </div>
     </section>
 
@@ -612,8 +781,8 @@
     </div>
   </footer>
 
-  <script src="js/datos.js?v=202611111046"></script>
-  <script src="js/arbol.js?v=202611111046"></script>
-  <script src="js/app.js?v=202611111046"></script>
+  <script src="js/datos.js?v=202611111353"></script>
+  <script src="js/arbol.js?v=202611111353"></script>
+  <script src="js/app.js?v=202611111353"></script>
 </body>
 </html>

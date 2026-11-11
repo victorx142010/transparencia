@@ -1,0 +1,1 @@
+Mapas: https://github.com/juaneladio/peru-geojson (Licencia MPL-2.0), simplificados para esta web.

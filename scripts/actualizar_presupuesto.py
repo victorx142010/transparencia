@@ -77,6 +77,8 @@ def main():
                                             i["ACTIVIDAD_ACCION_OBRA_NOMBRE"], i["EJECUTORA_NOMBRE"])
     c_sec, c_dep_ej, c_prov_ej, c_dist_ej = i["SEC_EJEC"], i["DEPARTAMENTO_EJECUTORA_NOMBRE"], i["PROVINCIA_EJECUTORA_NOMBRE"], i["DISTRITO_EJECUTORA_NOMBRE"]
     c_esp, c_subgen = i["ESPECIFICA_DET_NOMBRE"], i["SUBGENERICA_NOMBRE"]
+    c_rub = i["RUBRO_NOMBRE"]
+    c_cdep, c_cprov, c_cdist = i["DEPARTAMENTO_EJECUTORA"], i["PROVINCIA_EJECUTORA"], i["DISTRITO_EJECUTORA"]
     c_meses = [i[f"MONTO_DEVENGADO_{m}"] for m in (
         "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO",
         "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE")]
@@ -100,6 +102,8 @@ def main():
     esp_nac = defaultdict(nuevo)             # (genérica, específica)
     esp_niv = defaultdict(nuevo)             # (específica, nivel)
     grp_esp = defaultdict(nuevo)             # (fun, div, grp, específica)
+    ej_rub = defaultdict(nuevo)              # (sec, rubro): de dónde viene la plata
+    rub_niv = defaultdict(nuevo)             # (rubro, nivel)
 
     n = 0
     for fila in lector:
@@ -114,9 +118,11 @@ def main():
         sec, esp, gen = fila[c_sec], fila[c_esp].strip(), fila[c_gen].strip()
         if sec not in ej_info:
             ej_info[sec] = [fila[c_ejec].strip(), fila[c_pliego].strip(), fila[c_nivel].strip(),
-                            fila[c_dep_ej].strip(), fila[c_prov_ej].strip(), fila[c_dist_ej].strip()]
+                            fila[c_dep_ej].strip(), fila[c_prov_ej].strip(), fila[c_dist_ej].strip(),
+                            f"{fila[c_cdep].strip():0>2}{fila[c_cprov].strip():0>2}{fila[c_cdist].strip():0>2}"]
         for acc in (ej_acc[sec], ej_gen[(sec, gen)], ej_esp[(sec, esp)], ej_fun[(sec, fun)],
-                    esp_nac[(gen, esp)], esp_niv[(esp, fila[c_nivel])], grp_esp[(fun, div, grp, esp)]):
+                    esp_nac[(gen, esp)], esp_niv[(esp, fila[c_nivel])], grp_esp[(fun, div, grp, esp)],
+                    ej_rub[(sec, fila[c_rub].strip())], rub_niv[(fila[c_rub].strip(), fila[c_nivel])]):
             sumar(acc, v)
         if fila[c_tipo] == "PROYECTO":
             kp = (sec, fila[c_cui])
@@ -200,7 +206,10 @@ def main():
 
     # ---------- Quién gasta: unidades ejecutoras ----------
     os.makedirs(os.path.join(DATA, "entidades"), exist_ok=True)
-    por_sec = defaultdict(lambda: {"gen": [], "esp": [], "fun": [], "pry": []})
+    por_sec = defaultdict(lambda: {"gen": [], "esp": [], "fun": [], "pry": [], "rub": []})
+    for (s, x), a in ej_rub.items():
+        if a[1] > 0 or a[2] > 0:
+            por_sec[s]["rub"].append([x, round(a[1]), round(a[2])])
     for (s, x), a in ej_gen.items():
         por_sec[s]["gen"].append([x, round(a[1]), round(a[2])])
     for (s, x), a in ej_esp.items():
@@ -216,13 +225,14 @@ def main():
         a = ej_acc[s]
         if a[1] <= 0 and a[2] <= 0:
             continue
-        nombre, pliego, nivel, dep, prov, dist = info
+        nombre, pliego, nivel, dep, prov, dist, ubigeo = info
         ds = slug(dep) or "otros"
         x = por_sec[s]
         pry = sorted(x["pry"], key=lambda r: -r[4])
-        indice.append([s, nombre, pliego, nivel, dep, prov, dist, round(a[1]), round(a[2]), len(pry), ds])
+        indice.append([s, nombre, pliego, nivel, dep, prov, dist, round(a[1]), round(a[2]), len(pry), ds, ubigeo])
         por_depto[ds].append({
             "id": s, "nombre": nombre, "pliego": pliego, "nivel": nivel, "departamento": dep, "provincia": prov, "distrito": dist,
+            "ubigeo": ubigeo, "rubros": sorted(x["rub"], key=lambda r: -r[1]),
             **R(a),
             "genericas": sorted(x["gen"], key=lambda r: -r[1]),
             "especificas": sorted(x["esp"], key=lambda r: -r[1])[:40],
@@ -233,7 +243,7 @@ def main():
         guardar_json(f"entidades/{ds}.json", {"anio": args.anio, "entidades": lst})
     guardar_json("entidades.json", {
         "anio": args.anio, "actualizado": ahora_lima().isoformat(timespec="minutes"),
-        "campos": ["id", "nombre", "pliego", "nivel", "departamento", "provincia", "distrito", "pim", "dev", "proyectos", "archivo"],
+        "campos": ["id", "nombre", "pliego", "nivel", "departamento", "provincia", "distrito", "pim", "dev", "proyectos", "archivo", "ubigeo"],
         "entidades": sorted(indice, key=lambda r: -r[7]),
     })
 
@@ -242,6 +252,16 @@ def main():
     for (e, nv), a in esp_niv.items():
         niv_esp[e][nv] = [round(a[1]), round(a[2])]
     partidas = [[g, e, round(a[0]), round(a[1]), round(a[2]), niv_esp.get(e, {})] for (g, e), a in esp_nac.items() if a[1] > 0 or a[2] > 0]
+    # ---------- De dónde viene la plata: rubros (canon, regalías, FONCOMUN…) ----------
+    rubros = defaultdict(dict)
+    for (r, nv), a in rub_niv.items():
+        rubros[r][nv] = [round(a[1]), round(a[2])]
+    guardar_json("rubros.json", {
+        "anio": args.anio, "actualizado": ahora_lima().isoformat(timespec="minutes"),
+        "rubros": sorted(([r, v, sum(x[0] for x in v.values()), sum(x[1] for x in v.values())] for r, v in rubros.items()),
+                         key=lambda x: -x[2]),
+    })
+
     guardar_json("partidas.json", {
         "anio": args.anio, "actualizado": ahora_lima().isoformat(timespec="minutes"),
         "campos": ["generica", "especifica", "pia", "pim", "dev", "porNivel"],

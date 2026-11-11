@@ -196,7 +196,11 @@
       sueldos: SUE ? `${nf0.format(SUE.entidades.reduce((a, e) => a + e.personas, 0))} personas` : `Presidente(a): ${soles(pres.monto)}`,
       congreso: CONG ? (() => { const s = resumenCamara(CONG.camaras.senado), d = resumenCamara(CONG.camaras.diputados); return `${nf0.format(s.prom)}% · ${nf0.format(d.prom)}% asistencia`; })() : "",
       leyes: PROY ? `${nf0.format(PROY.total)} proyectos` : "",
-      visitas: VIS ? `${nf0.format(VIS.totalPresidencia)} reuniones` : ""
+      visitas: VIS ? `${nf0.format(VIS.totalPresidencia)} reuniones` : "",
+      programas: PROG ? `${nf0.format(PROG.totales.juntos_hogares)} hogares en Juntos` : "",
+      deuda: DEU ? corto(DEU.ultimo.PN03371FQ) : "",
+      control: "informes de control",
+      viajes: "pasajes y viáticos"
     };
     $$("#grupos-inicio [data-dato]").forEach((s) => (s.textContent = dato[s.dataset.dato] || ""));
   }
@@ -657,6 +661,7 @@
         <div><h3 class="exp-sub">¿En qué gasta?</h3><div class="barras">${e.genericas.filter((g) => g[1] > 0).map(([n, p, d]) => filaSimple(bonito(n), p, maxG, `${corto(p / M)} · ${nf0.format(avance(d, p))}%`)).join("")}</div></div>
         <div><h3 class="exp-sub">¿Para qué?</h3><div class="barras">${e.funciones.filter((g) => g[1] > 0).slice(0, 10).map(([n, p]) => filaSimple(bonito(n), p, maxF, corto(p / M))).join("")}</div></div>
       </div>
+      <div id="ent-control"></div>
       <h3 class="exp-sub">¿Qué compra exactamente? <small>(partidas específicas, de mayor a menor)</small></h3>
       <ul class="actividades">${e.especificas.map(([n, p, d]) => `<li><span>${esc(bonito(n))}</span><b>${soles(p)}</b><small>gastado ${soles(d)} (${nf0.format(avance(d, p))}%)</small></li>`).join("")}</ul>
       ${e.proyectos.length ? `
@@ -670,6 +675,13 @@
       <div id="ent-proyectos" class="proyectos"></div>
       <button type="button" class="boton boton--secundario" id="ent-pmas" hidden>Ver más</button>` : ""}
       <p class="fuente">Fuente: MEF — Datos Abiertos, presupuesto y ejecución ${ENT.anio}. "Gastado" es el monto devengado (el bien o servicio ya se recibió).</p>`;
+    prepararControl().then(() => {
+      if (!CTRL) return;
+      const k = clave(e.nombre.split(" - ")[0]);
+      const infs = CTRL.informes.filter((r) => clave(r[1]).includes(k) || k.includes(clave(r[1])));
+      if (infs.length) $("#ent-control").innerHTML = `<h3 class="exp-sub">🔎 Informes de la Contraloría (${nf0.format(infs.length)})</h3><div class="proyectos">${infs.slice(0, 4).map(tarjetaInforme).join("")}</div>` +
+        (infs.length > 4 ? `<p><a href="#control?q=${encodeURIComponent(e.nombre.split(" - ")[0])}">Ver los ${nf0.format(infs.length)} informes →</a></p>` : "");
+    });
     $("#ent-cerrar").addEventListener("click", () => { box.hidden = true; try { history.replaceState(null, "", "#entidades"); } catch (er) {} });
     $("#ent-copiar").addEventListener("click", async (ev) => {
       const url = location.origin + location.pathname + "#entidades?id=" + encodeURIComponent(e.id);
@@ -732,12 +744,13 @@
   let CON = null, CON_LISTA = null, cargandoCon = null;
   const CO = { q: "", cat: "", orden: "monto", n: 20 };
   const esRUC = (r) => /^\d{11}$/.test(r || "");
-  function tarjetaContrato([fecha, ent, prov, ruc, monto, objeto, metodo, cat, ocid]) {
+  function tarjetaContrato([fecha, ent, prov, ruc, monto, objeto, metodo, cat, ocid, alertas]) {
     return `<article class="proyecto">
       <div class="ley__cab"><span class="ley__num">${fechaLarga(fecha)} · ${esc(cat)}</span><span class="etapa etapa--inicio">${esc(metodo)}</span></div>
       <p class="ley__titulo">${esc(fraseL(objeto))}</p>
       <div class="proyecto__montos"><span>${esc(propio(prov))}${esRUC(ruc) ? ` <small>(RUC ${esc(ruc)})</small>` : ""}</span><span>${soles(monto)}</span></div>
       <p class="ley__meta">Contrató: ${esc(propio(ent))}</p>
+      ${alertas ? `<p class="alertas-linea">${chipsAlerta(alertas)}</p>` : ""}
       <a class="ley__link" href="${CON.urlProceso}${esc(ocid.replace(/^ocds-dgv273-/, ""))}" target="_blank" rel="noopener">Ver proceso oficial (OECE) ↗</a>
     </article>`;
   }
@@ -866,7 +879,7 @@
       </div>`;
     }).join("") : '<p class="vacio">No encontramos ese apellido.</p>';
   }
-  grupoBotones("camara", (v) => { camara = v; pintarCongreso(); });
+  grupoBotones("camara", (v) => { camara = v; pintarCongreso(); if (!$('[data-panel="congreso:votos"]').hidden) pintarVotos(); });
   $("#buscar-congreso").addEventListener("input", () => CONG && pintarListaCongreso());
   $("#orden-congreso").addEventListener("change", () => CONG && pintarListaCongreso());
 
@@ -1167,9 +1180,404 @@
     $("#fuentes-lista").innerHTML = enlacesHTML([...extra, ...D.buscadoresOficiales]);
   }
 
+  // =====================================================================
+  //  FASE 2: alertas, auditorías, programas, deuda, viajes, votos,
+  //  años anteriores y tu distrito (mapa)
+  // =====================================================================
+  let CTRL = null, PROG = null, DEU = null, VIA = null, HIST = null;
+  const cargaUnica = {};
+  const cargarUna = (n) => (cargaUnica[n] = cargaUnica[n] || cargar(n));
+  const ALERTA = {
+    U: ["Un solo postor", "Solo una empresa se presentó en un proceso que debía ser competitivo."],
+    D: ["Contratación directa", "Se contrató sin concurso (la ley lo permite en emergencias, proveedor único, etc.)."],
+    S: ["Sobre el valor referencial", "Se adjudicó más de 10% por encima del precio que la entidad había estimado."],
+    C: ["Misma empresa, muchas veces", "La misma empresa ganó 5 o más contratos de la misma entidad en el año."]
+  };
+  const chipsAlerta = (f) => (f || "").split("").filter((k) => ALERTA[k]).map((k) => `<span class="alerta alerta--${k}" title="${esc(ALERTA[k][1])}">🚩 ${esc(ALERTA[k][0])}</span>`).join("");
+
+  // ---------- Señales de alerta en contratos ----------
+  const AL = { f: "", n: 20 };
+  function pintarAlertas() {
+    if (!CON || !CON.alertas) return;
+    $("#alertas-tipos").innerHTML = Object.entries(ALERTA).map(([k, [t, d]]) => {
+      const a = CON.alertas[k] || { contratos: 0, monto: 0 };
+      return `<button type="button" class="alerta-tipo${AL.f === k ? " alerta-tipo--activo" : ""}" data-al="${k}"><span class="alerta alerta--${k}">🚩 ${esc(t)}</span>
+        <b>${nf0.format(a.contratos)} contratos · ${corto(a.monto / 1e6)}</b><small>${esc(d)}</small></button>`;
+    }).join("");
+    $$("#alertas-tipos [data-al]").forEach((b) => b.addEventListener("click", () => { AL.f = AL.f === b.dataset.al ? "" : b.dataset.al; AL.n = 20; pintarAlertas(); }));
+    const maxE = Math.max(1, ...CON.entidadesAlerta.map((e) => e[2]));
+    $("#alertas-entidades").innerHTML = CON.entidadesAlerta.slice(0, 15).map(([e, n, m]) => filaHTML({
+      nombre: esc(propio(e)), valorTexto: corto(m / 1e6), ancho: (m / maxE) * 100,
+      detalle: `<p>${nf0.format(n)} contratos con al menos una señal.</p><p><a class="boton boton--secundario boton--chico" href="#contratos?q=${encodeURIComponent(e)}">Ver sus contratos</a></p>`
+    })).join("");
+    $("#alertas-filtro").innerHTML = `<span class="ayuda">${AL.f ? "Filtrando por: " + esc(ALERTA[AL.f][0]) + " · " : ""}Toca un tipo de alerta arriba para filtrar.</span>`;
+    const lista = CON.conAlertas.filter((r) => !AL.f || r[9].includes(AL.f));
+    $("#alertas-lista").innerHTML = lista.slice(0, AL.n).map(tarjetaContrato).join("") || '<p class="vacio">No hay contratos con esa señal.</p>';
+    $("#alertas-mas").hidden = lista.length <= AL.n;
+    $("#alertas-mas").textContent = `Ver más (${nf0.format(lista.length - AL.n)} restantes)`;
+  }
+  $("#alertas-mas").addEventListener("click", () => { AL.n += 20; pintarAlertas(); });
+
+  // ---------- Auditorías (Contraloría) ----------
+  const CT = { q: "", dep: "", solo: "resp", n: 20 };
+  const tarjetaInforme = ([fecha, ent, dep, prov, dist, titulo, modalidad, personas, resp, numero, pdf, resumen]) => `
+    <article class="proyecto">
+      <div class="ley__cab"><span class="ley__num">${esc(fecha)} · Informe ${esc(numero)}</span>${personas ? `<span class="etapa etapa--fin">${nf0.format(personas)} presunto${personas === 1 ? "" : "s"} responsable${personas === 1 ? "" : "s"}</span>` : '<span class="etapa etapa--inicio">Sin responsables señalados</span>'}</div>
+      <p class="ley__titulo">${esc(fraseL(titulo))}</p>
+      <p class="ley__meta">${esc(propio(ent))} · ${esc(propio(dist))}, ${esc(propio(dep))} · ${esc(fraseL(modalidad))}</p>
+      ${resp ? `<p class="ley__meta">Tipo de responsabilidad: <strong>${esc(fraseL(resp))}</strong></p>` : ""}
+      <p class="enlaces-linea">${pdf ? `<a href="${esc(pdf)}" target="_blank" rel="noopener">Informe completo (PDF) ↗</a>` : ""}${resumen ? ` <a href="${esc(resumen)}" target="_blank" rel="noopener">Resumen ↗</a>` : ""}</p>
+    </article>`;
+  async function prepararControl() {
+    if (CTRL) return CTRL;
+    const d = await cargarUna("control.json");
+    if (d && d.informes) CTRL = d;
+    return CTRL;
+  }
+  async function pintarControl() {
+    if (!(await prepararControl())) { $("#control-lista").innerHTML = '<p class="vacio">Aún no hay datos de auditorías.</p>'; return; }
+    $("#control-intro").innerHTML = `La Contraloría publicó <strong>${nf0.format(CTRL.total)} informes</strong> de control (${esc(CTRL.anios.replace(",", " y "))}). En <strong>${nf0.format(CTRL.conResponsabilidad)}</strong> señaló a funcionarios con <strong>presunta responsabilidad</strong> administrativa, civil o penal. "Presunta" significa que aún debe confirmarse en un proceso.`;
+    const tipos = Object.fromEntries(CTRL.tipos);
+    $("#control-kpis").innerHTML = [
+      ["Informes publicados", nf0.format(CTRL.total), esc(CTRL.anios.replace(",", " y "))],
+      ["Con presuntos responsables", nf0.format(CTRL.conResponsabilidad), pct(CTRL.conResponsabilidad, CTRL.total) + " de los informes"],
+      ["Personas señaladas", nf0.format(CTRL.personas), "funcionarios y servidores"],
+      ["Con indicios penales", nf0.format(tipos.PENAL || 0), "informes que mencionan responsabilidad penal"]
+    ].map(kpiHTML).join("");
+    const maxE = Math.max(1, ...CTRL.topEntidades.map((e) => e[3]));
+    $("#control-entidades").innerHTML = CTRL.topEntidades.slice(0, 15).map(([e, n, c, p]) => filaHTML({
+      nombre: esc(propio(e)), valorTexto: `${nf0.format(p)} personas`, ancho: (p / maxE) * 100,
+      detalle: `<p>${nf0.format(n)} informes, ${nf0.format(c)} con presuntos responsables.</p><p><a class="boton boton--secundario boton--chico" href="#control?q=${encodeURIComponent(e)}">Ver sus informes</a></p>`
+    })).join("");
+    const maxD = Math.max(1, ...CTRL.porDepartamento.map((x) => x[1]));
+    $("#control-deps").innerHTML = CTRL.porDepartamento.slice(0, 25).map(([d, n]) => filaSimple(propio(d), n, maxD, nf0.format(n))).join("");
+    if ($("#control-dep").options.length <= 1) $("#control-dep").innerHTML = '<option value="">Todos</option>' + CTRL.porDepartamento.map(([d]) => `<option value="${esc(d)}">${esc(propio(d))}</option>`).join("");
+    $("#control-fuente").innerHTML = `Fuente: <a href="${esc(CTRL.fuente)}" target="_blank" rel="noopener">Buscador de informes de la Contraloría</a>. Actualizado: ${new Date(CTRL.actualizado).toLocaleDateString("es-PE")}.`;
+    pintarListaControl();
+  }
+  function pintarListaControl() {
+    const q = normal(CT.q.trim());
+    const lista = CTRL.informes.filter((r) => (!CT.solo || r[7] > 0) && (!CT.dep || r[2] === CT.dep) && (!q || normal(`${r[1]} ${r[3]} ${r[4]} ${r[5]} ${r[9]}`).includes(q)));
+    $("#control-conteo").textContent = `${nf0.format(lista.length)} informes`;
+    $("#control-lista").innerHTML = lista.slice(0, CT.n).map(tarjetaInforme).join("") || '<p class="vacio">No hay informes que coincidan.</p>';
+    $("#control-mas").hidden = lista.length <= CT.n;
+    $("#control-mas").textContent = `Ver más (${nf0.format(lista.length - CT.n)} restantes)`;
+  }
+  $("#control-q").addEventListener("input", (e) => { CT.q = e.target.value; CT.n = 20; CTRL && pintarListaControl(); });
+  $("#control-dep").addEventListener("change", (e) => { CT.dep = e.target.value; CT.n = 20; CTRL && pintarListaControl(); });
+  $("#control-solo").addEventListener("change", (e) => { CT.solo = e.target.value; CT.n = 20; CTRL && pintarListaControl(); });
+  $("#control-mas").addEventListener("click", () => { CT.n += 20; pintarListaControl(); });
+
+  // ---------- Programas sociales ----------
+  const DEP_NOMBRE = { "01": "Amazonas", "02": "Áncash", "03": "Apurímac", "04": "Arequipa", "05": "Ayacucho", "06": "Cajamarca", "07": "Callao", "08": "Cusco",
+    "09": "Huancavelica", "10": "Huánuco", "11": "Ica", "12": "Junín", "13": "La Libertad", "14": "Lambayeque", "15": "Lima", "16": "Loreto", "17": "Madre de Dios",
+    "18": "Moquegua", "19": "Pasco", "20": "Piura", "21": "Puno", "22": "San Martín", "23": "Tacna", "24": "Tumbes", "25": "Ucayali" };
+  let progVista = "juntos";
+  function pintarProgramas() {
+    if (!PROG) { $("#programas-deps").innerHTML = '<p class="vacio">Aún no hay datos de programas sociales.</p>'; return; }
+    const T = PROG.totales;
+    $("#programas-intro").innerHTML = `<strong>Juntos</strong> entrega un apoyo a hogares en pobreza con niños o gestantes; <strong>Pensión 65</strong>, una subvención a adultos mayores en pobreza extrema. Datos oficiales del MIDIS por distrito (solo conteos: no publicamos nombres).`;
+    $("#programas-kpis").innerHTML = [
+      ["Hogares en Juntos", nf0.format(T.juntos_hogares), `bimestre ${esc(PROG.juntosBimestre || "")}`],
+      ["Transferido por Juntos", millones(T.juntos_monto / 1e6), "en lo que va del año"],
+      ["Usuarios de Pensión 65", nf0.format(T.pension65), `padrón de ${esc(PROG.pension65Periodo || "")}`]
+    ].map(kpiHTML).join("");
+    const filas = Object.entries(PROG.departamentos).map(([c, v]) => [DEP_NOMBRE[c] || c, progVista === "juntos" ? v[0] : v[2], v[1]]).sort((a, b) => b[1] - a[1]);
+    const max = Math.max(1, ...filas.map((f) => f[1]));
+    $("#programas-deps").innerHTML = filas.map(([n, v, m]) => filaSimple(n, v, max, progVista === "juntos" ? `${nf0.format(v)} hogares · ${corto(m / 1e6)}` : `${nf0.format(v)} personas`)).join("");
+    $("#programas-fuente").innerHTML = `Fuentes: <a href="${esc(PROG.fuentes.juntos)}" target="_blank" rel="noopener">Programa Juntos</a> y <a href="${esc(PROG.fuentes.pension65)}" target="_blank" rel="noopener">Pensión 65</a> (Plataforma Nacional de Datos Abiertos).`;
+  }
+  grupoBotones("prog", (v) => { progVista = v; pintarProgramas(); });
+
+  // ---------- Deuda pública ----------
+  function pintarDeuda() {
+    if (!DEU) { $("#deuda-acreedores").innerHTML = '<p class="vacio">Aún no hay datos de deuda.</p>'; return; }
+    const u = DEU.ultimo, tr = DEU.trimestres;
+    const hace1 = tr[tr.length - 5];
+    const porPersona = (u.PN03371FQ * 1e6) / D.poblacion;
+    const deudaFn = PR.funciones && PR.funciones.find((f) => /deuda/i.test(f.nombre));
+    $("#deuda-intro").innerHTML = `Al ${esc(u.periodo.replace("T", "trimestre ").replace(".", " del 20"))} el sector público debía <strong>${millones(u.PN03371FQ)}</strong>: ${soles(porPersona)} por cada peruano. ${deudaFn ? `Este año se presupuestaron <strong>${millones(deudaFn.monto)}</strong> para pagar intereses y cuotas.` : ""}`;
+    $("#deuda-kpis").innerHTML = [
+      ["Deuda total", millones(u.PN03371FQ), hace1 ? `${u.PN03371FQ >= hace1.PN03371FQ ? "+" : ""}${pct(u.PN03371FQ - hace1.PN03371FQ, hace1.PN03371FQ)} en un año` : ""],
+      ["Deuda externa", millones(u.PN03372FQ), pct(u.PN03372FQ, u.PN03371FQ) + " del total"],
+      ["Deuda interna", millones(u.PN03381FQ), pct(u.PN03381FQ, u.PN03371FQ) + " del total"],
+      ["Por peruano", soles(porPersona), "deuda total ÷ población"]
+    ].map(kpiHTML).join("");
+    const ult = tr.slice(-24), max = Math.max(...ult.map((x) => x.PN03371FQ));
+    $("#deuda-trimestres").innerHTML = ult.map((x) => `<div class="col" title="${esc(x.periodo)}: ${millones(x.PN03371FQ)}"><div class="col__barras"><span class="col__pres" style="height:${(x.PN03371FQ / max) * 100}%"></span></div>
+      <span class="col__num">${nf0.format(x.PN03371FQ / 1000)}</span><span class="col__lbl">${esc(x.periodo.replace(".", " "))}</span></div>`).join("");
+    const acre = Object.entries(DEU.nombres).filter(([k]) => !["PN03371FQ", "PN03372FQ"].includes(k)).map(([k, n]) => [n.replace("Externa: ", "Externa · "), u[k] || 0]).filter((x) => x[1] > 0).sort((a, b) => b[1] - a[1]);
+    const maxA = Math.max(1, ...acre.map((a) => a[1]));
+    $("#deuda-acreedores").innerHTML = acre.map(([n, v]) => filaSimple(n, v, maxA, `${corto(v)} · ${pct(v, u.PN03371FQ)}`)).join("");
+    $("#deuda-fuente").innerHTML = `Fuente: <a href="${esc(DEU.fuente)}" target="_blank" rel="noopener">BCRP — Saldo de la deuda del sector público no financiero</a>.`;
+  }
+
+  // ---------- Viajes de funcionarios ----------
+  const VJ = { q: "", tipo: "", orden: "monto", n: 20 };
+  async function pintarViajes() {
+    if (!VIA) VIA = await cargarUna("viajes.json");
+    if (!VIA || !VIA.viajes) { $("#viajes-lista").innerHTML = '<p class="vacio">Aún no hay datos de viajes.</p>'; return; }
+    $("#viajes-intro").innerHTML = `Pasajes y viáticos que ${nf0.format(VIA.topEntidades.length)} entidades del Estado publicaron en el Portal de Transparencia en ${VIA.anio}: <strong>${nf0.format(VIA.total)} viajes</strong> por <strong>${millones(VIA.monto / 1e6)}</strong>.${VIA.atipicos ? ` Hay ${nf0.format(VIA.atipicos)} viajes con montos inusuales (${soles(VIA.montoAtipico)}) que no sumamos: casi seguro son errores de registro.` : ""}`;
+    $("#viajes-kpis").innerHTML = [
+      ["Viajes", nf0.format(VIA.total), `${VIA.anio}, entidades principales`],
+      ["Gasto total", millones(VIA.monto / 1e6), "pasajes + viáticos"],
+      ["Viajes al extranjero", nf0.format(VIA.internacionales), corto(VIA.montoInternacional / 1e6)],
+      ["Destino más frecuente", esc(VIA.topDestinos[0] ? VIA.topDestinos[0][0] : "—"), VIA.topDestinos[0] ? `${nf0.format(VIA.topDestinos[0][1])} viajes` : ""]
+    ].map(kpiHTML).join("");
+    const maxP = Math.max(1, ...VIA.topPersonas.map((p) => p[2]));
+    $("#viajes-personas").innerHTML = VIA.topPersonas.slice(0, 15).map(([p, e, m, n, tipos]) => filaHTML({
+      nombre: esc(propio(p)), valorTexto: soles(m), ancho: (m / maxP) * 100,
+      detalle: `<p>${esc(e)} · ${nf0.format(n)} viajes (${esc(tipos.join(" y ").toLowerCase())}).</p><p><button type="button" class="boton boton--secundario boton--chico" data-vbus="${esc(p)}">Ver sus viajes</button></p>`
+    })).join("");
+    const maxE = Math.max(1, ...VIA.topEntidades.map((e) => e[1]));
+    $("#viajes-entidades").innerHTML = VIA.topEntidades.slice(0, 15).map(([e, m, n, ni]) => filaSimple(e, m, maxE, `${corto(m / 1e6)} · ${nf0.format(n)} viajes`)).join("");
+    $$("#viajes [data-vbus]").forEach((b) => b.addEventListener("click", () => { $("#viajes-q").value = b.dataset.vbus; VJ.q = b.dataset.vbus; VJ.n = 20; pintarListaViajes(); $("#viajes-q").scrollIntoView({ block: "center" }); }));
+    $("#viajes-fuente").innerHTML = `Fuente: Portal de Transparencia Estándar, sección "Pasajes y viáticos" de cada entidad. Actualizado: ${new Date(VIA.actualizado).toLocaleDateString("es-PE")}.`;
+    pintarListaViajes();
+  }
+  function pintarListaViajes() {
+    const q = normal(VJ.q.trim());
+    let lista = VIA.viajes.filter((v) => (!VJ.tipo || v[10] === VJ.tipo) && (!q || normal(`${v[1]} ${v[2]} ${v[3]} ${v[6]}`).includes(q)));
+    if (VJ.orden === "fecha") lista = [...lista].sort((a, b) => (b[4].split("/").reverse().join("") > a[4].split("/").reverse().join("") ? 1 : -1));
+    $("#viajes-conteo").textContent = `${nf0.format(lista.length)} viajes · ${soles(lista.reduce((a, v) => a + v[9], 0))}`;
+    $("#viajes-lista").innerHTML = lista.slice(0, VJ.n).map((v) => `<article class="proyecto">
+      <div class="ley__cab"><span class="ley__num">${esc(v[4])} → ${esc(v[5])}</span><span class="etapa ${v[10] === "Internacional" ? "etapa--avanza" : "etapa--inicio"}">${esc(v[10])}</span></div>
+      <p class="ley__titulo">${esc(propio(v[3]))}</p>
+      <p class="ley__meta">${esc(v[1])} · ${esc(v[2])}</p>
+      <p class="ley__meta">🧭 ${esc(v[6])}</p>
+      <div class="proyecto__montos"><span>Pasajes ${soles(v[7])} · viáticos ${soles(v[8])}</span><span>${soles(v[9])}</span></div>
+      ${v[12] ? '<p class="proyecto__alerta">⚠️ Monto inusual: probablemente un error de registro de la entidad. Verifícalo en la fuente; no se cuenta en los totales.</p>' : ""}
+      <a class="ley__link" href="${esc(VIA.urlEntidad.replace("{id}", v[11]))}" target="_blank" rel="noopener">Ver en el Portal de Transparencia ↗</a>
+    </article>`).join("") || '<p class="vacio">No hay viajes que coincidan.</p>';
+    $("#viajes-mas").hidden = lista.length <= VJ.n;
+    $("#viajes-mas").textContent = `Ver más (${nf0.format(lista.length - VJ.n)} restantes)`;
+  }
+  $("#viajes-q").addEventListener("input", (e) => { VJ.q = e.target.value; VJ.n = 20; VIA && VIA.viajes && pintarListaViajes(); });
+  $("#viajes-tipo").addEventListener("change", (e) => { VJ.tipo = e.target.value; VJ.n = 20; VIA && VIA.viajes && pintarListaViajes(); });
+  $("#viajes-orden").addEventListener("change", (e) => { VJ.orden = e.target.value; VJ.n = 20; VIA && VIA.viajes && pintarListaViajes(); });
+  $("#viajes-mas").addEventListener("click", () => { VJ.n += 20; pintarListaViajes(); });
+
+  // ---------- Votaciones del Congreso ----------
+  function tituloVotacion(t) {
+    const m = PROY && /PROPOSICI[OÓ]N(?:ES)? LEGISLATIVAS? ([\d, Y]+)|PROYECTOS? (?:DE [^\d]+)?([\d, Y]+)-20/i.exec(t);
+    if (m) {
+      const nums = (m[1] || m[2] || "").split(/[^\d]+/).filter(Boolean).map(Number);
+      const p = nums.length && PROY.proyectos.find((x) => x.num === nums[0] && (x.camara === (camara === "senado" ? "S" : "D")));
+      if (p) return `${fraseL(t)} — <em>${esc(fraseL(p.titulo).slice(0, 160))}</em>`;
+    }
+    return esc(fraseL(t));
+  }
+  function pintarVotos() {
+    if (!CONG) return;
+    const c = CONG.camaras[camara];
+    const vs = c.votaciones || [];
+    const q = clave($("#votos-q").value);
+    const quien = q ? c.miembros.filter((m) => clave(m.nombre).includes(q)).slice(0, 1)[0] : null;
+    if (quien) {
+      const v = quien.votos || {};
+      $("#votos-persona").innerHTML = `<div class="tarjeta tarjeta--acento"><h3 class="exp-sub" style="margin-top:0">${esc(quien.nombre)}</h3>
+        <p>A favor: <strong>${nf0.format(v.favor || 0)}</strong> · En contra: <strong>${nf0.format(v.contra || 0)}</strong> · Abstenciones: <strong>${nf0.format(v.abstencion || 0)}</strong> · Sin voto registrado: <strong>${nf0.format(vs.length - (v.favor || 0) - (v.contra || 0) - (v.abstencion || 0))}</strong> de ${nf0.format(vs.length)} votaciones.</p></div>`;
+    } else $("#votos-persona").innerHTML = q ? '<p class="vacio">No encontramos ese apellido en esta cámara.</p>' : "";
+    const k = quien ? clave(quien.nombre) : null;
+    $("#votos-lista").innerHTML = vs.length ? vs.map((x) => {
+      const tot = x.favor.length + x.contra.length + x.abstencion.length || 1;
+      let suVoto = "";
+      if (k) {
+        const en = (g) => x[g].some((n) => clave(n) === k);
+        suVoto = en("favor") ? '<span class="voto voto--favor">Votó a favor</span>' : en("contra") ? '<span class="voto voto--contra">Votó en contra</span>' : en("abstencion") ? '<span class="voto voto--abst">Se abstuvo</span>' : '<span class="voto">No votó</span>';
+      }
+      return `<details class="votacion"><summary>
+          <span class="votacion__fecha">${fechaLarga(x.fecha)} · sesión ${x.sesion}</span>
+          <span class="votacion__t">${tituloVotacion(x.titulo)}</span>${suVoto}
+          <span class="votacion__barra" aria-label="${x.favor.length} a favor, ${x.contra.length} en contra, ${x.abstencion.length} abstenciones">
+            <i class="v-favor" style="width:${(x.favor.length / tot) * 100}%"></i><i class="v-contra" style="width:${(x.contra.length / tot) * 100}%"></i><i class="v-abst" style="width:${(x.abstencion.length / tot) * 100}%"></i></span>
+          <span class="votacion__n">✔ ${x.favor.length} · ✖ ${x.contra.length} · ○ ${x.abstencion.length}</span></summary>
+        <div class="votacion__det">${[["favor", "A favor"], ["contra", "En contra"], ["abstencion", "Abstención"]].map(([g, t]) => x[g].length ? `<p><strong>${t} (${x[g].length}):</strong> ${x[g].map(esc).join(", ")}</p>` : "").join("")}
+        <p><a href="${esc(x.url)}" target="_blank" rel="noopener">Ver acta oficial (PDF) ↗</a></p></div></details>`;
+    }).join("") : '<p class="vacio">Aún no hay votaciones leídas para esta cámara.</p>';
+  }
+  $("#votos-q").addEventListener("input", () => pintarVotos());
+
+  // ---------- Años anteriores ----------
+  async function pintarHistoria() {
+    if (!HIST) HIST = await cargarUna("historico/indice.json");
+    const anios = (HIST && HIST.anios ? [...HIST.anios] : []).sort((a, b) => a.anio - b.anio);
+    if (PR.oficial && !anios.some((a) => a.anio === PR.anio)) anios.push({ anio: PR.anio, total: [PR.pia * 1e6, PR.pim * 1e6, PR.dev * 1e6], funciones: Object.fromEntries(PR.funciones.map((f) => [f.raw || f.nombre, [f.pia * 1e6, f.monto * 1e6, f.dev * 1e6]])), parcial: true });
+    if (anios.length < 2) { $("#historia-anios").innerHTML = '<p class="vacio">Los años anteriores se están procesando. Vuelve en unos minutos.</p>'; return; }
+    const max = Math.max(...anios.map((a) => a.total[1]));
+    $("#historia-anios").innerHTML = anios.map((a) => `<div class="col col--doble" title="${a.anio}: presupuesto ${millones(a.total[1] / 1e6)}, gastado ${millones(a.total[2] / 1e6)} (${pct(a.total[2], a.total[1])})">
+      <div class="col__barras"><span class="col__total" style="height:${(a.total[1] / max) * 100}%"></span><span class="col__pres" style="height:${(a.total[2] / max) * 100}%"></span></div>
+      <span class="col__num">${nf0.format(a.total[2] / 1e9)}</span><span class="col__sub">${pct(a.total[2], a.total[1])}</span><span class="col__lbl">${a.anio}${a.parcial ? "*" : ""}</span></div>`).join("");
+    const completos = anios.filter((a) => !a.parcial);
+    const ult = completos[completos.length - 1], prev = completos[completos.length - 2], pri = completos[0];
+    $("#historia-kpis").innerHTML = [
+      [`Gastado en ${ult.anio}`, millones(ult.total[2] / 1e6), prev ? `${ult.total[2] >= prev.total[2] ? "+" : ""}${pct(ult.total[2] - prev.total[2], prev.total[2])} vs. ${prev.anio}` : ""],
+      [`Sin gastar en ${ult.anio}`, millones((ult.total[1] - ult.total[2]) / 1e6), `${pct(ult.total[1] - ult.total[2], ult.total[1])} del presupuesto`],
+      [`De ${pri.anio} a ${ult.anio}`, `${ult.total[2] >= pri.total[2] ? "+" : ""}${pct(ult.total[2] - pri.total[2], pri.total[2])}`, "crecimiento del gasto"]
+    ].map(kpiHTML).join("");
+    const funcs = Object.keys(ult.funciones).sort((a, b) => ult.funciones[b][2] - ult.funciones[a][2]).slice(0, 25);
+    $("#historia-funciones").innerHTML = `<thead><tr><th>Función</th>${anios.map((a) => `<th>${a.anio}${a.parcial ? "*" : ""}</th>`).join("")}<th></th></tr></thead><tbody>` +
+      funcs.map((f) => {
+        const v = (a) => (a.funciones[f] ? a.funciones[f][2] : 0);
+        const cambio = prev && v(prev) ? (v(ult) - v(prev)) / v(prev) : 0;
+        return `<tr><td>${esc(bonito(f))}</td>${anios.map((a) => `<td>${v(a) ? nf1.format(v(a) / 1e9) : "—"}</td>`).join("")}<td class="${cambio >= 0 ? "sube" : "baja"}">${cambio >= 0 ? "▲" : "▼"} ${nf0.format(Math.abs(cambio * 100))}%</td></tr>`;
+      }).join("") + "</tbody>";
+    $("#historia-fuente").innerHTML = `Montos en miles de millones de soles (devengado). * ${PR.anio}: año en curso. Fuente: MEF — Datos Abiertos, presupuesto y ejecución de cada año.`;
+  }
+
+  // ---------- Tu distrito: mapa y ficha ----------
+  let MAPA = null, capaMapa = null, nivelMapa = { dep: null }, geo = {}, metricas = null;
+  function cargarLeaflet() {
+    if (window.L) return Promise.resolve();
+    return new Promise((ok, mal) => {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+      s.onload = ok; s.onerror = mal; document.head.appendChild(s);
+    });
+  }
+  function calcularMetricas() {
+    if (metricas) return metricas;
+    const m = { dep: {}, dist: {} };
+    const add = (nivel, k, campo, v) => { const o = (m[nivel][k] = m[nivel][k] || {}); o[campo] = (o[campo] || 0) + v; };
+    (ENT ? ENT.entidades : []).forEach((e) => {
+      if (e[3] !== "GOBIERNOS LOCALES" || !e[11]) return;
+      add("dist", e[11], "pim", e[7]); add("dist", e[11], "dev", e[8]);
+      add("dep", e[11].slice(0, 2), "pim", e[7]); add("dep", e[11].slice(0, 2), "dev", e[8]);
+    });
+    const ubPorNombre = {};
+    (ENT ? ENT.entidades : []).forEach((e) => { if (e[11]) ubPorNombre[clave(e[4] + e[5] + e[6])] = e[11]; });
+    (OBRAS ? OBRAS.obras : []).forEach((o) => {
+      const u = ubPorNombre[clave(o.departamento + o.provincia + o.distrito)];
+      if (u) { add("dist", u, "obras", 1); add("dep", u.slice(0, 2), "obras", 1); }
+    });
+    (CTRL ? CTRL.informes : []).forEach((r) => {
+      if (!r[7]) return;
+      const u = ubPorNombre[clave(r[2] + r[3] + r[4])];
+      if (u) { add("dist", u, "control", 1); add("dep", u.slice(0, 2), "control", 1); }
+    });
+    if (PROG) Object.entries(PROG.distritos).forEach(([u, v]) => { add("dist", u, "juntos", v[0]); add("dist", u, "p65", v[3]); add("dep", u.slice(0, 2), "juntos", v[0]); add("dep", u.slice(0, 2), "p65", v[3]); });
+    Object.values(m.dep).concat(Object.values(m.dist)).forEach((o) => { if (o.pim) o.ejec = (100 * o.dev) / o.pim; });
+    return (metricas = m);
+  }
+  const METRICA_TXT = { ejec: ["% gastado", (v) => nf0.format(v) + "%"], obras: ["obras paralizadas", nf0.format], control: ["informes con responsables", nf0.format],
+    juntos: ["hogares en Juntos", nf0.format], p65: ["usuarios de Pensión 65", nf0.format] };
+  function colorEscala(t) { // de claro a oscuro, verde azulado
+    const a = [226, 239, 237], b = [10, 87, 87];
+    return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`;
+  }
+  async function pintarMapa() {
+    const caja = $("#mapa");
+    caja.innerHTML = '<p class="vacio">Cargando mapa…</p>';
+    try { await cargarLeaflet(); } catch (e) { caja.innerHTML = '<p class="vacio">No se pudo cargar el mapa. Usa el buscador de distritos.</p>'; return; }
+    await prepararEntidades();
+    await prepararControl();
+    const nivel = nivelMapa.dep ? "distrital" : "departamental";
+    if (!geo[nivel]) geo[nivel] = await cargar(`mapas/${nivel}.geojson`);
+    if (!geo[nivel]) { caja.innerHTML = '<p class="vacio">No se pudo cargar el mapa.</p>'; return; }
+    const met = calcularMetricas(), clave_m = $("#mapa-metrica").value;
+    const feats = nivelMapa.dep ? geo.distrital.features.filter((f) => f.properties.id.slice(0, 2) === nivelMapa.dep) : geo.departamental.features;
+    const valor = (f) => { const o = (nivelMapa.dep ? met.dist : met.dep)[f.properties.id] || {}; return o[clave_m] || 0; };
+    const vals = feats.map(valor), max = Math.max(1, ...vals), min = clave_m === "ejec" ? Math.min(...vals.filter((v) => v > 0)) : 0;
+    if (!MAPA) {
+      caja.innerHTML = "";
+      MAPA = L.map(caja, { zoomControl: true, attributionControl: false, scrollWheelZoom: false });
+    }
+    if (capaMapa) capaMapa.remove();
+    capaMapa = L.geoJSON({ type: "FeatureCollection", features: feats }, {
+      style: (f) => { const v = valor(f); const t = max > min ? (v - min) / (max - min) : 0; return { weight: 1, color: "#ffffff", fillOpacity: 0.9, fillColor: v > 0 ? colorEscala(Math.max(0, t)) : "#e8e4dc" }; },
+      onEachFeature: (f, capa) => {
+        const p = f.properties, v = valor(f);
+        capa.bindTooltip(`<strong>${esc(propio(p.n))}</strong><br>${esc(METRICA_TXT[clave_m][1](v))} ${esc(METRICA_TXT[clave_m][0])}`, { sticky: true });
+        capa.on("click", () => { if (!nivelMapa.dep) { nivelMapa.dep = p.id; pintarMapa(); } else abrirDistrito(p.id); });
+      }
+    }).addTo(MAPA);
+    MAPA.fitBounds(capaMapa.getBounds(), { padding: [10, 10] });
+    setTimeout(() => MAPA.invalidateSize(), 50);
+    $("#mapa-migas").innerHTML = nivelMapa.dep
+      ? `<button type="button" class="migas__volver" id="mapa-volver">← Todo el Perú</button> <strong>${esc(DEP_NOMBRE[nivelMapa.dep] || nivelMapa.dep)}</strong> · toca un distrito para ver su ficha`
+      : "<strong>Todo el Perú</strong> · toca un departamento para ver sus distritos";
+    const v = $("#mapa-volver"); if (v) v.addEventListener("click", () => { nivelMapa.dep = null; pintarMapa(); });
+    $("#mapa-leyenda").innerHTML = `<span>${esc(METRICA_TXT[clave_m][1](min))}</span><i style="background:linear-gradient(90deg, ${colorEscala(0)}, ${colorEscala(1)})"></i><span>${esc(METRICA_TXT[clave_m][1](max))}</span><small>${esc(METRICA_TXT[clave_m][0])}</small>`;
+  }
+  $("#mapa-metrica").addEventListener("change", () => pintarMapa());
+
+  function distritosLista() {
+    if (!ENT) return [];
+    return ENT.entidades.filter((e) => e[3] === "GOBIERNOS LOCALES" && e[11] && /DISTRITAL|PROVINCIAL/.test(e[1]));
+  }
+  $("#dist-q").addEventListener("input", async (ev) => {
+    await prepararEntidades();
+    const q = normal(ev.target.value.trim()), box = $("#dist-combo");
+    if (q.length < 2) { box.hidden = true; return; }
+    const lista = distritosLista().filter((e) => normal(`${e[6]} ${e[5]} ${e[4]}`).includes(q)).sort((a, b) => (normal(a[6]).startsWith(q) ? -1 : 1) - (normal(b[6]).startsWith(q) ? -1 : 1) || b[7] - a[7]).slice(0, 10);
+    box.innerHTML = lista.length ? lista.map((e) => `<button type="button" class="combo__op" data-dub="${e[11]}"><span>${esc(propio(e[6]))}</span><small>${esc(propio(e[5]))}, ${esc(propio(e[4]))} · ${esc(propio(e[1]))}</small></button>`).join("") : '<p class="vacio">No encontramos ese distrito.</p>';
+    box.hidden = false;
+    $$("#dist-combo [data-dub]").forEach((b) => b.addEventListener("click", () => { box.hidden = true; ev.target.value = ""; abrirDistrito(b.dataset.dub); }));
+  });
+
+  async function abrirDistrito(ub) {
+    const box = $("#dist-ficha");
+    box.hidden = false; box.innerHTML = '<p class="vacio">Armando la ficha del distrito…</p>';
+    box.scrollIntoView({ behavior: "smooth", block: "start" });
+    await prepararEntidades(); await prepararControl();
+    try { history.replaceState(null, "", "#distrito?u=" + ub); } catch (e) {}
+    const ents = ENT.entidades.filter((e) => e[11] === ub);
+    const muni = ents.find((e) => e[3] === "GOBIERNOS LOCALES" && /DISTRITAL|PROVINCIAL/.test(e[1])) || ents.find((e) => e[3] === "GOBIERNOS LOCALES");
+    const ref = muni || ents[0];
+    if (!ref) { box.innerHTML = '<p class="vacio">No encontramos entidades con presupuesto en este distrito.</p>'; return; }
+    const [dep, prov, dist] = [ref[4], ref[5], ref[6]];
+    let det = null;
+    if (muni) { if (!cacheEnt[muni[10]]) cacheEnt[muni[10]] = await cargar(`entidades/${muni[10]}.json`); det = cacheEnt[muni[10]] && cacheEnt[muni[10]].entidades.find((x) => x.id === muni[0]); }
+    const M = 1e6, kd = clave(dep + prov + dist);
+    const obras = OBRAS ? OBRAS.obras.filter((o) => clave(o.departamento + o.provincia + o.distrito) === kd) : [];
+    const infs = CTRL ? CTRL.informes.filter((r) => clave(r[2] + r[3] + r[4]) === kd) : [];
+    const pg = PROG && PROG.distritos[ub];
+    const sueldo = SUE && muni && SUE.entidades.find((s) => clave(String(s.nombre).replace(/\s*\([^)]*\)\s*$/, "")) === clave(muni[1]) && (!s.departamento || s.departamento === dep));
+    const otras = ents.filter((e) => e !== muni);
+    const rub = det && det.rubros ? det.rubros : [];
+    const maxR = Math.max(1, ...rub.map((r) => r[1]));
+    box.innerHTML = `
+      <div class="tarjeta__cabeza">
+        <div><h2>${esc(propio(dist))}</h2><p class="ayuda">${esc(propio(prov))}, ${esc(propio(dep))} · ubigeo ${esc(ub)}</p></div>
+        <div class="controles"><button type="button" class="boton boton--secundario boton--chico" id="dist-copiar">🔗 Copiar enlace</button>
+          <button type="button" class="boton boton--secundario boton--chico" id="dist-cerrar">Cerrar ✕</button></div>
+      </div>
+      ${muni ? `<div class="kpis kpis--4">${[
+        ["Presupuesto de la municipalidad", millones(muni[7] / M), propio(muni[1])],
+        ["Ya gastado", pct(muni[8], muni[7]), millones(muni[8] / M)],
+        ["Obras paralizadas", nf0.format(obras.length), obras.length ? `falta ejecutar ${soles(obras.reduce((a, o) => a + o.saldo, 0))}` : "según la Contraloría"],
+        ["Informes de Contraloría", nf0.format(infs.length), `${nf0.format(infs.filter((r) => r[7] > 0).length)} con presuntos responsables`]
+      ].map(kpiHTML).join("")}</div>` : ""}
+      <div class="controles controles--enlaces">
+        ${muni ? `<a class="boton boton--secundario boton--chico" href="#entidades?id=${encodeURIComponent(muni[0])}">🏘️ Gasto y proyectos de la municipalidad</a>
+        <a class="boton boton--secundario boton--chico" href="#contratos?q=${encodeURIComponent(muni[1])}">🤝 Sus contratos</a>` : ""}
+        ${sueldo ? `<a class="boton boton--secundario boton--chico" href="#sueldos?ent=${sueldo.id}">💵 Sueldos de su personal</a>` : ""}
+      </div>
+      <div class="dos-col dos-col--plano">
+        <div><h3 class="exp-sub">¿De dónde viene la plata de la municipalidad?</h3>
+          ${rub.length ? `<div class="barras">${rub.map(([n, p, d]) => filaSimple(bonito(n), p, maxR, `${corto(p / M)} · ${pct(p, rub.reduce((a, r) => a + r[1], 0))}`)).join("")}</div>
+          <p class="ayuda">"Canon y sobrecanon" es parte de lo que pagan las mineras y petroleras; FONCOMUN es un fondo que reparte el Estado a todas las municipalidades.</p>` : '<p class="vacio">Sin datos de fuentes.</p>'}</div>
+        <div><h3 class="exp-sub">Programas sociales en el distrito</h3>
+          ${pg ? `<ul class="actividades actividades--1">
+            <li><span>Hogares en Juntos</span><b>${nf0.format(pg[0])}</b><small>${soles(pg[2])} transferidos este año</small></li>
+            <li><span>Adultos mayores en Pensión 65</span><b>${nf0.format(pg[3])}</b><small>padrón ${esc(PROG.pension65Periodo || "")}</small></li></ul>` : '<p class="vacio">Sin datos de programas sociales.</p>'}
+          ${otras.length ? `<h3 class="exp-sub">Otras entidades con presupuesto aquí</h3><ul class="actividades actividades--1">${otras.slice(0, 8).map((e) => `<li><span><a href="#entidades?id=${encodeURIComponent(e[0])}">${esc(propio(e[1]))}</a></span><b>${corto(e[7] / M)}</b><small>${pct(e[8], e[7])} gastado</small></li>`).join("")}</ul>` : ""}
+        </div>
+      </div>
+      ${obras.length ? `<h3 class="exp-sub">🚧 Obras paralizadas en el distrito</h3><div class="proyectos">${obras.slice(0, 6).map((o) => `<article class="proyecto"><div class="ley__cab"><span class="ley__num">CUI ${esc(o.cui)}</span><span class="etapa etapa--fin">${esc(o.causal || "Paralizada")}</span></div>
+        <p class="ley__titulo">${esc(fraseL(o.nombre))}</p><p class="ley__meta">${esc(propio(o.entidad))} · avance físico ${nf0.format(o.avance)}% · falta ${soles(o.saldo)}</p></article>`).join("")}</div>` : ""}
+      ${infs.length ? `<h3 class="exp-sub">🔎 Informes de la Contraloría</h3><div class="proyectos">${infs.slice(0, 6).map(tarjetaInforme).join("")}</div>
+        ${infs.length > 6 ? `<p><a href="#control?q=${encodeURIComponent(dist)}">Ver los ${nf0.format(infs.length)} informes →</a></p>` : ""}` : ""}
+      ${det && det.proyectos && det.proyectos.length ? `<h3 class="exp-sub">🏗️ Principales proyectos de la municipalidad</h3><div class="proyectos">${det.proyectos.slice(0, 6).map((p) => tarjetaProyecto(p[0], p[1], bonito(p[2]), p[4], p[5])).join("")}</div>` : ""}
+      <p class="fuente">Fuentes: MEF (presupuesto ${PR.anio}), Contraloría (obras paralizadas e informes de control), MIDIS (Juntos y Pensión 65).</p>`;
+    $("#dist-cerrar").addEventListener("click", () => { box.hidden = true; try { history.replaceState(null, "", "#distrito"); } catch (e) {} });
+    $("#dist-copiar").addEventListener("click", async (ev) => { const url = location.origin + location.pathname + "#distrito?u=" + ub; try { await navigator.clipboard.writeText(url); ev.target.textContent = "✓ Enlace copiado"; } catch (e) { prompt("Copia este enlace:", url); } });
+  }
+
   // ---------- Menú agrupado ----------
   const GRUPO_DE = { ingresos: "dinero", gastos: "dinero", "mi-impuesto": "dinero", entidades: "quien", contratos: "quien", obras: "quien",
-    sueldos: "quien", congreso: "poder", leyes: "poder", visitas: "poder", inicio: "inicio", fuentes: "fuentes" };
+    sueldos: "quien", congreso: "poder", leyes: "poder", visitas: "poder", inicio: "inicio", fuentes: "fuentes",
+    distrito: "quien", control: "quien", programas: "dinero", deuda: "dinero", viajes: "poder" };
   function cerrarMenus(excepto) {
     $$(".nav__grupo").forEach((g) => {
       if (g === excepto) return;
@@ -1204,6 +1612,9 @@
     $$(`[data-tab^="${grupo}:"]`).forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === clave)));
     $$(`[data-panel^="${grupo}:"]`).forEach((p) => (p.hidden = p.dataset.panel !== clave));
     if (clave === "gastos:tema" && vista === "arbol") pintarArbol();
+    if (clave === "gastos:historia") pintarHistoria();
+    if (clave === "congreso:votos") pintarVotos();
+    if (clave === "contratos:alertas") pintarAlertas();
   }
   $$("[data-tab]").forEach((b) => b.addEventListener("click", () => activarTab(b.dataset.tab)));
   $$("[data-ir-tab]").forEach((b) => b.addEventListener("click", () => { activarTab(b.dataset.irTab); b.closest(".vista").scrollIntoView({ block: "start" }); }));
@@ -1248,6 +1659,9 @@
       if (q) { $("#buscar-congreso").value = q; pintarListaCongreso(); }
     }
     if (v.id === "sueldos" && SUE && p.get("ent")) { activarTab("sueldos:planilla"); abrirPlanilla(+p.get("ent")); }
+    if (v.id === "control") pintarControl().then(() => { if (q && CTRL) { CT.q = q; $("#control-q").value = q; pintarListaControl(); } });
+    if (v.id === "viajes") pintarViajes().then(() => { if (q && VIA && VIA.viajes) { VJ.q = q; $("#viajes-q").value = q; pintarListaViajes(); } });
+    if (v.id === "distrito") { if (!MAPA) pintarMapa(); else setTimeout(() => MAPA.invalidateSize(), 50); if (p.get("u")) abrirDistrito(p.get("u")); }
   }
   window.addEventListener("hashchange", mostrar);
 
@@ -1258,7 +1672,10 @@
     ["Tu municipio", "#entidades", "municipio municipalidad region ugel hospital entidad"], ["Contratos", "#contratos", "contratos empresas proveedores licitacion"],
     ["Obras paralizadas", "#obras", "obras paralizadas contraloria"], ["Sueldos", "#sueldos", "sueldos planilla salario remuneracion"],
     ["Asistencia al Congreso", "#congreso", "congreso asistencia senado diputados faltas"], ["Proyectos de ley", "#leyes", "leyes proyectos de ley congreso"],
-    ["Visitas a Palacio", "#visitas", "visitas palacio presidencia presidenta"], ["Fuentes y glosario", "#fuentes", "fuentes glosario metodologia"]
+    ["Visitas a Palacio", "#visitas", "visitas palacio presidencia presidenta"], ["Fuentes y glosario", "#fuentes", "fuentes glosario metodologia"],
+    ["Tu distrito (mapa)", "#distrito", "distrito mapa ficha canon foncomun"], ["Auditorías de la Contraloría", "#control", "auditoria contraloria informe control responsabilidad penal"],
+    ["Programas sociales", "#programas", "programas sociales juntos pension 65"], ["Deuda pública", "#deuda", "deuda publica prestamos bonos"],
+    ["Viajes de funcionarios", "#viajes", "viajes viaticos pasajes funcionarios"], ["Señales de alerta en contratos", "#contratos", "alertas banderas rojas postor unico contratacion directa"]
   ];
   let tBus;
   async function buscarTodo(texto) {
@@ -1276,6 +1693,8 @@
     if (ENT) add("Entidades: cuánto gastan", ENT.entidades.map((e) => [puntaje(e), e]).filter(([s]) => s > 0)
       .sort((a, b) => b[0] - a[0] || b[1][7] - a[1][7]).slice(0, 5).map(([, e]) => e)
       .map((e) => [propio(e[1]), `${propio(e[6])}, ${propio(e[4])} · ${corto(e[7] / 1e6)}`, `#entidades?id=${encodeURIComponent(e[0])}`]), `#entidades?q=${enc}`);
+    if (ENT) add("Distritos", distritosLista().filter((e) => hay(e[6])).sort((a, b) => (normal(a[6]) === q ? -1 : 1) - (normal(b[6]) === q ? -1 : 1)).slice(0, 3)
+      .map((e) => [propio(e[6]), `${propio(e[5])}, ${propio(e[4])} · ficha del distrito y mapa`, `#distrito?u=${e[11]}`]));
     if (SUE) add("Sueldos: planillas", SUE.entidades.filter((e) => hay(`${e.nombre} ${e.departamento || ""}`)).slice(0, 4)
       .map((e) => [propio(e.nombre), `${nf0.format(e.personas)} personas · sueldo mediano ${soles(e.mediana)}`, `#sueldos?ent=${e.id}`]));
     if (CON) add("Contratos: empresas", CON.topProveedores.filter((r) => hay(`${r[1]} ${r[0]}`)).slice(0, 3)
@@ -1301,10 +1720,12 @@
 
   // ---------- Arranque ----------
   (async function iniciar() {
-    const [mef, cong, vis, rec, sue, proy, obras, part, con] = await Promise.all(["presupuesto.json", "congreso.json", "visitas.json", "recaudacion.json", "sueldos.json", "proyectos.json", "obras.json", "partidas.json", "contratos.json"].map(cargar).concat([]));
+    const [mef, cong, vis, rec, sue, proy, obras, part, con, prog, deu] = await Promise.all(["presupuesto.json", "congreso.json", "visitas.json", "recaudacion.json", "sueldos.json", "proyectos.json", "obras.json", "partidas.json", "contratos.json", "programas.json", "deuda.json"].map(cargar));
     OBRAS = obras && obras.obras ? obras : null;
     PART = part && part.partidas ? part : null;
     CON = con && con.topProveedores ? con : null;
+    PROG = prog && prog.distritos ? prog : null;
+    DEU = deu && deu.trimestres ? deu : null;
     if (OBRAS) OBRAS.obras.forEach((o) => { if (!OBRAS_CUI.has(o.cui)) OBRAS_CUI.set(o.cui, o); });
     REC = rec; ING = modeloIngresos(rec);
     SUE = sue && sue.entidades ? sue : null;
@@ -1330,6 +1751,8 @@
     pintarObras();
     pintarPartidas();
     pintarContratos();
+    pintarProgramas();
+    pintarDeuda();
     $("#buscadores").innerHTML = enlacesHTML(D.buscadoresOficiales);
     pintarCongreso();
     pintarVisitas();

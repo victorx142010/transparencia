@@ -663,3 +663,42 @@ code { background: var(--fondo-2); padding: .05rem .35rem; border-radius: 6px; f
 .entidades-lista > *, .barras > .fila-btn { min-width: 0; }
 .fila-btn .fila__top { min-width: 0; }
 @media (max-width: 480px) { .fila-btn .fila__top { flex-wrap: wrap; } .fila-btn .fila__valor { white-space: normal; } }
+
+/* ---------- Fase 2: alertas, votos, mapa, historia ---------- */
+.tarjeta--aviso { background: var(--aviso-fondo); border-color: transparent; }
+.alertas-tipos { display: grid; gap: 10px; margin-top: .8rem; }
+@media (min-width: 760px) { .alertas-tipos { grid-template-columns: repeat(4, 1fr); } }
+.alerta-tipo { font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: .35rem; background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-sm); padding: .8rem .9rem; color: var(--texto); }
+.alerta-tipo b { font-variant-numeric: tabular-nums; }
+.alerta-tipo small { color: var(--texto-suave); font-size: .82rem; line-height: 1.35; }
+.alerta-tipo--activo { border-color: var(--mal); box-shadow: 0 0 0 2px color-mix(in srgb, var(--mal) 30%, transparent); }
+.alerta { display: inline-block; font-size: .74rem; font-weight: 650; border-radius: 999px; padding: .12rem .55rem; background: var(--mal-fondo); color: var(--mal); margin: 0 .25rem .2rem 0; }
+.alerta--D { background: var(--aviso-fondo); color: var(--aviso); }
+.alerta--C { background: var(--fondo-2); color: var(--texto-suave); }
+.alertas-linea { margin: 0; }
+.enlaces-linea { margin: .2rem 0 0; display: flex; gap: 1rem; flex-wrap: wrap; font-size: .86rem; font-weight: 600; }
+.proyectos--1 { grid-template-columns: 1fr !important; }
+.votaciones { display: grid; gap: 8px; }
+.votacion { border: 1px solid var(--borde); border-radius: var(--radio-sm); background: var(--superficie); }
+.votacion > summary { list-style: none; cursor: pointer; padding: .8rem .9rem; display: grid; gap: .3rem; }
+.votacion > summary::-webkit-details-marker { display: none; }
+.votacion__fecha { font-size: .8rem; color: var(--texto-tenue); }
+.votacion__t { font-weight: 600; line-height: 1.35; }
+.votacion__t em { font-weight: 400; color: var(--texto-suave); }
+.votacion__barra { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--barra-fondo); gap: 2px; }
+.v-favor { background: var(--ok); } .v-contra { background: var(--mal); } .v-abst { background: var(--aviso); }
+.votacion__n { font-size: .84rem; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.votacion__det { padding: 0 .9rem .8rem; font-size: .86rem; color: var(--texto-suave); }
+.voto { justify-self: start; font-size: .76rem; font-weight: 700; border-radius: 999px; padding: .1rem .6rem; background: var(--fondo-2); color: var(--texto-suave); }
+.voto--favor { background: var(--ok-fondo); color: var(--ok); } .voto--contra { background: var(--mal-fondo); color: var(--mal); } .voto--abst { background: var(--aviso-fondo); color: var(--aviso); }
+.columnas--anios { height: 230px; }
+.columnas--anios .col { flex-basis: 60px; }
+.col--doble .col__barras { max-width: 56px; }
+.tabla td.sube { color: var(--ok); font-weight: 600; } .tabla td.baja { color: var(--mal); font-weight: 600; }
+.mapa { height: 460px; border-radius: var(--radio-sm); background: var(--fondo); border: 1px solid var(--borde); z-index: 0; }
+@media (max-width: 600px) { .mapa { height: 380px; } }
+.leaflet-container { background: var(--fondo) !important; font: inherit; }
+.mapa-leyenda { display: flex; align-items: center; gap: .5rem; margin-top: .5rem; font-size: .82rem; color: var(--texto-suave); flex-wrap: wrap; }
+.mapa-leyenda i { display: inline-block; width: 140px; height: 10px; border-radius: 999px; }
+.actividades--1 { grid-template-columns: 1fr !important; }
+#dist-ficha h2 { font-family: var(--serif); font-size: 1.5rem; margin-bottom: .1rem; }

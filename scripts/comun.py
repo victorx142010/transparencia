@@ -42,8 +42,8 @@ def leer_json(nombre, por_defecto=None):
 
 
 def guardar_json(nombre, obj, silencioso=False):
-    os.makedirs(DATA, exist_ok=True)
     ruta = os.path.join(DATA, nombre)
+    os.makedirs(os.path.dirname(ruta), exist_ok=True)
     tmp = ruta + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))

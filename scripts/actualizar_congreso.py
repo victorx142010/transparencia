@@ -138,8 +138,34 @@ def parsear_acta(t, miembro):
     return {"numero": numero, "fecha": fecha, "estado": {k: list(v) for k, v in estado.items()}}
 
 
+def parsear_votaciones(t, miembro):
+    """Lee los "REGISTRO DIGITAL DE VOTACIÓN" del acta: tema y quiénes votaron a favor, en contra o se abstuvieron."""
+    votos = []
+    marcas = list(re.finditer(r"REGISTRO DIGITAL DE VOTACI[OÓ]N\s+(?:DE LA |DEL |DE LOS |DE LAS |DE )?", t))
+    for k, m in enumerate(marcas):
+        fin = marcas[k + 1].start() if k + 1 < len(marcas) else m.end() + 15000
+        seg = t[m.end():fin]
+        cab = re.search(r"(SENADOR\w*|DIPUTAD\w*)\s+QUE\s+VOTARON", seg)
+        if not cab:
+            continue
+        titulo = re.sub(r"\s+", " ", seg[:cab.start()]).strip(" .-")
+        grupos = {"favor": [], "contra": [], "abstencion": []}
+        for g, patron in (("favor", r"QUE\s+VOTARON\s+A\s+FAVOR\s*:"), ("contra", r"QUE\s+VOTARON\s+EN\s+CONTRA\s*:"),
+                          ("abstencion", r"QUE\s+SE\s+ABSTUVIERON\s*:")):
+            x = re.search(patron, seg)
+            if x:
+                resto = seg[x.end():]
+                corte = re.search(r"\.\s|(SENADOR\w*|DIPUTAD\w*)\s+QUE\s+", resto)
+                grupos[g] = separar_nombres(resto[: corte.start() if corte else 3000])
+        if sum(len(v) for v in grupos.values()) >= 10:
+            votos.append({"titulo": titulo[:300], **{g: [[clave(n), n] for n in v] for g, v in grupos.items()}})
+    return votos
+
+
 def main():
     cache = leer_json("congreso_sesiones.json", {"procesados": {}, "sesiones": {}})
+    if cache.get("version") != 2:  # versión 2: también lee las votaciones (se reprocesan las actas)
+        cache = {"version": 2, "procesados": {}, "sesiones": {}}
     for cid, cam in CAMARAS.items():
         print(f"== {cam['nombre']}")
         pdfs = listar_pdfs(cam["base"])
@@ -150,7 +176,10 @@ def main():
             if url in cache["procesados"]:
                 continue
             try:
-                acta = parsear_acta(texto_pdf(http(url, timeout=120)), cam["miembro"])
+                contenido = http(url, timeout=120)
+                acta = parsear_acta(texto_pdf(contenido), cam["miembro"])
+                if acta:
+                    acta["votos"] = parsear_votaciones(texto_pdf(contenido, paginas=400), cam["miembro"])
             except Exception as e:
                 print(f"  ! {url}: {e}")
                 continue
@@ -165,7 +194,7 @@ def main():
             c = defaultdict(int)
             for tipo, _ in acta["estado"].values():
                 c[tipo] += 1
-            print(f"  + sesión {acta['numero']} ({acta['fecha']}): {dict(c)}")
+            print(f"  + sesión {acta['numero']} ({acta['fecha']}): {dict(c)}, {len(acta.get('votos', []))} votaciones")
     guardar_json("congreso_sesiones.json", cache)
 
     # ---------- Resumen para la web ----------
@@ -199,8 +228,23 @@ def main():
                     "presentes": sum(1 for t, _ in s["estado"].values() if t == "presente"),
                     "licencias": sum(1 for t, _ in s["estado"].values() if t == "licencia"),
                     "ausentes": sum(1 for t, _ in s["estado"].values() if t == "ausente")} for s in sesiones]
+        # Votaciones nominales: se guardan los nombres tal como se muestran en la lista de asistencia
+        nombre_de = {k: p["nombre"] for k, p in personas.items()}
+        votaciones = []
+        conteo = defaultdict(lambda: {"favor": 0, "contra": 0, "abstencion": 0})
+        for s in sesiones:
+            for v in s.get("votos", []):
+                fila = {"sesion": s["numero"], "fecha": s["fecha"], "url": s["url"], "titulo": v["titulo"]}
+                for g in ("favor", "contra", "abstencion"):
+                    ks = [alias.get(k, k) for k, _ in v[g]]
+                    fila[g] = [nombre_de.get(k, n) for k, (_, n) in zip(ks, v[g])]
+                    for k in ks:
+                        conteo[k][g] += 1
+                votaciones.append(fila)
+        for k, p in personas.items():
+            p["votos"] = conteo.get(k, {"favor": 0, "contra": 0, "abstencion": 0})
         salida["camaras"][cid] = {"nombre": cam["nombre"], "sesiones": resumen, "miembros": lista,
-                                  "fuente": cam["base"]}
+                                  "votaciones": votaciones[::-1], "fuente": cam["base"]}
     guardar_json("congreso.json", salida)
 
 
