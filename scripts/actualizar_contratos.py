@@ -78,6 +78,8 @@ def main():
                 "objeto": (r.get("compiledRelease/tender/description") or "").strip(),
                 "metodo": (r.get("compiledRelease/tender/procurementMethodDetails") or "").strip(),
                 "categoria": CATEGORIA.get(r.get("compiledRelease/tender/mainProcurementCategory") or "", "Otros"),
+                "vr": num(r.get("compiledRelease/tender/value/amount_PEN") or r.get("compiledRelease/tender/value/amount")),
+                "postores": int(num(r.get("compiledRelease/tender/numberOfTenderers"))),
             }
         for r in leer(z, "com_awards.csv"):
             aid = r.get("compiledRelease/awards/0/id")
@@ -102,6 +104,25 @@ def main():
         lista.append([fecha, pr.get("entidad", ""), prov, ruc, round(monto), pr.get("objeto") or pr.get("titulo", ""),
                       pr.get("metodo", ""), pr.get("categoria", ""), ocid])
     lista.sort(key=lambda r: (r[0], r[4]), reverse=True)
+
+    # ---------- Señales de alerta (no prueban irregularidades: indican qué revisar) ----------
+    # U = un solo postor en un proceso competitivo; D = contratación directa (sin competencia);
+    # S = adjudicado más de 10% por encima del valor referencial; C = la misma empresa ganó 5+
+    # contratos de la misma entidad en el año.
+    SIN_COMPETENCIA = ("Contratación Directa", "Convenio", "Regímen Especial", "Régimen Especial", "Contratación Internacional")
+    gana = Counter((r[1], r[3] or r[2]) for r in lista)
+    for r in lista:
+        pr = procesos.get(r[8], {})
+        f = ""
+        if r[6] == "Contratación Directa":
+            f += "D"
+        elif pr.get("postores") == 1 and r[6] not in SIN_COMPETENCIA:
+            f += "U"
+        if pr.get("vr", 0) > 0 and r[4] > pr["vr"] * 1.10:
+            f += "S"
+        if gana[(r[1], r[3] or r[2])] >= 5:
+            f += "C"
+        r.append(f)
 
     por_prov = defaultdict(lambda: [0.0, 0, set(), ""])
     por_ent = defaultdict(lambda: [0.0, 0])
@@ -134,7 +155,16 @@ def main():
         "porCategoria": por_cat.most_common(), "porMetodo": por_met.most_common(12),
         "porMes": sorted(por_mes.items()),
         "archivosMes": sorted(por_mes_lista),
-        "campos": ["fecha", "entidad", "proveedor", "ruc", "monto", "objeto", "metodo", "categoria", "ocid"],
+        "campos": ["fecha", "entidad", "proveedor", "ruc", "monto", "objeto", "metodo", "categoria", "ocid", "alertas"],
+        "alertas": {
+            k: {"contratos": sum(1 for r in lista if k in r[9]), "monto": round(sum(r[4] for r in lista if k in r[9]))}
+            for k in "UDSC"
+        },
+        "conAlertas": sorted((r for r in lista if r[9]), key=lambda r: (-len(r[9]), -r[4]))[:200],
+        "entidadesAlerta": sorted(
+            ([e, n, round(m)] for e, (n, m) in (lambda d: d)(
+                {e: (sum(1 for r in lista if r[1] == e and r[9]), sum(r[4] for r in lista if r[1] == e and r[9])) for e in {r[1] for r in lista if r[9]}}
+            ).items()), key=lambda x: -x[2])[:40],
         "mayores": sorted(lista, key=lambda r: -r[4])[:50],
         "urlProceso": "https://contratacionesabiertas.oece.gob.pe/proceso/ocds-dgv273-",
     })
