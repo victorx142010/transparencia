@@ -235,8 +235,8 @@ a.kpi::after { content: "→"; position: absolute; right: 1rem; top: .9rem; colo
   padding: .75rem 1.3rem; border-radius: 999px; font-weight: 600; border: 0; transition: background .15s ease;
 }
 .boton:hover { background: var(--primario-fuerte); }
-:root:not([data-theme="light"]) .boton { color: #fff; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .boton { color: #0b1f22; } }
+.boton:not(.boton--secundario) { color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .boton:not(.boton--secundario) { color: #0b1f22; } }
 
 .segmentado { display: inline-flex; background: var(--fondo-2); border-radius: 999px; padding: 3px; }
 .segmentado button {
@@ -456,6 +456,37 @@ code { background: var(--fondo-2); padding: .05rem .35rem; border-radius: 6px; f
 /* Recaudación mensual */
 .columnas--meses .col { flex-basis: 28px; }
 .col__pres--prev { background: color-mix(in srgb, var(--primario) 45%, var(--barra-fondo)); }
+
+/* ---------- Explorador del gasto ---------- */
+.tarjeta--explorador { border: 2px solid color-mix(in srgb, var(--primario) 40%, var(--borde)); scroll-margin-top: 110px; }
+.boton--chico { padding: .45rem .95rem; font-size: .9rem; margin-top: .3rem; cursor: pointer; font-family: inherit; }
+.migas__compartir { font: inherit; font-size: .82rem; margin-left: auto; background: var(--fondo); border: 1px solid var(--borde); color: var(--texto-suave); border-radius: 999px; padding: .2rem .7rem; cursor: pointer; }
+.subdiv__btn { all: unset; box-sizing: border-box; display: flex; justify-content: space-between; gap: .8rem; width: 100%; cursor: pointer; color: var(--primario-texto); }
+.subdiv__btn:hover span { text-decoration: underline; }
+.subdiv__btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--primario) 55%, transparent); border-radius: 4px; }
+.exp-sub { font-size: 1.02rem; margin: 1.4rem 0 .6rem; }
+.exp-sub small { font-weight: 400; color: var(--texto-suave); font-size: .85rem; }
+.fila-btn { all: unset; box-sizing: border-box; display: block; width: 100%; cursor: pointer; padding: .6rem .6rem; border-radius: var(--radio-sm); border: 1px solid transparent; }
+.fila-btn:hover { background: var(--fondo); border-color: var(--borde); }
+.fila-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--primario) 55%, transparent); }
+.fila-btn .fila__nombre { color: var(--primario-texto); font-weight: 600; }
+.fila-btn__meta { display: block; font-size: .8rem; color: var(--texto-tenue); margin-top: .3rem; }
+.dos-col--plano { gap: 24px; margin: 0; }
+.dos-col--plano > div { min-width: 0; }
+.actividades { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
+@media (min-width: 760px) { .actividades { grid-template-columns: 1fr 1fr; column-gap: 28px; } }
+.actividades li { display: grid; grid-template-columns: 1fr auto; column-gap: .8rem; padding: .5rem 0; border-bottom: 1px dashed var(--borde); font-size: .92rem; }
+.actividades b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.actividades small { grid-column: 1 / -1; color: var(--texto-tenue); font-size: .78rem; }
+.filtros--3 { grid-template-columns: 1fr; }
+@media (min-width: 760px) { .filtros--3 { grid-template-columns: 2fr 1fr 1fr; } }
+.proyectos { display: grid; gap: 10px; }
+@media (min-width: 760px) { .proyectos { grid-template-columns: 1fr 1fr; } }
+.proyecto { border: 1px solid var(--borde); border-radius: var(--radio-sm); padding: .9rem 1rem; background: var(--superficie); display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+.proyecto__montos { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3rem 1rem; font-size: .85rem; font-variant-numeric: tabular-nums; font-weight: 600; }
+.proyecto__alerta { margin: 0; font-size: .85rem; color: var(--mal); background: var(--mal-fondo); border-radius: 10px; padding: .45rem .6rem; }
+.pista__barra--suave { background: var(--barra-fondo) !important; }
+.pista__gastado--mal { background: var(--mal); }
 
 /* ---------- Glosario ---------- */
 .glosario { margin: 0; display: grid; gap: .2rem; }

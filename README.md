@@ -20,7 +20,8 @@ scripts/                   Scrapers en Python
 | Sección | Fuente oficial | Script | Archivo |
 |---|---|---|---|
 | Impuestos | API de BCRPData: ingresos tributarios del Gobierno Central (datos de SUNAT y MEF), mensual | `actualizar_recaudacion.py` | `data/recaudacion.json` |
-| ¿En qué se gasta? | MEF — Datos Abiertos, *Presupuesto y Ejecución de Gasto* (CSV diario de ~2.6 GB) | `actualizar_presupuesto.py` | `data/presupuesto.json` |
+| ¿En qué se gasta? (hasta cada proyecto) | MEF — Datos Abiertos, *Presupuesto y Ejecución de Gasto* (CSV diario de ~2.6 GB) | `actualizar_presupuesto.py` | `data/presupuesto.json`, `data/gasto/<funcion>.json` |
+| Obras paralizadas | Contraloría — *Informe de obras paralizadas* (anexo Excel, trimestral, en gob.pe) | `actualizar_obras.py` | `data/obras.json` |
 | Sueldos por persona | Portal de Transparencia Estándar → Personal (CSV oficial de cada entidad, mensual) | `actualizar_sueldos.py` | `data/sueldos.json`, `data/sueldos/<id>.json` |
 | Congreso | Actas del Pleno en senado.congreso.gob.pe y diputados.congreso.gob.pe (PDF) | `actualizar_congreso.py` | `data/congreso.json` |
 | Proyectos de ley | Sistema de Proposiciones Legislativas (api.congreso.gob.pe/spley-portal-service) | `actualizar_proyectos.py` | `data/proyectos.json` |

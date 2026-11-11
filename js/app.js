@@ -93,7 +93,8 @@
           return {
             nombre: bonito(f.nombre), icono: info[0], explica: info[1], estado: "oficial",
             monto: f.pim / M, pia: f.pia / M, dev: f.dev / M,
-            hijos: (f.divisiones || []).map((d) => ({ nombre: bonito(d.nombre), monto: d.pim / M, pia: d.pia / M, dev: d.dev / M }))
+            archivo: f.archivo, raw: f.nombre, proyectos: f.proyectos,
+            hijos: (f.divisiones || []).map((d) => ({ nombre: bonito(d.nombre), raw: d.nombre, monto: d.pim / M, pia: d.pia / M, dev: d.dev / M }))
           };
         }),
         genericas: mef.genericas.map((g) => ({ nombre: bonito(g.nombre), monto: g.pim / M, dev: g.dev / M }))
@@ -287,18 +288,27 @@
     const total = lista.reduce((a, f) => a + f.monto, 0);
     $("#gastos-barras").innerHTML = lista.map((f) => {
       const perCap = (f.monto * 1e6) / D.poblacion;
+      const fi = PR.funciones.indexOf(f);
+      const explorable = !!f.archivo;
       const subs = f.hijos && f.hijos.length > 1
-        ? `<ul class="subdiv">${f.hijos.slice(0, 8).map((h) => `<li><span>${esc(h.nombre)}</span><b>${corto(h.monto)}</b></li>`).join("")}</ul>` : "";
+        ? `<ul class="subdiv">${f.hijos.slice(0, 10).map((h, hi) => explorable
+            ? `<li><button type="button" class="subdiv__btn" data-exp="${fi}:${hi}"><span>${esc(h.nombre)} ›</span><b>${corto(h.monto)}</b></button></li>`
+            : `<li><span>${esc(h.nombre)}</span><b>${corto(h.monto)}</b></li>`).join("")}</ul>` : "";
+      const botonExp = explorable ? `<p><button type="button" class="boton boton--chico" data-exp="${fi}">🔎 Explorar a fondo: proyectos y en qué se gasta${f.proyectos ? ` (${nf0.format(f.proyectos)} proyectos)` : ""}</button></p>` : "";
       return filaHTML({
         nombre: `<span aria-hidden="true">${f.icono}</span> ${esc(f.nombre)}`,
         valorTexto: valorUnidad(f.monto), pctTexto: pct(f.monto, total),
         ancho: (f.monto / max) * 100, ancho2: conDev ? (f.dev / f.monto) * 100 : null, estado: f.estado,
         detalle: (f.explica ? `<p>${esc(f.explica)}</p>` : "") +
           (conDev ? `<p>Aprobado: <strong>${millones(f.pia)}</strong> · Actual: <strong>${millones(f.monto)}</strong> · Gastado: <strong>${millones(f.dev)}</strong> (${pct(f.dev, f.monto)})</p>` : "") +
-          `<p>Por persona: <strong>${soles(perCap)}</strong> al año (${soles(perCap / 12)} al mes).</p>` + subs +
+          `<p>Por persona: <strong>${soles(perCap)}</strong> al año (${soles(perCap / 12)} al mes).</p>` + subs + botonExp +
           (PR.oficial ? "" : `<p>${sello(f.estado)} Fuente: ${enlace(f.fuente)}</p>`)
       });
     }).join("");
+    $$("#gastos-barras [data-exp]").forEach((b) => b.addEventListener("click", () => {
+      const [fi, di] = b.dataset.exp.split(":").map(Number);
+      abrirExplorador(PR.funciones[fi], di != null && !isNaN(di) ? PR.funciones[fi].hijos[di] : null);
+    }));
   }
 
   function pintarArbol() {
@@ -311,7 +321,11 @@
     if (volver) volver.addEventListener("click", () => { nodoArbol = null; pintarArbol(); });
     window.dibujarArbol($("#gastos-arbol"), items, {
       formato: cortoUnidad,
-      alTocar: (it) => { if (!nodoArbol && it.hijos && it.hijos.length > 1) { nodoArbol = it.ref; pintarArbol(); } }
+      alTocar: (it) => {
+        if (!nodoArbol && it.hijos && it.hijos.length > 1) { nodoArbol = it.ref; pintarArbol(); }
+        else if (nodoArbol && nodoArbol.archivo) abrirExplorador(nodoArbol, it.ref);  // tercer nivel: explorador
+        else if (!nodoArbol && it.ref.archivo) abrirExplorador(it.ref, null);
+      }
     });
   }
 
@@ -325,6 +339,207 @@
   grupoBotones("vista", (v) => { vista = v; pintarFunciones(); try { localStorage.setItem("vistaGastos", v); } catch (e) {} });
   let redimensionar;
   window.addEventListener("resize", () => { clearTimeout(redimensionar); redimensionar = setTimeout(() => { if (vista === "arbol" && !$("#gastos").hidden) pintarArbol(); }, 150); });
+
+  // ---------- EXPLORADOR: función → división → grupo → proyectos ----------
+  let OBRAS = null, OBRAS_CUI = new Map();
+  const cacheGasto = {};
+  const EXP = { fun: null, div: null, grp: null, detalle: null, q: "", dep: "", orden: "pim", n: 25 };
+  const avance = (dev, pim) => (pim > 0 ? Math.min(100, (100 * dev) / pim) : 0);
+  const SSI = (cui) => `https://ofi5.mef.gob.pe/ssi/Ssi/Index?codigo=${encodeURIComponent(cui)}&tipo=2`;
+
+  async function abrirExplorador(fun, div) {
+    EXP.fun = fun; EXP.div = div ? div.raw : null; EXP.grp = null; EXP.q = ""; EXP.dep = ""; EXP.orden = "pim"; EXP.n = 25;
+    const card = $("#explorador");
+    card.hidden = false;
+    $("#exp-contenido").innerHTML = '<p class="vacio">Cargando el detalle del gasto…</p>';
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!cacheGasto[fun.archivo]) cacheGasto[fun.archivo] = await cargar(`gasto/${fun.archivo}.json`);
+    EXP.detalle = cacheGasto[fun.archivo];
+    if (!EXP.detalle) { $("#exp-contenido").innerHTML = '<p class="vacio">No se pudo cargar el detalle de esta función.</p>'; return; }
+    pintarExplorador();
+  }
+
+  function nodoActual() {
+    const d = EXP.detalle;
+    const div = EXP.div ? d.divisiones.find((x) => x.nombre === EXP.div) : null;
+    const grp = div && EXP.grp ? div.grupos.find((x) => x.nombre === EXP.grp) : null;
+    return { d, div, grp };
+  }
+
+  function enlaceExplorador() {
+    const p = new URLSearchParams({ f: EXP.fun.archivo });
+    if (EXP.div) p.set("d", EXP.div);
+    if (EXP.grp) p.set("g", EXP.grp);
+    return "#gastos?" + p.toString();
+  }
+  async function abrirDesdeEnlace() {
+    const q = (location.hash.split("?")[1] || "");
+    if (!location.hash.startsWith("#gastos?") || !q) return;
+    const p = new URLSearchParams(q);
+    const fun = PR.funciones.find((f) => f.archivo === p.get("f"));
+    if (!fun) return;
+    await abrirExplorador(fun, p.get("d") ? { raw: p.get("d") } : null);
+    if (p.get("g")) { EXP.grp = p.get("g"); pintarExplorador(); }
+  }
+
+  function pintarExplorador() {
+    const { d, div, grp } = nodoActual();
+    try { history.replaceState(null, "", enlaceExplorador()); } catch (e) {}
+    const M = 1e6;
+    const migas = [[`${EXP.fun.icono} ${EXP.fun.nombre}`, "fun"]];
+    if (div) migas.push([bonito(div.nombre), "div"]);
+    if (grp) migas.push([bonito(grp.nombre), "grp"]);
+    $("#exp-migas").innerHTML = migas.map(([t, nivel], i) => i < migas.length - 1
+      ? `<button type="button" class="migas__volver" data-nivel="${nivel}">${esc(t)}</button><span aria-hidden="true">›</span>`
+      : `<strong>${esc(t)}</strong>`).join(" ") + ` <button type="button" class="migas__compartir" id="exp-compartir" title="Copiar enlace a este nivel">🔗 Copiar enlace</button>`;
+    $("#exp-compartir").addEventListener("click", async (ev) => {
+      const url = location.origin + location.pathname + enlaceExplorador();
+      try { await navigator.clipboard.writeText(url); ev.target.textContent = "✓ Enlace copiado"; } catch (e) { prompt("Copia este enlace:", url); }
+    });
+    $$("#exp-migas [data-nivel]").forEach((b) => b.addEventListener("click", () => {
+      if (b.dataset.nivel === "fun") { EXP.div = null; EXP.grp = null; } else EXP.grp = null;
+      EXP.q = ""; EXP.dep = ""; EXP.n = 25; pintarExplorador();
+    }));
+    const nodo = grp || div || d;
+    const resumen = `<div class="kpis kpis--3">${[
+      ["Presupuesto actual (PIM)", millones(nodo.pim / M), `Aprobado al inicio: ${millones(nodo.pia / M)}`],
+      ["Ya gastado", millones(nodo.dev / M), `${nf1.format(avance(nodo.dev, nodo.pim))}% del presupuesto`],
+      ["Falta gastar", millones(Math.max(0, nodo.pim - nodo.dev) / M), "en lo que queda del año"]
+    ].map(kpiHTML).join("")}</div>`;
+
+    if (!div || !grp) {
+      // Nivel de lista: divisiones o grupos
+      const hijos = div ? div.grupos : d.divisiones;
+      const max = Math.max(1, ...hijos.map((h) => h.pim));
+      const nProy = (h) => (h.grupos ? h.grupos.reduce((a, g) => a + g.proyectos.length, 0) : h.proyectos.length);
+      $("#exp-contenido").innerHTML = resumen +
+        `<h3 class="exp-sub">${div ? "Se divide en" : "Se divide en"}: <small>toca una para bajar de nivel</small></h3>
+        <div class="barras">${hijos.map((h, i) => `
+          <button type="button" class="fila-btn" data-hijo="${i}">
+            <div class="fila__top"><span class="fila__nombre">${esc(bonito(h.nombre))} ›</span>
+              <span class="fila__valor">${corto(h.pim / M)}<span class="fila__pct">${nf0.format(avance(h.dev, h.pim))}% gastado</span></span></div>
+            <div class="pista" aria-hidden="true"><div class="pista__barra" style="width:${Math.max(0.6, (h.pim / max) * 100).toFixed(1)}%"><div class="pista__gastado" style="width:${avance(h.dev, h.pim).toFixed(1)}%"></div></div></div>
+            <span class="fila-btn__meta">${nf0.format(nProy(h))} proyectos de inversión</span>
+          </button>`).join("")}</div>`;
+      $$("#exp-contenido [data-hijo]").forEach((b) => b.addEventListener("click", () => {
+        const h = hijos[+b.dataset.hijo];
+        if (div) EXP.grp = h.nombre; else EXP.div = h.nombre;
+        EXP.n = 25; pintarExplorador();
+        $("#explorador").scrollIntoView({ behavior: "smooth", block: "start" });
+      }));
+      return;
+    }
+
+    // Nivel más bajo: grupo funcional
+    const maxG = Math.max(1, ...grp.genericas.map((g) => g[1]));
+    const enQue = grp.genericas.filter((g) => g[1] > 0).map(([n, pim, dev]) =>
+      filaSimple(bonito(n), pim, maxG, `${corto(pim / M)} · ${nf0.format(avance(dev, pim))}% gastado`)).join("");
+    const maxD = Math.max(1, ...grp.departamentos.map((g) => g[1]));
+    const porDep = grp.departamentos.filter((g) => g[1] > 0).slice(0, 12).map(([n, pim]) => filaSimple(bonito(n), pim, maxD, corto(pim / M))).join("");
+    const acts = grp.actividades.length ? `<ul class="actividades">${grp.actividades.map(([n, pim, dev]) =>
+      `<li><span>${esc(bonito(n))}</span><b>${corto(pim / M)}</b><small>${nf0.format(avance(dev, pim))}% gastado</small></li>`).join("")}</ul>` : '<p class="vacio">Sin actividades registradas.</p>';
+    const deps = [...new Set(grp.proyectos.map((p) => p[3]))].filter(Boolean).sort();
+    const paralizadas = grp.proyectos.filter((p) => OBRAS_CUI.has(p[0])).length;
+    $("#exp-contenido").innerHTML = resumen + `
+      <div class="dos-col dos-col--plano">
+        <div><h3 class="exp-sub">¿En qué se gasta?</h3><div class="barras">${enQue}</div>
+          <p class="ayuda">"Personal" son sueldos; "bienes y servicios", compras y contratos; "activos no financieros", obras y equipos.</p></div>
+        <div><h3 class="exp-sub">¿Dónde se gasta?</h3><div class="barras">${porDep}</div></div>
+      </div>
+      <h3 class="exp-sub">Actividades permanentes <small>(lo que se paga todos los años: sueldos, mantenimiento, servicios)</small></h3>${acts}
+      <h3 class="exp-sub" id="exp-proy-t">Proyectos de inversión (${nf0.format(grp.proyectos.length)})${paralizadas ? ` · <span class="etapa etapa--fin">${paralizadas} con obra paralizada</span>` : ""}</h3>
+      <p class="ayuda">Obras y proyectos con presupuesto este año. La barra muestra cuánto de su presupuesto ya se gastó (avance financiero). Las obras marcadas como paralizadas vienen del último informe de la Contraloría.</p>
+      <div class="filtros filtros--3">
+        <label class="campo"><span>Buscar</span><input type="search" id="exp-q" placeholder="Nombre, distrito o código CUI…" value="${esc(EXP.q)}" autocomplete="off"></label>
+        <label class="campo"><span>Departamento</span><select id="exp-dep" class="select-grande"><option value="">Todos</option>${deps.map((x) => `<option ${x === EXP.dep ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></label>
+        <label class="campo"><span>Ordenar</span><select id="exp-orden" class="select-grande">
+          <option value="pim">Más presupuesto</option>
+          <option value="lento">Menos avance (posibles atrasos)</option>
+          <option value="paralizadas">Solo obras paralizadas</option>
+          <option value="sinavance">Sin gasto este año</option>
+        </select></label>
+      </div>
+      <div id="exp-proyectos" class="proyectos"></div>
+      <button type="button" class="boton boton--secundario" id="exp-mas" hidden>Ver más</button>
+      <p class="fuente">Fuente: MEF — Datos Abiertos (presupuesto y ejecución ${EXP.detalle.anio}); Contraloría — informe de obras paralizadas. Cada proyecto enlaza a su ficha en el Sistema de Seguimiento de Inversiones del MEF.</p>`;
+    $("#exp-orden").value = EXP.orden;
+    $("#exp-q").addEventListener("input", (e) => { EXP.q = e.target.value; EXP.n = 25; pintarProyectos(grp); });
+    $("#exp-dep").addEventListener("change", (e) => { EXP.dep = e.target.value; EXP.n = 25; pintarProyectos(grp); });
+    $("#exp-orden").addEventListener("change", (e) => { EXP.orden = e.target.value; EXP.n = 25; pintarProyectos(grp); });
+    $("#exp-mas").addEventListener("click", () => { EXP.n += 25; pintarProyectos(grp); });
+    pintarProyectos(grp);
+  }
+
+  function pintarProyectos(grp) {
+    const q = normal(EXP.q.trim());
+    let lista = grp.proyectos.filter((p) => (!EXP.dep || p[3] === EXP.dep) && (!q || normal(p[0] + " " + p[1] + " " + p[2]).includes(q)));
+    if (EXP.orden === "lento") lista = lista.filter((p) => p[5] >= 100000).sort((a, b) => avance(a[6], a[5]) - avance(b[6], b[5]) || b[5] - a[5]);
+    else if (EXP.orden === "paralizadas") lista = lista.filter((p) => OBRAS_CUI.has(p[0]));
+    else if (EXP.orden === "sinavance") lista = lista.filter((p) => p[5] > 0 && p[6] === 0).sort((a, b) => b[5] - a[5]);
+    $("#exp-proyectos").innerHTML = lista.length ? lista.slice(0, EXP.n).map(([cui, nombre, ejec, dep, pia, pim, dev]) => {
+      const av = avance(dev, pim);
+      const obra = OBRAS_CUI.get(cui);
+      const etiqueta = obra ? `<span class="etapa etapa--fin">Obra paralizada · ${nf0.format(obra.avance)}% de avance físico</span>`
+        : pim > 0 && dev === 0 ? '<span class="etapa etapa--avanza">Sin gasto este año</span>'
+        : av < 30 ? '<span class="etapa etapa--avanza">Avance bajo</span>' : av >= 95 ? '<span class="etapa etapa--ley">Casi todo gastado</span>' : "";
+      return `<article class="proyecto">
+        <div class="ley__cab"><span class="ley__num">CUI ${esc(cui)}</span>${etiqueta}</div>
+        <p class="ley__titulo">${esc(fraseL(nombre))}</p>
+        <p class="ley__meta">${esc(propio(ejec))} · ${esc(propio(dep))}</p>
+        <div class="proyecto__montos"><span>Presupuesto ${soles(pim)}</span><span>Gastado ${soles(dev)} (${nf0.format(av)}%)</span></div>
+        <div class="pista" aria-hidden="true"><div class="pista__barra pista__barra--suave" style="width:100%"><div class="pista__gastado" style="width:${av.toFixed(1)}%"></div></div></div>
+        ${obra ? `<p class="proyecto__alerta">⚠️ La Contraloría reporta esta obra como <strong>paralizada</strong>${obra.inicio ? ` (empezó en ${obra.inicio})` : ""}. Causa: ${esc(obra.causal || "no registrada")}. Lleva ${nf0.format(obra.avance)}% de avance físico y falta ejecutar ${soles(obra.saldo)}.</p>` : ""}
+        <a class="ley__link" href="${SSI(cui)}" target="_blank" rel="noopener">Ver ficha oficial del proyecto (MEF) ↗</a>
+      </article>`;
+    }).join("") : '<p class="vacio">No hay proyectos que coincidan.</p>';
+    $("#exp-mas").hidden = lista.length <= EXP.n;
+    $("#exp-mas").textContent = `Ver más (${nf0.format(lista.length - EXP.n)} restantes)`;
+  }
+  $("#exp-cerrar").addEventListener("click", () => { $("#explorador").hidden = true; try { history.replaceState(null, "", "#gastos"); } catch (e) {} });
+
+  // ---------- OBRAS PARALIZADAS ----------
+  const OB = { q: "", dep: "", causal: "", n: 30 };
+  function pintarObras() {
+    if (!OBRAS) { $("#lista-obras").innerHTML = '<p class="vacio">Aún no hay datos de obras paralizadas.</p>'; return; }
+    const M = 1e6;
+    $("#obras-intro").innerHTML = `Según el <a href="${esc(OBRAS.fuente)}" target="_blank" rel="noopener">${esc(OBRAS.informe)}</a> de la Contraloría, hay <strong>${nf0.format(OBRAS.total)} obras públicas paralizadas</strong>. Son obras que empezaron y se detuvieron: colegios, pistas, sistemas de agua, hospitales…`;
+    const locales = (OBRAS.porNivel.find((x) => /LOCAL/.test(x[0])) || [0, 0])[1];
+    $("#obras-kpis").innerHTML = [
+      ["Obras paralizadas", nf0.format(OBRAS.total), `${pct(locales, OBRAS.total)} son de municipalidades`],
+      ["Costo de esas obras", millones(OBRAS.costoObras / M), `inversiones por ${millones(OBRAS.costoInversiones / M)}`],
+      ["Falta ejecutar", millones(OBRAS.saldoObras / M), "para terminar las obras"],
+      ["Avanzadas más de la mitad", nf0.format(OBRAS.obras.filter((o) => o.avance > 50).length), "obras que se quedaron a medio camino o más"]
+    ].map(kpiHTML).join("");
+    const maxC = OBRAS.porCausal[0][1];
+    $("#obras-causas").innerHTML = OBRAS.porCausal.slice(0, 8).map(([c, n]) => filaSimple(c, n, maxC, nf0.format(n))).join("");
+    const maxD = OBRAS.porDepartamento[0][1];
+    $("#obras-deps").innerHTML = OBRAS.porDepartamento.slice(0, 12).map(([c, n]) => filaSimple(propio(c), n, maxD, nf0.format(n))).join("");
+    $("#obras-dep").innerHTML = '<option value="">Todos</option>' + OBRAS.porDepartamento.map(([d, n]) => `<option value="${esc(d)}">${esc(propio(d))} (${n})</option>`).join("");
+    $("#obras-causal").innerHTML = '<option value="">Todas</option>' + OBRAS.porCausal.map(([c, n]) => `<option value="${esc(c)}">${esc(c)} (${n})</option>`).join("");
+    pintarListaObras();
+  }
+  function pintarListaObras() {
+    const q = normal(OB.q.trim());
+    const lista = OBRAS.obras.filter((o) => (!OB.dep || o.departamento === OB.dep) && (!OB.causal || o.causal === OB.causal) &&
+      (!q || normal(`${o.cui} ${o.nombre} ${o.entidad} ${o.distrito} ${o.provincia}`).includes(q)));
+    $("#obras-conteo").textContent = `${nf0.format(lista.length)} obras`;
+    $("#lista-obras").innerHTML = lista.length ? lista.slice(0, OB.n).map((o) => `
+      <article class="proyecto">
+        <div class="ley__cab"><span class="ley__num">CUI ${esc(o.cui)}</span><span class="etapa etapa--fin">${esc(o.causal || "Paralizada")}</span></div>
+        <p class="ley__titulo">${esc(fraseL(o.nombre))}</p>
+        <p class="ley__meta">${esc(propio(o.entidad))} · ${esc(propio(o.distrito))}, ${esc(propio(o.departamento))}${o.inicio ? ` · empezó en ${o.inicio}` : ""}</p>
+        <div class="proyecto__montos"><span>Costo de la obra ${soles(o.costo)}</span><span>Avance físico ${nf0.format(o.avance)}%</span></div>
+        <div class="pista" aria-hidden="true"><div class="pista__barra pista__barra--suave" style="width:100%"><div class="pista__gastado pista__gastado--mal" style="width:${Math.min(100, o.avance).toFixed(1)}%"></div></div></div>
+        <p class="ley__meta">Falta ejecutar ${soles(o.saldo)}${o.pim > 0 ? ` · tiene ${soles(o.pim)} en el presupuesto de este año` : " · no tiene presupuesto este año"}</p>
+        <a class="ley__link" href="${SSI(o.cui)}" target="_blank" rel="noopener">Ver ficha oficial del proyecto (MEF) ↗</a>
+      </article>`).join("") : '<p class="vacio">No hay obras que coincidan.</p>';
+    $("#mas-obras").hidden = lista.length <= OB.n;
+    $("#mas-obras").textContent = `Ver más (${nf0.format(lista.length - OB.n)} restantes)`;
+  }
+  $("#obras-q").addEventListener("input", (e) => { OB.q = e.target.value; OB.n = 30; OBRAS && pintarListaObras(); });
+  $("#obras-dep").addEventListener("change", (e) => { OB.dep = e.target.value; OB.n = 30; OBRAS && pintarListaObras(); });
+  $("#obras-causal").addEventListener("change", (e) => { OB.causal = e.target.value; OB.n = 30; OBRAS && pintarListaObras(); });
+  $("#mas-obras").addEventListener("click", () => { OB.n += 30; pintarListaObras(); });
 
   // ---------- SUELDOS ----------
   function pintarSueldos(filtro = "") {
@@ -649,7 +864,7 @@
   // ---------- Navegación ----------
   const vistas = $$(".vista");
   function mostrar() {
-    const id = (location.hash || "#inicio").slice(1);
+    const id = (location.hash || "#inicio").slice(1).split("?")[0];
     const v = vistas.find((x) => x.id === id) || vistas[0];
     vistas.forEach((x) => (x.hidden = x !== v));
     $$(".nav a").forEach((a) => (a.getAttribute("href") === "#" + v.id ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
@@ -666,7 +881,9 @@
 
   // ---------- Arranque ----------
   (async function iniciar() {
-    const [mef, cong, vis, rec, sue, proy] = await Promise.all(["presupuesto.json", "congreso.json", "visitas.json", "recaudacion.json", "sueldos.json", "proyectos.json"].map(cargar));
+    const [mef, cong, vis, rec, sue, proy, obras] = await Promise.all(["presupuesto.json", "congreso.json", "visitas.json", "recaudacion.json", "sueldos.json", "proyectos.json", "obras.json"].map(cargar));
+    OBRAS = obras && obras.obras ? obras : null;
+    if (OBRAS) OBRAS.obras.forEach((o) => { if (!OBRAS_CUI.has(o.cui)) OBRAS_CUI.set(o.cui, o); });
     REC = rec; ING = modeloIngresos(rec);
     SUE = sue && sue.entidades ? sue : null;
     PROY = proy && proy.proyectos ? proy : null;
@@ -674,7 +891,7 @@
     CONG = cong && cong.camaras ? cong : null;
     VIS = vis && vis.semanas ? vis : null;
     try { const v = localStorage.getItem("vistaGastos"); if (v === "arbol") { vista = "arbol"; $$("[data-vista]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.vista === "arbol"))); } } catch (e) {}
-    const fechas = [mef, cong, vis, rec, sue, proy].map((x) => x && x.actualizado).filter(Boolean).sort();
+    const fechas = [mef, cong, vis, rec, sue, proy, obras].map((x) => x && x.actualizado).filter(Boolean).sort();
     if (fechas.length) {
       const f = new Date(fechas[fechas.length - 1]);
       const chip = $("#chip-act");
@@ -688,11 +905,13 @@
     pintarSueldos();
     pintarPlanillas();
     pintarLeyes();
+    pintarObras();
     $("#buscadores").innerHTML = enlacesHTML(D.buscadoresOficiales);
     pintarCongreso();
     pintarVisitas();
     calcular();
     pintarFuentes();
     mostrar();
+    abrirDesdeEnlace();
   })();
 })();

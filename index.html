@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=202611110004">
+  <link rel="stylesheet" href="css/styles.css?v=202611110950">
 </head>
 <body>
   <a class="saltar" href="#contenido">Saltar al contenido</a>
@@ -33,6 +33,7 @@
       <a href="#sueldos">Sueldos</a>
       <a href="#congreso">Congreso</a>
       <a href="#leyes">Leyes</a>
+      <a href="#obras">Obras</a>
       <a href="#visitas">Visitas</a>
       <a href="#mi-impuesto">Mi impuesto</a>
       <a href="#fuentes">Fuentes</a>
@@ -66,7 +67,7 @@
         <a class="tema" href="#congreso"><span class="tema__icono" aria-hidden="true">🏛️</span><span class="tema__t">Congreso</span><span class="tema__d">¿Van a trabajar senadores y diputados?</span></a>
         <a class="tema" href="#leyes"><span class="tema__icono" aria-hidden="true">📜</span><span class="tema__t">Proyectos de ley</span><span class="tema__d">Qué leyes proponen y quién las firma</span></a>
         <a class="tema" href="#visitas"><span class="tema__icono" aria-hidden="true">🚪</span><span class="tema__t">Visitas a Palacio</span><span class="tema__d">Quién se reúne con la Presidencia</span></a>
-        <a class="tema" href="#fuentes"><span class="tema__icono" aria-hidden="true">🔍</span><span class="tema__t">¿De dónde salen los datos?</span><span class="tema__d">Fuentes oficiales y glosario</span></a>
+        <a class="tema" href="#obras"><span class="tema__icono" aria-hidden="true">🚧</span><span class="tema__t">Obras paralizadas</span><span class="tema__d">Obras que empezaron y se detuvieron</span></a>
         <a class="tema tema--destacado" href="#mi-impuesto"><span class="tema__icono" aria-hidden="true">🧮</span><span class="tema__t">Mi impuesto</span><span class="tema__d">Calcula cuánto aportas y a dónde va</span></a>
       </div>
 
@@ -145,6 +146,15 @@
           <div id="gastos-arbol" class="arbol"></div>
         </div>
         <p class="fuente" id="gastos-fuente"></p>
+      </div>
+
+      <div class="tarjeta tarjeta--explorador" id="explorador" hidden>
+        <div class="tarjeta__cabeza">
+          <h2>🔎 Explorar el gasto a fondo</h2>
+          <button type="button" class="boton boton--secundario boton--chico" id="exp-cerrar">Cerrar ✕</button>
+        </div>
+        <nav class="migas" id="exp-migas" aria-label="Nivel del explorador"></nav>
+        <div id="exp-contenido"></div>
       </div>
     </section>
 
@@ -291,6 +301,30 @@
       </div>
     </section>
 
+    <!-- ===================== OBRAS PARALIZADAS ===================== -->
+    <section id="obras" class="vista" aria-labelledby="t-obras" hidden>
+      <p class="eyebrow">🚧 Contraloría General de la República</p>
+      <h1 id="t-obras">¿Qué obras están paralizadas?</h1>
+      <p class="intro" id="obras-intro"></p>
+      <div class="kpis kpis--4" id="obras-kpis"></div>
+      <div class="dos-col">
+        <div class="tarjeta"><h2>¿Por qué se detuvieron?</h2><div id="obras-causas" class="barras"></div></div>
+        <div class="tarjeta"><h2>¿Dónde están?</h2><div id="obras-deps" class="barras"></div></div>
+      </div>
+      <div class="tarjeta">
+        <h2>Todas las obras paralizadas</h2>
+        <div class="filtros filtros--3">
+          <label class="campo"><span>Buscar</span><input type="search" id="obras-q" placeholder="Colegio, hospital, distrito, CUI…" autocomplete="off"></label>
+          <label class="campo"><span>Departamento</span><select id="obras-dep" class="select-grande"></select></label>
+          <label class="campo"><span>Causa</span><select id="obras-causal" class="select-grande"></select></label>
+        </div>
+        <p class="ayuda" id="obras-conteo"></p>
+        <div id="lista-obras" class="proyectos"></div>
+        <button type="button" class="boton boton--secundario" id="mas-obras" hidden>Ver más</button>
+        <p class="fuente">Ordenadas de mayor a menor costo. El avance físico es lo que realmente se construyó; lo informa cada entidad en Infobras.</p>
+      </div>
+    </section>
+
     <!-- ===================== VISITAS ===================== -->
     <section id="visitas" class="vista" aria-labelledby="t-visitas" hidden>
       <p class="eyebrow">🚪 Despacho Presidencial</p>
@@ -422,8 +456,8 @@
     </div>
   </footer>
 
-  <script src="js/datos.js?v=202611110004"></script>
-  <script src="js/arbol.js?v=202611110004"></script>
-  <script src="js/app.js?v=202611110004"></script>
+  <script src="js/datos.js?v=202611110950"></script>
+  <script src="js/arbol.js?v=202611110950"></script>
+  <script src="js/app.js?v=202611110950"></script>
 </body>
 </html>
