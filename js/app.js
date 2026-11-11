@@ -588,7 +588,7 @@
   async function prepararEntidades() {
     if (ENT) return true;
     $("#ent-lista").innerHTML = '<p class="vacio">Cargando entidades…</p>';
-    ENT = await cargar("entidades.json");
+    ENT = await cargarUna("entidades.json");
     if (!ENT) { $("#ent-lista").innerHTML = '<p class="vacio">Aún no hay datos de entidades.</p>'; return false; }
     $("#ent-n").textContent = nf0.format(ENT.entidades.length);
     const deps = [...new Set(ENT.entidades.map((e) => e[4]).filter(Boolean))].sort();
@@ -679,7 +679,9 @@
       if (!CTRL) return;
       const k = clave(e.nombre.split(" - ")[0]);
       const infs = CTRL.informes.filter((r) => clave(r[1]).includes(k) || k.includes(clave(r[1])));
-      if (infs.length) $("#ent-control").innerHTML = `<h3 class="exp-sub">🔎 Informes de la Contraloría (${nf0.format(infs.length)})</h3><div class="proyectos">${infs.slice(0, 4).map(tarjetaInforme).join("")}</div>` +
+      const tot = Object.entries(CTRL.porEntidad || {}).filter(([n]) => clave(n).includes(k) || k.includes(clave(n))).reduce((a, [, v]) => [a[0] + v[0], a[1] + v[1]], [0, 0]);
+      if (tot[0] || infs.length) $("#ent-control").innerHTML = `<h3 class="exp-sub">🔎 Contraloría: ${nf0.format(tot[0] || infs.length)} informes, ${nf0.format(tot[1])} con presuntos responsables</h3>` +
+        (infs.length ? `<div class="proyectos">${infs.slice(0, 4).map(tarjetaInforme).join("")}</div>` : '<p class="ayuda">Sin auditorías (solo orientaciones o visitas de control).</p>') +
         (infs.length > 4 ? `<p><a href="#control?q=${encodeURIComponent(e.nombre.split(" - ")[0])}">Ver los ${nf0.format(infs.length)} informes →</a></p>` : "");
     });
     $("#ent-cerrar").addEventListener("click", () => { box.hidden = true; try { history.replaceState(null, "", "#entidades"); } catch (er) {} });
@@ -1175,9 +1177,23 @@
       { nombre: "BCRP — Ingresos tributarios del Gobierno Central", url: "https://estadisticas.bcrp.gob.pe/estadisticas/series/mensuales/ingresos-tributarios-del-gobierno-central", que: "Recaudación mensual por impuesto, con datos de SUNAT y MEF. De aquí sale la sección de impuestos." },
       { nombre: "Portal de Transparencia Estándar — Personal", url: "https://www.transparencia.gob.pe/", que: "Planilla mensual de cada entidad. De aquí sale el buscador de sueldos por persona." },
       { nombre: "Sistema de Proposiciones Legislativas", url: "https://wb2server.congreso.gob.pe/spley-portal/", que: "Todos los proyectos de ley del Congreso y su estado." },
-      { nombre: "SUNAT — Estadísticas y estudios", url: "https://www.sunat.gob.pe/estadisticasestudios/", que: "Notas tributarias y reportes de recaudación." }
+      { nombre: "SUNAT — Estadísticas y estudios", url: "https://www.sunat.gob.pe/estadisticasestudios/", que: "Notas tributarias y reportes de recaudación." },
+      { nombre: "OECE — Contrataciones abiertas (OCDS)", url: "https://contratacionesabiertas.oece.gob.pe/", que: "Contratos, proveedores y señales de alerta." },
+      { nombre: "Contraloría — Buscador de informes de control", url: "https://buscadorinformes.contraloria.gob.pe/BuscadorCGR/Informes/inicio.html", que: "Auditorías y presuntos responsables." },
+      { nombre: "Contraloría — Informe de obras paralizadas", url: "https://www.gob.pe/institucion/contraloria/informes-publicaciones", que: "Base de obras paralizadas (trimestral)." },
+      { nombre: "MIDIS — Juntos y Pensión 65 (Datos Abiertos)", url: "https://www.datosabiertos.gob.pe/", que: "Hogares y usuarios por distrito (solo contamos; no publicamos nombres)." },
+      { nombre: "BCRP — Deuda pública", url: "https://estadisticas.bcrp.gob.pe/estadisticas/series/trimestrales/deuda-publica", que: "Saldo trimestral de la deuda por acreedor." },
+      { nombre: "Portal de Transparencia — Pasajes y viáticos", url: "https://www.transparencia.gob.pe/", que: "Viajes de funcionarios de las entidades principales." },
+      { nombre: "Mapas del Perú (peru-geojson, MPL-2.0)", url: "https://github.com/juaneladio/peru-geojson", que: "Límites de departamentos, provincias y distritos." }
     ];
     $("#fuentes-lista").innerHTML = enlacesHTML([...extra, ...D.buscadoresOficiales]);
+    $("#no-disponible").innerHTML = enlacesHTML([
+      { nombre: "Proveedores sancionados por el OECE", url: "https://www.rnp.gob.pe/consultasenlinea/inhabilitados/busqueda.asp", que: "La consulta oficial exige un captcha; no la automatizamos. Puedes revisarla tú." },
+      { nombre: "Declaraciones juradas de bienes e intereses", url: "https://appdji.contraloria.gob.pe/djic/", que: "El sistema de la Contraloría exige un captcha para cada consulta." },
+      { nombre: "Aportes a partidos y campañas (ONPE Claridad)", url: "https://claridad.onpe.gob.pe/", que: "El portal bloquea el acceso automático; consúltalo directamente." },
+      { nombre: "Resultados en anemia y aprendizaje por región", url: "https://www.datosabiertos.gob.pe/", que: "Los datos abiertos de anemia solo cubren Apurímac y los de aprendizaje no están en formato descargable." },
+      { nombre: "Registro de visitas de todas las entidades", url: "https://visitas.servicios.gob.pe/consultas/", que: "Exige captcha. Sí incluimos las visitas al Despacho Presidencial, que no lo exige." }
+    ]);
   }
 
   // =====================================================================
@@ -1236,7 +1252,8 @@
   }
   async function pintarControl() {
     if (!(await prepararControl())) { $("#control-lista").innerHTML = '<p class="vacio">Aún no hay datos de auditorías.</p>'; return; }
-    $("#control-intro").innerHTML = `La Contraloría publicó <strong>${nf0.format(CTRL.total)} informes</strong> de control (${esc(CTRL.anios.replace(",", " y "))}). En <strong>${nf0.format(CTRL.conResponsabilidad)}</strong> señaló a funcionarios con <strong>presunta responsabilidad</strong> administrativa, civil o penal. "Presunta" significa que aún debe confirmarse en un proceso.`;
+    const mods = Object.fromEntries(CTRL.porModalidad || []);
+    $("#control-intro").innerHTML = `Desde ${esc(CTRL.anios.split(",")[0])}, la Contraloría publicó <strong>${nf0.format(CTRL.total)} informes</strong>. La mayoría son alertas durante la ejecución (${nf0.format((mods["ORIENTACIÓN DE OFICIO"] || 0) + (mods["CONTROL CONCURRENTE"] || 0) + (mods["VISITA DE CONTROL"] || 0))} orientaciones, controles concurrentes y visitas). Aquí mostramos una por una las <strong>${nf0.format(CTRL.informes.length)} auditorías</strong>; en <strong>${nf0.format(CTRL.conResponsabilidad)}</strong> se señaló a funcionarios con <strong>presunta responsabilidad</strong> administrativa, civil o penal ("presunta": aún debe confirmarse en un proceso).`;
     const tipos = Object.fromEntries(CTRL.tipos);
     $("#control-kpis").innerHTML = [
       ["Informes publicados", nf0.format(CTRL.total), esc(CTRL.anios.replace(",", " y "))],
@@ -1531,6 +1548,7 @@
     const M = 1e6, kd = clave(dep + prov + dist);
     const obras = OBRAS ? OBRAS.obras.filter((o) => clave(o.departamento + o.provincia + o.distrito) === kd) : [];
     const infs = CTRL ? CTRL.informes.filter((r) => clave(r[2] + r[3] + r[4]) === kd) : [];
+    const cuentaDist = CTRL && CTRL.porDistrito ? (Object.entries(CTRL.porDistrito).find(([k]) => clave(k.replace(/\|/g, "")) === kd) || [null, [0, 0]])[1] : [infs.length, 0];
     const pg = PROG && PROG.distritos[ub];
     const sueldo = SUE && muni && SUE.entidades.find((s) => clave(String(s.nombre).replace(/\s*\([^)]*\)\s*$/, "")) === clave(muni[1]) && (!s.departamento || s.departamento === dep));
     const otras = ents.filter((e) => e !== muni);
@@ -1546,7 +1564,7 @@
         ["Presupuesto de la municipalidad", millones(muni[7] / M), propio(muni[1])],
         ["Ya gastado", pct(muni[8], muni[7]), millones(muni[8] / M)],
         ["Obras paralizadas", nf0.format(obras.length), obras.length ? `falta ejecutar ${soles(obras.reduce((a, o) => a + o.saldo, 0))}` : "según la Contraloría"],
-        ["Informes de Contraloría", nf0.format(infs.length), `${nf0.format(infs.filter((r) => r[7] > 0).length)} con presuntos responsables`]
+        ["Informes de Contraloría", nf0.format(cuentaDist[0]), `${nf0.format(cuentaDist[1])} con presuntos responsables`]
       ].map(kpiHTML).join("")}</div>` : ""}
       <div class="controles controles--enlaces">
         ${muni ? `<a class="boton boton--secundario boton--chico" href="#entidades?id=${encodeURIComponent(muni[0])}">🏘️ Gasto y proyectos de la municipalidad</a>
@@ -1566,7 +1584,7 @@
       </div>
       ${obras.length ? `<h3 class="exp-sub">🚧 Obras paralizadas en el distrito</h3><div class="proyectos">${obras.slice(0, 6).map((o) => `<article class="proyecto"><div class="ley__cab"><span class="ley__num">CUI ${esc(o.cui)}</span><span class="etapa etapa--fin">${esc(o.causal || "Paralizada")}</span></div>
         <p class="ley__titulo">${esc(fraseL(o.nombre))}</p><p class="ley__meta">${esc(propio(o.entidad))} · avance físico ${nf0.format(o.avance)}% · falta ${soles(o.saldo)}</p></article>`).join("")}</div>` : ""}
-      ${infs.length ? `<h3 class="exp-sub">🔎 Informes de la Contraloría</h3><div class="proyectos">${infs.slice(0, 6).map(tarjetaInforme).join("")}</div>
+      ${infs.length ? `<h3 class="exp-sub">🔎 Auditorías de la Contraloría en el distrito</h3><div class="proyectos">${infs.slice(0, 6).map(tarjetaInforme).join("")}</div>
         ${infs.length > 6 ? `<p><a href="#control?q=${encodeURIComponent(dist)}">Ver los ${nf0.format(infs.length)} informes →</a></p>` : ""}` : ""}
       ${det && det.proyectos && det.proyectos.length ? `<h3 class="exp-sub">🏗️ Principales proyectos de la municipalidad</h3><div class="proyectos">${det.proyectos.slice(0, 6).map((p) => tarjetaProyecto(p[0], p[1], bonito(p[2]), p[4], p[5])).join("")}</div>` : ""}
       <p class="fuente">Fuentes: MEF (presupuesto ${PR.anio}), Contraloría (obras paralizadas e informes de control), MIDIS (Juntos y Pensión 65).</p>`;

@@ -20,16 +20,49 @@ from comun import ahora_lima, clave, guardar_json, http
 
 API = "https://appbp.contraloria.gob.pe/BuscadorCGR/Informes/BusquedaInformesCGR.ashx"
 TAM = 200
-VACIOS = ["pFechaInicio", "pFechaHasta", "pEntidad", "pSector", "pModalidadServicio", "pReconstruccion",
+VACIOS = ["pEntidad", "pSector", "pModalidadServicio", "pReconstruccion",
           "pReconstruccionDepa", "pServicio", "pDepartamento", "pResponsabilidad", "pCovid", "pCovidDepa",
           "pNivelGobierno", "pProvincia", "pDistrito", "pAnioFinEjec", "pEsConResponsabilidad", "pEvento",
           "pOperativo", "pFechaInicioEjec", "pFechaFinEjec"]
 
 
-def pagina(anio, n):
+def pagina(desde, hasta, n):
+    """Informes publicados entre dos fechas (dd/mm/aaaa). El filtro de año de la API no funciona; el de fechas sí."""
     datos = {"ActionPage": "TransportType", "Action": "loadInformesElastic", "PageSize": TAM, "PageNumber": n,
-             "pGeneral": "", "pAnio": anio, **{k: "" for k in VACIOS}}
+             "pGeneral": "", "pAnio": "", "pFechaInicio": desde, "pFechaHasta": hasta, **{k: "" for k in VACIOS}}
     return json.loads(http(API, data=datos, timeout=180).decode("utf-8", "replace") or "[]")
+
+
+# Modalidades que son auditorías propiamente dichas (se muestran una por una). Las demás
+# (orientaciones de oficio, visitas, control concurrente…) son muchísimas: se cuentan.
+DETALLE = ("AUDITORIA CUMPLIMIENTO", "SERVICIO DE CONTROL ESPECÍFICO", "AUDITORIA DESEMPEÑO", "PRESTACIONES DE ADICIONALES")
+
+
+def resumir(informes, con_resp, tipos, por_ent, anios, hoy):
+    detalle = [r for r in informes if r[7] > 0 or any(r[6].startswith(d) for d in DETALLE)]
+    por_mod = Counter(r[6] for r in informes)
+    por_dist = defaultdict(lambda: [0, 0])
+    for r in informes:
+        x = por_dist[f"{r[2]}|{r[3]}|{r[4]}"]
+        x[0] += 1
+        x[1] += r[7] > 0
+    return {
+        "actualizado": hoy.isoformat(timespec="minutes"),
+        "fuente": "https://buscadorinformes.contraloria.gob.pe/BuscadorCGR/Informes/inicio.html",
+        "anios": anios,
+        "total": len(informes),
+        "conResponsabilidad": len(con_resp),
+        "personas": sum(r[7] for r in informes),
+        "tipos": tipos.most_common(),
+        "porModalidad": por_mod.most_common(),
+        "porDepartamento": Counter(r[2] for r in informes if r[2]).most_common(),
+        "topEntidades": sorted(([e, *v] for e, v in por_ent.items()), key=lambda x: (-x[3], -x[1]))[:60],
+        "porEntidad": {e: v for e, v in por_ent.items()},
+        "porDistrito": dict(por_dist),
+        "campos": ["fecha", "entidad", "departamento", "provincia", "distrito", "titulo", "modalidad", "personas",
+                   "responsabilidad", "numero", "pdf", "resumen", "sector"],
+        "informes": detalle,
+    }
 
 
 def main():
@@ -39,10 +72,18 @@ def main():
     args = ap.parse_args()
 
     informes, vistos = [], set()
-    for anio in args.anios.split(","):
+    import calendar
+    meses = []
+    for anio in sorted(int(a) for a in args.anios.split(",")):
+        for m in range(1, 13):
+            if (anio, m) <= (hoy.year, hoy.month):
+                meses.append((anio, m))
+    for anio, m in meses:
+        desde = f"01/{m:02d}/{anio}"
+        hasta = f"{calendar.monthrange(anio, m)[1]:02d}/{m:02d}/{anio}"
         n = 1
         while True:
-            lote = pagina(anio, n)
+            lote = pagina(desde, hasta, n)
             if not lote:
                 break
             nuevos = 0
@@ -66,8 +107,9 @@ def main():
                     r.get("RutaCloudResumen") or "",
                     (r.get("Sector") or "").strip(),
                 ])
-            print(f"  {anio} página {n}: +{nuevos}", flush=True)
-            if len(lote) < TAM or nuevos == 0:
+            if n == 1 or len(lote) < TAM:
+                print(f"  {anio}-{m:02d} página {n}: +{nuevos}", flush=True)
+            if len(lote) < TAM or nuevos == 0 or n > 100:
                 break
             n += 1
             time.sleep(0.5)
@@ -85,21 +127,7 @@ def main():
     for r in con_resp:
         for t in r[8].replace(",", " ").split():
             tipos[t.upper()] += 1
-    guardar_json("control.json", {
-        "actualizado": hoy.isoformat(timespec="minutes"),
-        "fuente": "https://buscadorinformes.contraloria.gob.pe/BuscadorCGR/Informes/inicio.html",
-        "anios": args.anios,
-        "total": len(informes),
-        "conResponsabilidad": len(con_resp),
-        "personas": sum(r[7] for r in informes),
-        "tipos": tipos.most_common(),
-        "porDepartamento": Counter(r[2] for r in informes if r[2]).most_common(),
-        "topEntidades": sorted(([e, *v] for e, v in por_ent.items()), key=lambda x: (-x[3], -x[1]))[:60],
-        "campos": ["fecha", "entidad", "departamento", "provincia", "distrito", "titulo", "modalidad", "personas",
-                   "responsabilidad", "numero", "pdf", "resumen", "sector"],
-        "informes": informes,
-        "clavesEntidad": {clave(e): e for e in por_ent},
-    })
+    guardar_json("control.json", resumir(informes, con_resp, tipos, por_ent, args.anios, hoy))
     print(f"{len(informes):,} informes; {len(con_resp):,} con presunta responsabilidad")
 
 

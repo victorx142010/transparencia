@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-  <link rel="stylesheet" href="css/styles.css?v=202611111353">
+  <link rel="stylesheet" href="css/styles.css?v=202611111500">
 </head>
 <body>
   <a class="saltar" href="#contenido">Saltar al contenido</a>
@@ -581,7 +581,7 @@
         <div class="filtros filtros--3">
           <label class="campo"><span>Buscar</span><input type="search" id="control-q" placeholder="Entidad, distrito, tema: obra, colegio, combustible…" autocomplete="off"></label>
           <label class="campo"><span>Departamento</span><select id="control-dep" class="select-grande"><option value="">Todos</option></select></label>
-          <label class="campo"><span>Mostrar</span><select id="control-solo" class="select-grande"><option value="resp">Solo con presuntos responsables</option><option value="">Todos los informes</option></select></label>
+          <label class="campo"><span>Mostrar</span><select id="control-solo" class="select-grande"><option value="resp">Solo con presuntos responsables</option><option value="">Todas las auditorías</option></select></label>
         </div>
         <p class="ayuda" id="control-conteo"></p>
         <div id="control-lista" class="proyectos"></div>
@@ -742,6 +742,11 @@
         <h2>Fuentes oficiales para revisar tú mismo</h2>
         <ul class="enlaces" id="fuentes-lista"></ul>
       </div>
+      <div class="tarjeta">
+        <h2>Lo que no pudimos incluir (y por qué)</h2>
+        <p class="ayuda">Estos datos son públicos pero no se pueden descargar automáticamente sin saltarse protecciones (captcha o bloqueos), cosa que no hacemos. Te dejamos el enlace oficial.</p>
+        <ul class="enlaces" id="no-disponible"></ul>
+      </div>
       <details class="tarjeta plegable">
         <summary><h2>Glosario</h2></summary>
         <dl class="glosario">
@@ -781,8 +786,8 @@
     </div>
   </footer>
 
-  <script src="js/datos.js?v=202611111353"></script>
-  <script src="js/arbol.js?v=202611111353"></script>
-  <script src="js/app.js?v=202611111353"></script>
+  <script src="js/datos.js?v=202611111500"></script>
+  <script src="js/arbol.js?v=202611111500"></script>
+  <script src="js/app.js?v=202611111500"></script>
 </body>
 </html>
