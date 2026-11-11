@@ -21,7 +21,7 @@ scripts/                   Scrapers en Python
 |---|---|---|---|
 | Impuestos | API de BCRPData: ingresos tributarios del Gobierno Central (datos de SUNAT y MEF), mensual | `actualizar_recaudacion.py` | `data/recaudacion.json` |
 | Gastos: por función, por entidad (~2,900 unidades ejecutoras), por partida específica y por proyecto (CUI) | MEF — Datos Abiertos, *Presupuesto y Ejecución de Gasto* (CSV diario de ~2.6 GB) | `actualizar_presupuesto.py` | `data/presupuesto.json`, `data/gasto/`, `data/entidades.json`, `data/entidades/`, `data/partidas.json` |
-| Contratos y proveedores | OECE — Portal de Contrataciones Abiertas (OCDS, paquetes CSV mensuales) | `actualizar_contratos.py` | `data/contratos.json`, `data/contratos/<mes>.json` |
+| Contratos y proveedores | OECE — Portal de Contrataciones Abiertas (OCDS, paquetes CSV mensuales). Si el OECE bloquea al robot en la nube, usa el espejo mensual de [Open Contracting](https://data.open-contracting.org/en/publication/135) | `actualizar_contratos.py` | `data/contratos.json`, `data/contratos/<mes>.json` |
 | Auditorías (informes de control y presuntos responsables) | Contraloría — Buscador de informes (servicio público, mes a mes) | `actualizar_control.py` | `data/control.json` |
 | Programas sociales por distrito (solo conteos) | MIDIS — Juntos y Pensión 65 (Datos Abiertos) | `actualizar_programas.py` | `data/programas.json` |
 | Deuda pública | BCRP — saldo trimestral por acreedor | `actualizar_deuda.py` | `data/deuda.json` |
@@ -39,6 +39,7 @@ En `js/datos.js` quedan solo los **sueldos de referencia por cargo** (salen de d
 Notas:
 - **Señales de alerta en contratos**: postor único, contratación directa, monto más de 10% sobre el valor referencial y misma empresa con 5+ contratos de la misma entidad. Indican qué revisar, no prueban irregularidades.
 - **Votaciones**: se leen de los "registros digitales de votación" de las actas del Pleno.
+- **Auditorías**: el buscador de la Contraloría no responde a los servidores de GitHub (fuera del Perú). El robot lo intenta cada semana; si falla, se mantienen los últimos datos y la web muestra la fecha de actualización.
 - **No incluidos** (exigen captcha o bloquean el acceso automático): proveedores sancionados (RNP), declaraciones juradas (Contraloría), aportes de campaña (ONPE Claridad). La web enlaza a cada fuente.
 - **Asistencia**: se cuenta quién estaba al **inicio** de cada sesión del Pleno, más quienes la Presidencia registró justo después. Solo entran las actas ya publicadas (suelen tardar unas semanas).
 - **Visitas y planillas**: por privacidad **no se guarda el DNI**.

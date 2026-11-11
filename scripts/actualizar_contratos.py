@@ -6,6 +6,10 @@ Se descargan los paquetes CSV mensuales del año (procesos registrados en el SEA
 licitaciones, concursos, adjudicaciones simplificadas, comparaciones de precios…).
 No incluye compras menores a 8 UIT (órdenes de compra/servicio directas).
 
+Si el portal del OECE rechaza la conexión (pasa desde servidores fuera del Perú, como
+GitHub Actions), se usa el espejo público de Open Contracting Partnership, que copia
+los mismos datos del OECE una vez al mes: https://data.open-contracting.org/
+
 Salidas:
   data/contratos.json          resumen (proveedores, entidades, tipos, meses)
   data/contratos/<mes>.json    todas las adjudicaciones del año, por mes (buscador)
@@ -13,17 +17,20 @@ Salidas:
 Uso:  python scripts/actualizar_contratos.py [--anio 2026]
 """
 import argparse
+import codecs
 import csv
 import io
 import json
 import os
 import sys
+import tarfile
 import zipfile
 from collections import Counter, defaultdict
 
-from comun import DATA, ahora_lima, guardar_json, http
+from comun import DATA, ahora_lima, guardar_json, http, leer_json
 
 ARCHIVOS = "https://contratacionesabiertas.oece.gob.pe/api/v1/files?page={p}&paginateBy=50&source=seace_v3"
+ESPEJO = "https://data.open-contracting.org/en/publication/135/download?name={anio}.csv.tar.gz"
 CATEGORIA = {"goods": "Bienes", "services": "Servicios", "works": "Obras", "consultingServices": "Consultoría"}
 
 csv.field_size_limit(10_000_000)
@@ -54,15 +61,17 @@ def meses_del_anio(anio):
     return sorted(set(out))
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--anio", type=int, default=ahora_lima().year)
-    args = ap.parse_args()
+def proceso(entidad, titulo, objeto, metodo, categoria, vr, postores):
+    return {"entidad": (entidad or "").strip(), "titulo": (titulo or "").strip(), "objeto": (objeto or "").strip(),
+            "metodo": (metodo or "").strip(), "categoria": CATEGORIA.get(categoria or "", "Otros"),
+            "vr": num(vr), "postores": int(num(postores))}
 
-    meses = meses_del_anio(args.anio)
-    print(f"Paquetes de {args.anio}: {[m for m, _ in meses]}")
+
+def desde_oece(anio):
+    meses = meses_del_anio(anio)
+    print(f"Paquetes de {anio}: {[m for m, _ in meses]}")
     procesos = {}   # ocid -> info del proceso
-    awards = {}     # award id -> [ocid, fecha, monto]
+    awards = {}     # award id -> [ocid, fecha, monto, moneda]
     proveedores = {}  # award id -> (ruc, nombre)
     for mes, url in meses:
         try:
@@ -72,19 +81,14 @@ def main():
             continue
         n = len(awards)
         for r in leer(z, "records.csv"):
-            procesos[r["ocid"]] = {
-                "entidad": (r.get("compiledRelease/buyer/name") or "").strip(),
-                "titulo": (r.get("compiledRelease/tender/title") or "").strip(),
-                "objeto": (r.get("compiledRelease/tender/description") or "").strip(),
-                "metodo": (r.get("compiledRelease/tender/procurementMethodDetails") or "").strip(),
-                "categoria": CATEGORIA.get(r.get("compiledRelease/tender/mainProcurementCategory") or "", "Otros"),
-                "vr": num(r.get("compiledRelease/tender/value/amount_PEN") or r.get("compiledRelease/tender/value/amount")),
-                "postores": int(num(r.get("compiledRelease/tender/numberOfTenderers"))),
-            }
+            g = lambda c: r.get("compiledRelease/tender/" + c)
+            procesos[r["ocid"]] = proceso(r.get("compiledRelease/buyer/name"), g("title"), g("description"),
+                                          g("procurementMethodDetails"), g("mainProcurementCategory"),
+                                          g("value/amount_PEN") or g("value/amount"), g("numberOfTenderers"))
         for r in leer(z, "com_awards.csv"):
             aid = r.get("compiledRelease/awards/0/id")
             fecha = (r.get("compiledRelease/awards/0/date") or "")[:10]
-            if not aid or not fecha.startswith(str(args.anio)):
+            if not aid or not fecha.startswith(str(anio)):
                 continue
             awards[aid] = [r["ocid"], fecha, num(r.get("compiledRelease/awards/0/value/amount")),
                            r.get("compiledRelease/awards/0/value/currency") or "PEN"]
@@ -93,7 +97,53 @@ def main():
             if aid:
                 ruc = (r.get("compiledRelease/awards/0/suppliers/0/id") or "").replace("PE-RUC-", "")
                 proveedores[aid] = (ruc, (r.get("compiledRelease/awards/0/suppliers/0/name") or "").strip())
-        print(f"  {args.anio}-{mes}: +{len(awards) - n} adjudicaciones")
+        print(f"  {anio}-{mes}: +{len(awards) - n} adjudicaciones")
+    if not awards:
+        raise RuntimeError("el OECE no entregó adjudicaciones")
+    return procesos, awards, proveedores, "https://contratacionesabiertas.oece.gob.pe/"
+
+
+def desde_espejo(anio, archivo=None):
+    """Mismos datos del OECE, copiados cada mes por Open Contracting Partnership (CSV aplanado)."""
+    origen = open(archivo, "rb") if archivo else http(ESPEJO.format(anio=anio), timeout=900, stream=True)
+    procesos, awards, proveedores = {}, {}, {}
+    with tarfile.open(fileobj=origen, mode="r|gz") as tar:  # se lee en flujo, sin guardar el archivo
+        for m in tar:
+            nombre = m.name.rsplit("/", 1)[-1]
+            if nombre not in ("main.csv", "awards.csv", "awards_suppliers.csv"):
+                continue
+            f = codecs.iterdecode(tar.extractfile(m), "utf-8", errors="replace")
+            for r in csv.DictReader(f):
+                if nombre == "main.csv":
+                    procesos[r["ocid"]] = proceso(r.get("buyer_name"), r.get("tender_title"), r.get("tender_description"),
+                                                  r.get("tender_procurementMethodDetails"), r.get("tender_mainProcurementCategory"),
+                                                  r.get("tender_value_amount_PEN") or r.get("tender_value_amount"),
+                                                  r.get("tender_numberOfTenderers"))
+                elif nombre == "awards.csv":
+                    fecha = (r.get("date") or "")[:10]
+                    if r.get("id") and fecha.startswith(str(anio)):
+                        awards[r["id"]] = [r["main_ocid"], fecha, num(r.get("value_amount")), r.get("value_currency") or "PEN"]
+                elif r.get("awards_id"):
+                    proveedores[r["awards_id"]] = ((r.get("id") or "").replace("PE-RUC-", ""), (r.get("name") or "").strip())
+            print(f"  espejo {nombre}: listo")
+    if not awards:
+        raise RuntimeError("el espejo no trae adjudicaciones")
+    return procesos, awards, proveedores, "https://data.open-contracting.org/en/publication/135"
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--anio", type=int, default=ahora_lima().year)
+    ap.add_argument("--espejo", action="store_true", help="usar directamente el espejo de Open Contracting")
+    args = ap.parse_args()
+
+    try:
+        if args.espejo:
+            raise RuntimeError("se pidió el espejo")
+        procesos, awards, proveedores, fuente = desde_oece(args.anio)
+    except Exception as e:
+        print(f"OECE no disponible ({e}); usando el espejo de Open Contracting…")
+        procesos, awards, proveedores, fuente = desde_espejo(args.anio)
 
     lista = []
     for aid, (ocid, fecha, monto, moneda) in awards.items():
@@ -104,6 +154,11 @@ def main():
         lista.append([fecha, pr.get("entidad", ""), prov, ruc, round(monto), pr.get("objeto") or pr.get("titulo", ""),
                       pr.get("metodo", ""), pr.get("categoria", ""), ocid])
     lista.sort(key=lambda r: (r[0], r[4]), reverse=True)
+    previo = leer_json("contratos.json", {})
+    if "open-contracting" in fuente and previo.get("anio") == args.anio and previo.get("total", 0) > len(lista):
+        # El espejo se publica una vez al mes: si ya tenemos datos más completos, no retroceder.
+        print(f"El espejo ({len(lista):,}) es más antiguo que los datos actuales ({previo['total']:,}); no se cambia nada.")
+        return 0
 
     # ---------- Señales de alerta (no prueban irregularidades: indican qué revisar) ----------
     # U = un solo postor en un proceso competitivo; D = contratación directa (sin competencia);
@@ -148,7 +203,7 @@ def main():
         guardar_json(f"contratos/{m}.json", {"mes": m, "contratos": filas})
     guardar_json("contratos.json", {
         "anio": args.anio, "actualizado": ahora_lima().isoformat(timespec="minutes"),
-        "fuente": "https://contratacionesabiertas.oece.gob.pe/",
+        "fuente": fuente,
         "total": len(lista), "monto": round(sum(r[4] for r in lista)),
         "proveedoresDistintos": len(por_prov), "entidadesDistintas": len(por_ent),
         "topProveedores": top_prov, "topEntidades": top_ent,

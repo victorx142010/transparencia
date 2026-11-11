@@ -1592,37 +1592,30 @@
     $("#dist-copiar").addEventListener("click", async (ev) => { const url = location.origin + location.pathname + "#distrito?u=" + ub; try { await navigator.clipboard.writeText(url); ev.target.textContent = "✓ Enlace copiado"; } catch (e) { prompt("Copia este enlace:", url); } });
   }
 
-  // ---------- Menú agrupado ----------
-  const GRUPO_DE = { ingresos: "dinero", gastos: "dinero", "mi-impuesto": "dinero", entidades: "quien", contratos: "quien", obras: "quien",
-    sueldos: "quien", congreso: "poder", leyes: "poder", visitas: "poder", inicio: "inicio", fuentes: "fuentes",
-    distrito: "quien", control: "quien", programas: "dinero", deuda: "dinero", viajes: "poder" };
-  function cerrarMenus(excepto) {
-    $$(".nav__grupo").forEach((g) => {
-      if (g === excepto) return;
-      $(".nav__menu", g).hidden = true;
-      $("button", g).setAttribute("aria-expanded", "false");
-    });
-    document.body.classList.toggle("menu-abierto", !!excepto);
+  // ---------- Menú: 4 temas, y dentro de cada tema una fila de secciones ----------
+  const GRUPOS = {
+    dinero: ["💰 El dinero", [["gastos", "Gastos"], ["ingresos", "Impuestos"], ["deuda", "Deuda"], ["mi-impuesto", "Mi impuesto"]]],
+    zona: ["📍 Tu zona", [["distrito", "Tu distrito"], ["entidades", "Tu municipio"], ["obras", "Obras paralizadas"], ["programas", "Programas sociales"]]],
+    vigila: ["🔎 Vigila", [["contratos", "Contratos"], ["sueldos", "Sueldos"], ["control", "Auditorías"], ["viajes", "Viajes"]]],
+    poder: ["⚖️ El poder", [["congreso", "Congreso"], ["leyes", "Proyectos de ley"], ["visitas", "Visitas a Palacio"]]]
+  };
+  const GRUPO_DE = { inicio: "inicio", fuentes: "fuentes" };
+  Object.entries(GRUPOS).forEach(([g, [, secs]]) => secs.forEach(([s]) => (GRUPO_DE[s] = g)));
+  function pintarSubnav(grupo, actual) {
+    const box = $("#subnav"), def = GRUPOS[grupo];
+    box.hidden = !def;
+    if (!def) return;
+    $("#subnav-fila").innerHTML = `<span class="subnav__t">${def[0]}</span>` + def[1].map(([s, n]) =>
+      `<a href="#${s}"${s === actual ? ' aria-current="page"' : ""}>${n}</a>`).join("");
+    const a = $("#subnav-fila [aria-current]");
+    if (a) a.scrollIntoView({ block: "nearest", inline: "center" });
   }
-  $$(".nav__grupo").forEach((g) => {
-    const btn = $("button", g), menu = $(".nav__menu", g);
-    btn.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      const abrir = menu.hidden;
-      cerrarMenus(abrir ? g : null);
-      menu.hidden = !abrir;
-      btn.setAttribute("aria-expanded", String(abrir));
-    });
-  });
-  document.addEventListener("click", (ev) => { if (!ev.target.closest(".nav__grupo")) cerrarMenus(null); });
-  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") cerrarMenus(null); });
   const irABuscar = (ev) => {
     ev.preventDefault();
     if (location.hash && location.hash !== "#inicio") location.hash = "inicio";
     setTimeout(() => { const i = $("#busqueda-global"); i.scrollIntoView({ block: "center" }); i.focus(); }, 80);
   };
   $("#buscar-btn").addEventListener("click", irABuscar);
-  $("#nav-buscar").addEventListener("click", irABuscar);
 
   // ---------- Pestañas dentro de secciones ----------
   function activarTab(clave) {
@@ -1647,11 +1640,12 @@
     if (ancla) v = ancla.closest(".vista");
     v = v || vistas[0];
     vistas.forEach((x) => (x.hidden = x !== v));
-    cerrarMenus(null);
     const grupo = GRUPO_DE[v.id];
-    $$(".nav__grupo").forEach((g) => $("button", g).classList.toggle("nav__item--activo", g.dataset.grupo === grupo));
-    $$("[data-grupo-link]").forEach((a) => a.classList.toggle("nav__item--activo", a.dataset.grupoLink === grupo));
-    $$(".nav__menu a").forEach((a) => (a.getAttribute("href") === "#" + (ancla ? id : v.id) ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
+    $$("[data-grupo-link]").forEach((a) => {
+      a.classList.toggle("nav__item--activo", a.dataset.grupoLink === grupo);
+      a.dataset.grupoLink === grupo ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current");
+    });
+    pintarSubnav(grupo, v.id);
     // Si el destino está dentro de una pestaña, abrirla
     const panel = ancla && ancla.closest("[data-panel]");
     if (panel) activarTab(panel.dataset.panel);

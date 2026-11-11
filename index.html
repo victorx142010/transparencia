@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-  <link rel="stylesheet" href="css/styles.css?v=202611111500">
+  <link rel="stylesheet" href="css/styles.css?v=202611111800">
 </head>
 <body>
   <a class="saltar" href="#contenido">Saltar al contenido</a>
@@ -29,45 +29,17 @@
     </div>
     <nav id="nav" class="nav" aria-label="Secciones">
       <div class="contenedor nav__fila">
-        <a href="#inicio" class="nav__item nav__item--inicio" data-grupo-link="inicio"><span class="nav__ico" aria-hidden="true">🏠</span><span class="nav__txt">Inicio</span></a>
-        <div class="nav__grupo" data-grupo="dinero">
-          <button type="button" class="nav__item" aria-expanded="false" aria-controls="m-dinero"><span class="nav__ico" aria-hidden="true">💰</span><span class="nav__txt">El dinero</span><span class="nav__flecha" aria-hidden="true">▾</span></button>
-          <div class="nav__menu" id="m-dinero" hidden>
-            <p class="nav__menu-t">💰 El dinero</p>
-            <a href="#ingresos"><b>Impuestos</b><small>Cuánto se recauda cada mes</small></a>
-            <a href="#gastos"><b>Gastos</b><small>En qué se gasta el presupuesto, hasta cada proyecto</small></a>
-            <a href="#gastos-partidas"><b>¿Qué se compra?</b><small>Pasajes, publicidad, combustible…</small></a>
-            <a href="#programas"><b>Programas sociales</b><small>Juntos y Pensión 65 en cada distrito</small></a>
-            <a href="#deuda"><b>Deuda pública</b><small>Cuánto debe el Perú y a quién</small></a>
-            <a href="#mi-impuesto"><b>Mi impuesto</b><small>Calcula cuánto aportas y a dónde va</small></a>
-          </div>
-        </div>
-        <div class="nav__grupo" data-grupo="quien">
-          <button type="button" class="nav__item" aria-expanded="false" aria-controls="m-quien"><span class="nav__ico" aria-hidden="true">🏛️</span><span class="nav__txt">Quién <span class="solo-pc">lo maneja</span></span><span class="nav__flecha" aria-hidden="true">▾</span></button>
-          <div class="nav__menu" id="m-quien" hidden>
-            <p class="nav__menu-t">🏛️ Quién lo maneja</p>
-            <a href="#distrito"><b>Tu distrito</b><small>Mapa y ficha de cada distrito: plata, obras, programas, auditorías</small></a>
-            <a href="#entidades"><b>Tu municipio</b><small>Cuánto gasta cada municipalidad, región, UGEL u hospital</small></a>
-            <a href="#contratos"><b>Contratos</b><small>A qué empresas les paga el Estado</small></a>
-            <a href="#obras"><b>Obras paralizadas</b><small>Obras que empezaron y se detuvieron</small></a>
-            <a href="#sueldos"><b>Sueldos</b><small>Cuánto gana cada persona que trabaja en el Estado</small></a>
-            <a href="#control"><b>Auditorías</b><small>Informes de la Contraloría y responsables</small></a>
-          </div>
-        </div>
-        <div class="nav__grupo" data-grupo="poder">
-          <button type="button" class="nav__item" aria-expanded="false" aria-controls="m-poder"><span class="nav__ico" aria-hidden="true">⚖️</span><span class="nav__txt">El poder</span><span class="nav__flecha" aria-hidden="true">▾</span></button>
-          <div class="nav__menu" id="m-poder" hidden>
-            <p class="nav__menu-t">⚖️ El poder</p>
-            <a href="#congreso"><b>Congreso</b><small>¿Van a trabajar senadores y diputados?</small></a>
-            <a href="#leyes"><b>Proyectos de ley</b><small>Qué leyes proponen y quién las firma</small></a>
-            <a href="#visitas"><b>Visitas a Palacio</b><small>Quién se reúne con la Presidencia</small></a>
-            <a href="#viajes"><b>Viajes de funcionarios</b><small>Pasajes y viáticos pagados por el Estado</small></a>
-          </div>
-        </div>
-        <a href="#fuentes" class="nav__item nav__item--fuentes" data-grupo-link="fuentes"><span class="nav__ico" aria-hidden="true">🔍</span><span class="nav__txt">Fuentes</span></a>
-        <a href="#inicio" class="nav__item nav__item--buscar" id="nav-buscar"><span class="nav__ico" aria-hidden="true">🔎</span><span class="nav__txt">Buscar</span></a>
+        <a href="#inicio" class="nav__item" data-grupo-link="inicio"><span class="nav__ico" aria-hidden="true">🏠</span><span class="nav__txt">Inicio</span></a>
+        <a href="#gastos" class="nav__item" data-grupo-link="dinero"><span class="nav__ico" aria-hidden="true">💰</span><span class="nav__txt">El dinero</span></a>
+        <a href="#distrito" class="nav__item" data-grupo-link="zona"><span class="nav__ico" aria-hidden="true">📍</span><span class="nav__txt">Tu zona</span></a>
+        <a href="#contratos" class="nav__item" data-grupo-link="vigila"><span class="nav__ico" aria-hidden="true">🔎</span><span class="nav__txt">Vigila</span></a>
+        <a href="#congreso" class="nav__item" data-grupo-link="poder"><span class="nav__ico" aria-hidden="true">⚖️</span><span class="nav__txt">El poder</span></a>
+        <a href="#fuentes" class="nav__item nav__item--fuentes" data-grupo-link="fuentes"><span class="nav__ico" aria-hidden="true">📚</span><span class="nav__txt">Fuentes</span></a>
       </div>
     </nav>
+    <div class="subnav" id="subnav" hidden>
+      <div class="contenedor subnav__fila" id="subnav-fila"></div>
+    </div>
   </header>
 
   <main id="contenido" class="contenedor">
@@ -95,35 +67,34 @@
       <h2 class="titulo-seccion">Lo más importante, en números</h2>
       <div class="kpis kpis--4" id="kpis"></div>
 
-      <h2 class="titulo-seccion">Explora por tema</h2>
+      <h2 class="titulo-seccion">¿Qué quieres saber?</h2>
       <div class="grupos" id="grupos-inicio">
         <div class="grupo">
-          <p class="grupo__t"><span aria-hidden="true">💰</span> El dinero</p>
-          <p class="grupo__d">Cuánto entra y en qué se gasta.</p>
+          <a class="grupo__cab" href="#gastos"><span class="grupo__ico" aria-hidden="true">💰</span><span><b class="grupo__t">El dinero</b><span class="grupo__d">¿Cuánto entra y en qué se gasta?</span></span></a>
           <a href="#ingresos"><span>Impuestos</span><small data-dato="ingresos"></small></a>
           <a href="#gastos"><span>Gastos del presupuesto</span><small data-dato="gastos"></small></a>
-          <a href="#gastos-partidas"><span>¿Qué se compra?</span><small data-dato="partidas"></small></a>
-          <a href="#programas"><span>Programas sociales</span><small data-dato="programas"></small></a>
           <a href="#deuda"><span>Deuda pública</span><small data-dato="deuda"></small></a>
           <a href="#mi-impuesto"><span>Mi impuesto</span><small>calculadora</small></a>
         </div>
         <div class="grupo">
-          <p class="grupo__t"><span aria-hidden="true">🏛️</span> Quién lo maneja</p>
-          <p class="grupo__d">Entidades, empresas, obras y personas.</p>
+          <a class="grupo__cab" href="#distrito"><span class="grupo__ico" aria-hidden="true">📍</span><span><b class="grupo__t">Tu zona</b><span class="grupo__d">¿Qué pasa en tu distrito?</span></span></a>
           <a href="#distrito"><span>Tu distrito (mapa)</span><small>1,890 distritos</small></a>
-          <a href="#entidades"><span>Tu municipio</span><small data-dato="entidades"></small></a>
-          <a href="#contratos"><span>Contratos</span><small data-dato="contratos"></small></a>
+          <a href="#entidades"><span>Tu municipio o entidad</span><small data-dato="entidades"></small></a>
           <a href="#obras"><span>Obras paralizadas</span><small data-dato="obras"></small></a>
-          <a href="#sueldos"><span>Sueldos</span><small data-dato="sueldos"></small></a>
-          <a href="#control"><span>Auditorías</span><small data-dato="control"></small></a>
+          <a href="#programas"><span>Programas sociales</span><small data-dato="programas"></small></a>
         </div>
         <div class="grupo">
-          <p class="grupo__t"><span aria-hidden="true">⚖️</span> El poder</p>
-          <p class="grupo__d">Qué hacen el Congreso y la Presidencia.</p>
-          <a href="#congreso"><span>Asistencia al Congreso</span><small data-dato="congreso"></small></a>
+          <a class="grupo__cab" href="#contratos"><span class="grupo__ico" aria-hidden="true">🔎</span><span><b class="grupo__t">Vigila</b><span class="grupo__d">¿A quién se le paga y cuánto?</span></span></a>
+          <a href="#contratos"><span>Contratos</span><small data-dato="contratos"></small></a>
+          <a href="#sueldos"><span>Sueldos</span><small data-dato="sueldos"></small></a>
+          <a href="#control"><span>Auditorías</span><small data-dato="control"></small></a>
+          <a href="#viajes"><span>Viajes de funcionarios</span><small data-dato="viajes"></small></a>
+        </div>
+        <div class="grupo">
+          <a class="grupo__cab" href="#congreso"><span class="grupo__ico" aria-hidden="true">⚖️</span><span><b class="grupo__t">El poder</b><span class="grupo__d">¿Qué hacen el Congreso y Palacio?</span></span></a>
+          <a href="#congreso"><span>Asistencia y votos</span><small data-dato="congreso"></small></a>
           <a href="#leyes"><span>Proyectos de ley</span><small data-dato="leyes"></small></a>
           <a href="#visitas"><span>Visitas a Palacio</span><small data-dato="visitas"></small></a>
-          <a href="#viajes"><span>Viajes de funcionarios</span><small data-dato="viajes"></small></a>
         </div>
       </div>
 
@@ -135,14 +106,7 @@
           <li><span class="pasos__n">3</span><div><strong>Las entidades lo gastan.</strong> En sueldos, obras, medicinas, colegios, pensiones y pago de deuda. Tú puedes revisarlo. <a href="#entidades">Ver tu municipio →</a></div></li>
         </ol>
       </details>
-
-      <div class="tarjeta tarjeta--acento cta">
-        <div>
-          <h2>¿Cuánto aportas tú?</h2>
-          <p>Calcula cuánto pagas de impuestos al año y a qué se destina, sol por sol. No guardamos nada de lo que escribas.</p>
-        </div>
-        <a class="boton" href="#mi-impuesto">Usar la calculadora →</a>
-      </div>
+      <p class="ayuda inicio__pie">¿De dónde salen los datos? <a href="#fuentes">Fuentes, glosario y lo que no pudimos incluir →</a></p>
     </section>
 
     <!-- ===================== INGRESOS ===================== -->
@@ -786,8 +750,8 @@
     </div>
   </footer>
 
-  <script src="js/datos.js?v=202611111500"></script>
-  <script src="js/arbol.js?v=202611111500"></script>
-  <script src="js/app.js?v=202611111500"></script>
+  <script src="js/datos.js?v=202611111800"></script>
+  <script src="js/arbol.js?v=202611111800"></script>
+  <script src="js/app.js?v=202611111800"></script>
 </body>
 </html>
