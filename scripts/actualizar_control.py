@@ -71,6 +71,14 @@ def main():
     ap.add_argument("--anios", default=f"{hoy.year - 1},{hoy.year}")
     args = ap.parse_args()
 
+    # Prueba rápida: desde servidores fuera del Perú (GitHub) el buscador no responde.
+    # Mejor rendirse en segundos y conservar los datos anteriores que esperar 10 minutos.
+    try:
+        http("https://appbp.contraloria.gob.pe/BuscadorCGR/Informes/inicio.html", timeout=25, intentos=2)
+    except Exception as e:
+        print(f"La Contraloría no responde desde aquí ({e}); se mantienen los datos anteriores.")
+        return 1
+
     informes, vistos = [], set()
     import calendar
     meses = []
