@@ -8,8 +8,15 @@
   const nf0 = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
   const nf1 = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 });
   const soles = (n) => "S/ " + nf0.format(Math.round(n));
-  const millones = (n) => (n >= 1000 ? "S/ " + nf1.format(n / 1000) + " mil millones" : "S/ " + nf0.format(n) + " millones");
-  const corto = (n) => (n >= 1000 ? "S/ " + nf1.format(n / 1000) + " mil M" : "S/ " + nf0.format(n) + " M");
+  // Montos en millones de soles -> texto legible. Nunca "S/ 0 M": los montos chicos se muestran en soles.
+  const millones = (n) => (n >= 1000 ? "S/ " + nf1.format(n / 1000) + " mil millones"
+    : n >= 10 ? "S/ " + nf0.format(n) + " millones" : n >= 1 ? "S/ " + nf1.format(n) + " millones"
+    : n * 1e6 >= 1000 ? "S/ " + nf0.format(n * 1000) + " mil" : "S/ " + nf0.format(Math.round(n * 1e6)));
+  const corto = millones;
+  // "1 contrato" / "2 contratos"
+  const pl = (n, uno, varios) => `${nf0.format(n)} ${n === 1 ? uno : (varios || uno + "s")}`;
+  // Respeta "reducir movimiento" también en los desplazamientos hechos desde JS
+  const SUAVE = () => (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
   const pct = (a, b) => (b ? nf1.format((a / b) * 100) + "%" : "—");
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const clave = (s) => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z]/g, "");
@@ -20,6 +27,7 @@
   const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
   const fechaCorta = (iso) => { const [y, m, d] = iso.split("-"); return `${+d} ${MESES[+m - 1]}`; };
   const fechaLarga = (iso) => { const [y, m, d] = iso.split("-"); return `${+d} ${MESES[+m - 1]} ${y}`; };
+  const fechaHumana = (s) => (/^\d{4}-\d{2}-\d{2}/.test(s || "") ? fechaLarga(s.slice(0, 10)) : s || "");
 
   // Tildes para nombres del MEF (vienen en mayúsculas sin tildes)
   const TILDES = { educacion: "educación", gestion: "gestión", publica: "pública", publico: "público", prevision: "previsión", proteccion: "protección",
@@ -32,37 +40,37 @@
     legislacion: "legislación", diplomatica: "diplomática", cientifica: "científica", farmaceutica: "farmacéutica", basico: "básico",
     reduccion: "reducción", prevencion: "prevención", regimen: "régimen", transito: "tránsito", termica: "térmica", intervencion: "intervención" };
   const bonito = (s) => {
-    const t = String(s).toLowerCase().replace(/[a-záéíóúñ]+/g, (w) => TILDES[w] || w);
+    const t = String(s).toLowerCase().replace(/[a-záéíóúñ]+/g, (w) => (Object.hasOwn(TILDES, w) ? TILDES[w] : w));
     return t.charAt(0).toUpperCase() + t.slice(1);
   };
 
   // Info para mostrar por función (clave = nombre MEF normalizado)
   const INFO = {
-    educacion: ["🎓", "Colegios, sueldos de docentes, universidades públicas, becas, infraestructura educativa."],
-    salud: ["🏥", "Hospitales, postas, médicos y enfermeras, SIS, vacunas, medicinas."],
-    deudapublica: ["🏦", "Pago de intereses y capital de préstamos y bonos que el Estado tomó antes."],
-    transporte: ["🛣️", "Carreteras, puentes, Metro de Lima, aeropuertos regionales, caminos vecinales."],
-    planeamientogestionyreservadecontingencia: ["🗂️", "Administración del Estado, sistemas, reserva de contingencia para emergencias."],
-    previsionsocial: ["👴", "Pensiones de la ONP, cédula viva y jubilados del Estado."],
-    ordenpublicoyseguridad: ["🚓", "Policía Nacional, patrullaje, serenazgo, prevención del delito."],
-    proteccionsocial: ["🤝", "Programas como Juntos, Pensión 65, alimentación escolar, Cuna Más."],
-    defensayseguridadnacional: ["🛡️", "Fuerzas Armadas: Ejército, Marina y Fuerza Aérea."],
-    agropecuaria: ["🌾", "Riego, apoyo a agricultores, sanidad agraria."],
-    saneamiento: ["🚰", "Agua potable, alcantarillado y tratamiento de aguas."],
-    justicia: ["⚖️", "Poder Judicial, Ministerio Público, cárceles (INPE)."],
-    culturaydeporte: ["🎭", "Museos, patrimonio, deporte, Juegos y polideportivos."],
-    ambiente: ["🌳", "Áreas naturales, residuos sólidos, cambio climático."],
-    viviendaydesarrollourbano: ["🏘️", "Techo Propio, Mivivienda, pistas y veredas, ordenamiento urbano."],
-    energia: ["⚡", "Electrificación rural, gas natural, hidrocarburos."],
-    legislativa: ["🏛️", "Funcionamiento del Congreso: Senado y Cámara de Diputados."],
-    trabajo: ["💼", "Empleo, inspección laboral, capacitación."],
-    comunicaciones: ["📡", "Internet, telecomunicaciones, servicio postal."],
-    relacionesexteriores: ["🌎", "Cancillería, embajadas y consulados."],
-    turismo: ["🧳", "Promoción turística del Perú."],
-    industria: ["🏭", "Apoyo a la industria y a las mypes."],
-    comercio: ["🛒", "Comercio exterior e interior."],
-    mineria: ["⛏️", "Supervisión y promoción minera."],
-    pesca: ["🐟", "Pesca artesanal e industrial, acuicultura."]
+    educacion: ["", "Colegios, sueldos de docentes, universidades públicas, becas, infraestructura educativa."],
+    salud: ["", "Hospitales, postas, médicos y enfermeras, SIS, vacunas, medicinas."],
+    deudapublica: ["", "Pago de intereses y capital de préstamos y bonos que el Estado tomó antes."],
+    transporte: ["", "Carreteras, puentes, Metro de Lima, aeropuertos regionales, caminos vecinales."],
+    planeamientogestionyreservadecontingencia: ["", "Administración del Estado, sistemas, reserva de contingencia para emergencias."],
+    previsionsocial: ["", "Pensiones de la ONP, cédula viva y jubilados del Estado."],
+    ordenpublicoyseguridad: ["", "Policía Nacional, patrullaje, serenazgo, prevención del delito."],
+    proteccionsocial: ["", "Programas como Juntos, Pensión 65, alimentación escolar, Cuna Más."],
+    defensayseguridadnacional: ["", "Fuerzas Armadas: Ejército, Marina y Fuerza Aérea."],
+    agropecuaria: ["", "Riego, apoyo a agricultores, sanidad agraria."],
+    saneamiento: ["", "Agua potable, alcantarillado y tratamiento de aguas."],
+    justicia: ["", "Poder Judicial, Ministerio Público, cárceles (INPE)."],
+    culturaydeporte: ["", "Museos, patrimonio, deporte, Juegos y polideportivos."],
+    ambiente: ["", "Áreas naturales, residuos sólidos, cambio climático."],
+    viviendaydesarrollourbano: ["", "Techo Propio, Mivivienda, pistas y veredas, ordenamiento urbano."],
+    energia: ["", "Electrificación rural, gas natural, hidrocarburos."],
+    legislativa: ["", "Funcionamiento del Congreso: Senado y Cámara de Diputados."],
+    trabajo: ["", "Empleo, inspección laboral, capacitación."],
+    comunicaciones: ["", "Internet, telecomunicaciones, servicio postal."],
+    relacionesexteriores: ["", "Cancillería, embajadas y consulados."],
+    turismo: ["", "Promoción turística del Perú."],
+    industria: ["", "Apoyo a la industria y a las mypes."],
+    comercio: ["", "Comercio exterior e interior."],
+    mineria: ["", "Supervisión y promoción minera."],
+    pesca: ["", "Pesca artesanal e industrial, acuicultura."]
   };
 
   async function cargar(nombre) {
@@ -89,7 +97,7 @@
           monto: n.pim / M, pia: n.pia / M, dev: n.dev / M
         })),
         funciones: mef.funciones.map((f) => {
-          const info = INFO[clave(f.nombre)] || ["📦", ""];
+          const info = INFO[clave(f.nombre)] || ["", ""];
           return {
             nombre: bonito(f.nombre), icono: info[0], explica: info[1], estado: "oficial",
             monto: f.pim / M, pia: f.pia / M, dev: f.dev / M,
@@ -103,7 +111,7 @@
     const P = D.presupuesto;
     const funciones = P.funciones.map((f) => ({ ...f, pia: f.monto, hijos: null }));
     const suma = funciones.reduce((a, f) => a + f.monto, 0);
-    if (P.total > suma) funciones.push({ nombre: "Otras funciones", icono: "📦", monto: P.total - suma, pia: P.total - suma, estado: "estimado", explica: "Energía, ambiente, cultura, Congreso y demás." });
+    if (P.total > suma) funciones.push({ nombre: "Otras funciones", icono: "", monto: P.total - suma, pia: P.total - suma, estado: "estimado", explica: "Energía, ambiente, cultura, Congreso y demás." });
     return {
       anio: P.anio, oficial: false, pia: P.total, pim: null, dev: null, fuente: P.totalFuente,
       niveles: P.niveles.map((n) => ({ nombre: n.nombre, monto: (P.total * n.pct) / 100 })),
@@ -159,9 +167,22 @@
   const filaSimple = (nombre, valor, max, texto) =>
     `<div class="fila fila--simple"><div class="fila__top"><span class="fila__nombre">${esc(nombre)}</span><span class="fila__valor">${texto}</span></div>
      <div class="pista" aria-hidden="true"><div class="pista__barra" style="width:${((valor / max) * 100).toFixed(1)}%"></div></div></div>`;
+  const valorKpi = (v) => String(v).replace(/^(S\/ [\d.,]+) (mil millones|millones|mil)$/, '$1 <span class="kpi__unidad">$2</span>');
   const kpiHTML = ([l, v, e, href]) => href
-    ? `<a class="kpi" href="${href}"><p class="kpi__label">${l}</p><p class="kpi__valor">${v}</p><p class="kpi__extra">${e}</p></a>`
-    : `<div class="kpi"><p class="kpi__label">${l}</p><p class="kpi__valor">${v}</p><p class="kpi__extra">${e}</p></div>`;
+    ? `<a class="kpi" href="${href}"><p class="kpi__label">${l}</p><p class="kpi__valor">${valorKpi(v)}</p><p class="kpi__extra">${e}</p></a>`
+    : `<div class="kpi"><p class="kpi__label">${l}</p><p class="kpi__valor">${valorKpi(v)}</p><p class="kpi__extra">${e}</p></div>`;
+  // Listas largas: se muestran las primeras n y un botón "Ver todos"
+  const corta = (items, n = 8, que = "todos") => items.length <= n + 2 ? items.join("")
+    : items.slice(0, n).join("") + `<div class="mas-items" hidden>${items.slice(n).join("")}</div><button type="button" class="ver-todos" aria-expanded="false" data-total="${items.length}">Ver ${que} (${nf0.format(items.length)})</button>`;
+  document.addEventListener("click", (ev) => {
+    const b = ev.target.closest(".ver-todos");
+    if (!b) return;
+    const caja = b.previousElementSibling, abrir = caja.hidden;
+    caja.hidden = !abrir;
+    b.setAttribute("aria-expanded", String(abrir));
+    b.textContent = abrir ? "Ver menos" : b.textContent.replace("Ver menos", `Ver todos (${nf0.format(+b.dataset.total)})`);
+    if (!abrir) b.textContent = `Ver todos (${nf0.format(+b.dataset.total)})`;
+  });
 
   // Sueldo del Presidente: de la planilla oficial si está, si no de datos.js
   function sueldoPresidente() {
@@ -174,31 +195,32 @@
   // ---------- INICIO ----------
   function pintarInicio() {
     const ac = ING.acumulado;
+    if (!PR || !ING) return;
     // 4 cifras clave
     const kpis = [
       ac ? ["Impuestos recaudados " + ac.anio, millones(ac.total), `enero–${MESES_LARGO[ac.hastaMes - 1]} · ${ac.variacion >= 0 ? "+" : ""}${nf1.format(ac.variacion)}% vs. ${ac.anio - 1}`, "#ingresos"]
          : [`Impuestos recaudados ${ING.anio}`, millones(ING.totalNeto), `+${nf1.format(ING.crecimiento)}% vs. año anterior`, "#ingresos"],
       [`Presupuesto ${PR.anio}`, millones(PR.pim || PR.pia), PR.dev ? `ya se gastó el ${pct(PR.dev, PR.pim)}` : "lo aprobado por el Congreso", "#gastos"]
     ];
-    if (CON) kpis.push(["Contratos adjudicados " + CON.anio, millones(CON.monto / 1e6), `${nf0.format(CON.total)} contratos con ${nf0.format(CON.proveedoresDistintos)} empresas`, "#contratos"]);
-    if (OBRAS) kpis.push(["Obras paralizadas", nf0.format(OBRAS.total), `falta ejecutar ${millones(OBRAS.saldoObras / 1e6)}`, "#obras"]);
+    const R = RES || {};
+    if (R.contratos) kpis.push(["Contratos adjudicados " + R.contratos.anio, millones(R.contratos.monto / 1e6), `${pl(R.contratos.total, "contrato")} con ${pl(R.contratos.proveedores, "empresa")}`, "#contratos"]);
+    if (R.obras) kpis.push(["Obras paralizadas", nf0.format(R.obras.total), `falta ejecutar ${millones(R.obras.saldo / 1e6)}`, "#obras"]);
     $("#kpis").innerHTML = kpis.map(kpiHTML).join("");
+    $("#kpis").removeAttribute("aria-busy");
 
     // Un dato corto al lado de cada tema
-    const pres = sueldoPresidente();
     const dato = {
-      ingresos: ac ? `${corto(ac.total)} en ${ac.anio}` : corto(ING.totalNeto),
-      gastos: PR.oficial ? `${nf0.format(PR.funciones.reduce((a, f) => a + (f.proyectos || 0), 0))} proyectos` : corto(PR.pia),
-      partidas: PART ? `${nf0.format(PART.partidas.length)} partidas` : "",
-      entidades: PR.nEntidades ? `${nf0.format(PR.nEntidades)} entidades` : "",
-      contratos: CON ? `${nf0.format(CON.total)} contratos` : "",
-      obras: OBRAS ? `${nf0.format(OBRAS.total)} obras` : "",
-      sueldos: SUE ? `${nf0.format(SUE.entidades.reduce((a, e) => a + e.personas, 0))} personas` : `Presidente(a): ${soles(pres.monto)}`,
-      congreso: CONG ? (() => { const s = resumenCamara(CONG.camaras.senado), d = resumenCamara(CONG.camaras.diputados); return `${nf0.format(s.prom)}% · ${nf0.format(d.prom)}% asistencia`; })() : "",
-      leyes: PROY ? `${nf0.format(PROY.total)} proyectos` : "",
-      visitas: VIS ? `${nf0.format(VIS.totalPresidencia)} reuniones` : "",
-      programas: PROG ? `${nf0.format(PROG.totales.juntos_hogares)} hogares en Juntos` : "",
-      deuda: DEU ? corto(DEU.ultimo.PN03371FQ) : "",
+      ingresos: ac ? `${millones(ac.total)} en ${ac.anio}` : millones(ING.totalNeto),
+      gastos: PR.oficial ? pl(PR.funciones.reduce((a, f) => a + (f.proyectos || 0), 0), "proyecto") : millones(PR.pia),
+      entidades: PR.nEntidades ? pl(PR.nEntidades, "entidad", "entidades") : "",
+      contratos: R.contratos ? pl(R.contratos.total, "contrato") : "",
+      obras: R.obras ? pl(R.obras.total, "obra") : "",
+      sueldos: R.sueldos ? pl(R.sueldos.personas, "persona") : "",
+      congreso: R.congreso && R.congreso.senado != null ? `${nf0.format(R.congreso.senado)}% · ${nf0.format(R.congreso.diputados)}% asistencia` : "",
+      leyes: R.leyes ? pl(R.leyes.total, "proyecto") : "",
+      visitas: R.visitas ? pl(R.visitas.total, "reunión", "reuniones") : "",
+      programas: R.programas ? `${nf0.format(R.programas.juntos)} hogares en Juntos` : "",
+      deuda: R.deuda ? millones(R.deuda.total) : "",
       control: "informes de control",
       viajes: "pasajes y viáticos"
     };
@@ -269,9 +291,9 @@
 
     if (PR.pim) {
       $("#ejecucion").innerHTML = [
-        ["Aprobado (PIA)", millones(PR.pia), "Ley de Presupuesto"],
-        ["Presupuesto actual (PIM)", millones(PR.pim), `${PR.pim >= PR.pia ? "+" : ""}${pct(PR.pim - PR.pia, PR.pia)} vs. lo aprobado`],
-        ["Ya gastado (devengado)", millones(PR.dev), `${pct(PR.dev, PR.pim)} del presupuesto actual`]
+        ["Aprobado por el Congreso", millones(PR.pia), 'Ley de Presupuesto · <abbr title="Presupuesto Institucional de Apertura">PIA</abbr>'],
+        ["Presupuesto actual", millones(PR.pim), `${PR.pim >= PR.pia ? "+" : ""}${pct(PR.pim - PR.pia, PR.pia)} vs. lo aprobado · <abbr title="Presupuesto Institucional Modificado">PIM</abbr>`],
+        ["Ya gastado", millones(PR.dev), `${pct(PR.dev, PR.pim)} del presupuesto actual · <abbr title="Gasto devengado: el servicio o bien ya se recibió y se reconoce la deuda">devengado</abbr>`]
       ].map(([l, v, e]) => `<div class="kpi"><p class="kpi__label">${l}</p><p class="kpi__valor">${v}</p><p class="kpi__extra">${e}</p></div>`).join("");
     }
 
@@ -306,9 +328,9 @@
         ? `<ul class="subdiv">${f.hijos.slice(0, 10).map((h, hi) => explorable
             ? `<li><button type="button" class="subdiv__btn" data-exp="${fi}:${hi}"><span>${esc(h.nombre)} ›</span><b>${corto(h.monto)}</b></button></li>`
             : `<li><span>${esc(h.nombre)}</span><b>${corto(h.monto)}</b></li>`).join("")}</ul>` : "";
-      const botonExp = explorable ? `<p><button type="button" class="boton boton--chico" data-exp="${fi}">🔎 Explorar a fondo: proyectos y en qué se gasta${f.proyectos ? ` (${nf0.format(f.proyectos)} proyectos)` : ""}</button></p>` : "";
+      const botonExp = explorable ? `<p><button type="button" class="boton boton--chico" data-exp="${fi}">Explorar a fondo: proyectos y en qué se gasta${f.proyectos ? ` (${nf0.format(f.proyectos)} proyectos)` : ""}</button></p>` : "";
       return filaHTML({
-        nombre: `<span aria-hidden="true">${f.icono}</span> ${esc(f.nombre)}`,
+        nombre: esc(f.nombre),
         valorTexto: valorUnidad(f.monto), pctTexto: pct(f.monto, total),
         ancho: (f.monto / max) * 100, ancho2: conDev ? (f.dev / f.monto) * 100 : null, estado: f.estado,
         detalle: (f.explica ? `<p>${esc(f.explica)}</p>` : "") +
@@ -327,7 +349,7 @@
     const migas = $("#arbol-migas");
     const items = (nodoArbol ? nodoArbol.hijos : PR.funciones).map((f) => ({ nombre: f.nombre, valor: f.monto, icono: f.icono, hijos: f.hijos, ref: f }));
     migas.innerHTML = nodoArbol
-      ? `<button type="button" class="migas__volver">← Todas las funciones</button> <span>/ ${nodoArbol.icono || ""} ${esc(nodoArbol.nombre)} · ${valorUnidad(nodoArbol.monto)}</span>`
+      ? `<button type="button" class="migas__volver">← Todas las funciones</button> <span>/ ${esc(nodoArbol.nombre)} · ${valorUnidad(nodoArbol.monto)}</span>`
       : `<span>Todo el presupuesto · ${valorUnidad(PR.pim || PR.pia)}</span>`;
     const volver = $(".migas__volver", migas);
     if (volver) volver.addEventListener("click", () => { nodoArbol = null; pintarArbol(); });
@@ -364,7 +386,8 @@
     const card = $("#explorador");
     card.hidden = false;
     $("#exp-contenido").innerHTML = '<p class="vacio">Cargando el detalle del gasto…</p>';
-    card.scrollIntoView({ behavior: "smooth", block: "start" });
+    await asegurar("obras"); // para marcar los proyectos con obra paralizada
+    card.scrollIntoView({ behavior: SUAVE(), block: "start" });
     if (!cacheGasto[fun.archivo]) cacheGasto[fun.archivo] = await cargar(`gasto/${fun.archivo}.json`);
     EXP.detalle = cacheGasto[fun.archivo];
     if (!EXP.detalle) { $("#exp-contenido").innerHTML = '<p class="vacio">No se pudo cargar el detalle de esta función.</p>'; return; }
@@ -398,15 +421,15 @@
     const { d, div, grp } = nodoActual();
     try { history.replaceState(null, "", enlaceExplorador()); } catch (e) {}
     const M = 1e6;
-    const migas = [[`${EXP.fun.icono} ${EXP.fun.nombre}`, "fun"]];
+    const migas = [[`${EXP.fun.nombre}`, "fun"]];
     if (div) migas.push([bonito(div.nombre), "div"]);
     if (grp) migas.push([bonito(grp.nombre), "grp"]);
     $("#exp-migas").innerHTML = migas.map(([t, nivel], i) => i < migas.length - 1
       ? `<button type="button" class="migas__volver" data-nivel="${nivel}">${esc(t)}</button><span aria-hidden="true">›</span>`
-      : `<strong>${esc(t)}</strong>`).join(" ") + ` <button type="button" class="migas__compartir" id="exp-compartir" title="Copiar enlace a este nivel">🔗 Copiar enlace</button>`;
+      : `<strong>${esc(t)}</strong>`).join(" ") + ` <button type="button" class="migas__compartir" id="exp-compartir" title="Copiar enlace a este nivel">Copiar enlace</button>`;
     $("#exp-compartir").addEventListener("click", async (ev) => {
       const url = location.origin + location.pathname + enlaceExplorador();
-      try { await navigator.clipboard.writeText(url); ev.target.textContent = "✓ Enlace copiado"; } catch (e) { prompt("Copia este enlace:", url); }
+      try { await navigator.clipboard.writeText(url); ev.target.textContent = "Enlace copiado"; } catch (e) { prompt("Copia este enlace:", url); }
     });
     $$("#exp-migas [data-nivel]").forEach((b) => b.addEventListener("click", () => {
       if (b.dataset.nivel === "fun") { EXP.div = null; EXP.grp = null; } else EXP.grp = null;
@@ -414,7 +437,7 @@
     }));
     const nodo = grp || div || d;
     const resumen = `<div class="kpis kpis--3">${[
-      ["Presupuesto actual (PIM)", millones(nodo.pim / M), `Aprobado al inicio: ${millones(nodo.pia / M)}`],
+      ["Presupuesto actual", millones(nodo.pim / M), `Aprobado al inicio: ${millones(nodo.pia / M)}`],
       ["Ya gastado", millones(nodo.dev / M), `${nf1.format(avance(nodo.dev, nodo.pim))}% del presupuesto`],
       ["Falta gastar", millones(Math.max(0, nodo.pim - nodo.dev) / M), "en lo que queda del año"]
     ].map(kpiHTML).join("")}</div>`;
@@ -437,7 +460,7 @@
         const h = hijos[+b.dataset.hijo];
         if (div) EXP.grp = h.nombre; else EXP.div = h.nombre;
         EXP.n = 25; pintarExplorador();
-        $("#explorador").scrollIntoView({ behavior: "smooth", block: "start" });
+        $("#explorador").scrollIntoView({ behavior: SUAVE(), block: "start" });
       }));
       return;
     }
@@ -502,7 +525,7 @@
         <p class="ley__meta">${esc(propio(ejec))} · ${esc(propio(dep))}</p>
         <div class="proyecto__montos"><span>Presupuesto ${soles(pim)}</span><span>Gastado ${soles(dev)} (${nf0.format(av)}%)</span></div>
         <div class="pista" aria-hidden="true"><div class="pista__barra pista__barra--suave" style="width:100%"><div class="pista__gastado" style="width:${av.toFixed(1)}%"></div></div></div>
-        ${obra ? `<p class="proyecto__alerta">⚠️ La Contraloría reporta esta obra como <strong>paralizada</strong>${obra.inicio ? ` (empezó en ${obra.inicio})` : ""}. Causa: ${esc(obra.causal || "no registrada")}. Lleva ${nf0.format(obra.avance)}% de avance físico y falta ejecutar ${soles(obra.saldo)}.</p>` : ""}
+        ${obra ? `<p class="proyecto__alerta">La Contraloría reporta esta obra como <strong>paralizada</strong>${obra.inicio ? ` (empezó en ${obra.inicio})` : ""}. Causa: ${esc(obra.causal || "no registrada")}. Lleva ${nf0.format(obra.avance)}% de avance físico y falta ejecutar ${soles(obra.saldo)}.</p>` : ""}
         <a class="ley__link" href="${SSI(cui)}" target="_blank" rel="noopener">Ver ficha oficial del proyecto (MEF) ↗</a>
       </article>`;
     }).join("") : '<p class="vacio">No hay proyectos que coincidan.</p>';
@@ -524,10 +547,10 @@
       ["Falta ejecutar", millones(OBRAS.saldoObras / M), "para terminar las obras"],
       ["Avanzadas más de la mitad", nf0.format(OBRAS.obras.filter((o) => o.avance > 50).length), "obras que se quedaron a medio camino o más"]
     ].map(kpiHTML).join("");
-    const maxC = OBRAS.porCausal[0][1];
+    const maxC = OBRAS.porCausal.length ? OBRAS.porCausal[0][1] : 1;
     $("#obras-causas").innerHTML = OBRAS.porCausal.slice(0, 8).map(([c, n]) => filaSimple(c, n, maxC, nf0.format(n))).join("");
-    const maxD = OBRAS.porDepartamento[0][1];
-    $("#obras-deps").innerHTML = OBRAS.porDepartamento.slice(0, 12).map(([c, n]) => filaSimple(propio(c), n, maxD, nf0.format(n))).join("");
+    const maxD = OBRAS.porDepartamento.length ? OBRAS.porDepartamento[0][1] : 1;
+    $("#obras-deps").innerHTML = corta(OBRAS.porDepartamento.slice(0, 12).map(([c, n]) => filaSimple(propio(c), n, maxD, nf0.format(n))), 8);
     $("#obras-dep").innerHTML = '<option value="">Todos</option>' + OBRAS.porDepartamento.map(([d, n]) => `<option value="${esc(d)}">${esc(propio(d))} (${n})</option>`).join("");
     $("#obras-causal").innerHTML = '<option value="">Todas</option>' + OBRAS.porCausal.map(([c, n]) => `<option value="${esc(c)}">${esc(c)} (${n})</option>`).join("");
     pintarListaObras();
@@ -568,7 +591,7 @@
       ${sub ? `<p class="ley__meta">${esc(sub)}</p>` : ""}
       <div class="proyecto__montos"><span>Presupuesto ${soles(pim)}</span><span>Gastado ${soles(dev)} (${nf0.format(av)}%)</span></div>
       <div class="pista" aria-hidden="true"><div class="pista__barra pista__barra--suave" style="width:100%"><div class="pista__gastado" style="width:${av.toFixed(1)}%"></div></div></div>
-      ${obra ? `<p class="proyecto__alerta">⚠️ La Contraloría reporta esta obra como <strong>paralizada</strong>. Causa: ${esc(obra.causal || "no registrada")}. Falta ejecutar ${soles(obra.saldo)}.</p>` : ""}
+      ${obra ? `<p class="proyecto__alerta">La Contraloría reporta esta obra como <strong>paralizada</strong>. Causa: ${esc(obra.causal || "no registrada")}. Falta ejecutar ${soles(obra.saldo)}.</p>` : ""}
       <a class="ley__link" href="${SSI(cui)}" target="_blank" rel="noopener">Ver ficha oficial del proyecto (MEF) ↗</a>
     </article>`;
   }
@@ -620,7 +643,7 @@
     const box = $("#ent-detalle");
     box.hidden = false;
     box.innerHTML = '<p class="vacio">Cargando el detalle…</p>';
-    box.scrollIntoView({ behavior: "smooth", block: "start" });
+    box.scrollIntoView({ behavior: SUAVE(), block: "start" });
     const arch = fila[10];
     if (!cacheEnt[arch]) cacheEnt[arch] = await cargar(`entidades/${arch}.json`);
     const e = cacheEnt[arch] && cacheEnt[arch].entidades.find((x) => x.id === fila[0]);
@@ -643,8 +666,8 @@
         <div><h2>${esc(propio(e.nombre))}</h2>
           <p class="ayuda">${esc(NIVEL_TXT[e.nivel] || e.nivel)} · ${esc(propio(e.distrito))}, ${esc(propio(e.provincia))}, ${esc(propio(e.departamento))}${e.pliego ? ` · ${esc(propio(e.pliego))}` : ""}</p></div>
         <div class="controles">
-          <button type="button" class="boton boton--secundario boton--chico" id="ent-copiar">🔗 Copiar enlace</button>
-          <button type="button" class="boton boton--secundario boton--chico" id="ent-cerrar">Cerrar ✕</button>
+          <button type="button" class="boton boton--secundario boton--chico" id="ent-copiar">Copiar enlace</button>
+          <button type="button" class="boton boton--secundario boton--chico" id="ent-cerrar">Cerrar </button>
         </div>
       </div>
       <div class="kpis kpis--4">${[
@@ -654,8 +677,8 @@
         ["Proyectos de inversión", nf0.format(e.totalProyectos), e.totalProyectos > e.proyectos.length ? `se muestran los ${e.proyectos.length} más grandes` : "con presupuesto este año"]
       ].map(kpiHTML).join("")}</div>
       <div class="controles controles--enlaces">
-        <a class="boton boton--secundario boton--chico" href="#contratos?q=${encodeURIComponent(e.nombre.split("-")[0].trim())}" id="ent-a-contratos">🤝 Ver sus contratos</a>
-        ${sueldo ? `<a class="boton boton--secundario boton--chico" href="#sueldos?ent=${sueldo.id}" id="ent-a-sueldos">💵 Ver sueldos de su personal</a>` : ""}
+        <a class="boton boton--secundario boton--chico" href="#contratos?q=${encodeURIComponent(e.nombre.split("-")[0].trim())}" id="ent-a-contratos">Ver sus contratos</a>
+        ${sueldo ? `<a class="boton boton--secundario boton--chico" href="#sueldos?ent=${sueldo.id}" id="ent-a-sueldos">Ver sueldos de su personal</a>` : ""}
       </div>
       <div class="dos-col dos-col--plano">
         <div><h3 class="exp-sub">¿En qué gasta?</h3><div class="barras">${e.genericas.filter((g) => g[1] > 0).map(([n, p, d]) => filaSimple(bonito(n), p, maxG, `${corto(p / M)} · ${nf0.format(avance(d, p))}%`)).join("")}</div></div>
@@ -680,14 +703,14 @@
       const k = clave(e.nombre.split(" - ")[0]);
       const infs = CTRL.informes.filter((r) => clave(r[1]).includes(k) || k.includes(clave(r[1])));
       const tot = Object.entries(CTRL.porEntidad || {}).filter(([n]) => clave(n).includes(k) || k.includes(clave(n))).reduce((a, [, v]) => [a[0] + v[0], a[1] + v[1]], [0, 0]);
-      if (tot[0] || infs.length) $("#ent-control").innerHTML = `<h3 class="exp-sub">🔎 Contraloría: ${nf0.format(tot[0] || infs.length)} informes, ${nf0.format(tot[1])} con presuntos responsables</h3>` +
+      if (tot[0] || infs.length) $("#ent-control").innerHTML = `<h3 class="exp-sub">Contraloría: ${nf0.format(tot[0] || infs.length)} informes, ${nf0.format(tot[1])} con presuntos responsables</h3>` +
         (infs.length ? `<div class="proyectos">${infs.slice(0, 4).map(tarjetaInforme).join("")}</div>` : '<p class="ayuda">Sin auditorías (solo orientaciones o visitas de control).</p>') +
         (infs.length > 4 ? `<p><a href="#control?q=${encodeURIComponent(e.nombre.split(" - ")[0])}">Ver los ${nf0.format(infs.length)} informes →</a></p>` : "");
     });
     $("#ent-cerrar").addEventListener("click", () => { box.hidden = true; try { history.replaceState(null, "", "#entidades"); } catch (er) {} });
     $("#ent-copiar").addEventListener("click", async (ev) => {
       const url = location.origin + location.pathname + "#entidades?id=" + encodeURIComponent(e.id);
-      try { await navigator.clipboard.writeText(url); ev.target.textContent = "✓ Enlace copiado"; } catch (er) { prompt("Copia este enlace:", url); }
+      try { await navigator.clipboard.writeText(url); ev.target.textContent = "Enlace copiado"; } catch (er) { prompt("Copia este enlace:", url); }
     });
     if (e.proyectos.length) {
       $("#ent-pq").addEventListener("input", (ev) => { EN.pq = ev.target.value; EN.pn = 20; pintarProyectosEntidad(); });
@@ -749,7 +772,7 @@
   function tarjetaContrato([fecha, ent, prov, ruc, monto, objeto, metodo, cat, ocid, alertas]) {
     return `<article class="proyecto">
       <div class="ley__cab"><span class="ley__num">${fechaLarga(fecha)} · ${esc(cat)}</span><span class="etapa etapa--inicio">${esc(metodo)}</span></div>
-      <p class="ley__titulo">${esc(fraseL(objeto))}</p>
+      <p class="ley__titulo">${esc(cortado(fraseL(objeto)))}</p>
       <div class="proyecto__montos"><span>${esc(propio(prov))}${esRUC(ruc) ? ` <small>(RUC ${esc(ruc)})</small>` : ""}</span><span>${soles(monto)}</span></div>
       <p class="ley__meta">Contrató: ${esc(propio(ent))}</p>
       ${alertas ? `<p class="alertas-linea">${chipsAlerta(alertas)}</p>` : ""}
@@ -758,25 +781,26 @@
   }
   function pintarContratos() {
     if (!CON) { $("#con-lista").innerHTML = '<p class="vacio">Aún no hay datos de contratos.</p>'; return; }
-    $("#con-intro").innerHTML = `En <strong>${CON.anio}</strong> las entidades públicas adjudicaron <strong>${nf0.format(CON.total)} contratos</strong> por <strong>${millones(CON.monto / 1e6)}</strong> mediante procesos registrados en el SEACE (licitaciones, concursos, adjudicaciones simplificadas…). No incluye compras pequeñas de menos de 8 UIT.`;
+    $("#con-intro").innerHTML = `En <strong>${CON.anio}</strong> las entidades públicas adjudicaron <strong>${pl(CON.total, "contrato")}</strong> por <strong>${millones(CON.monto / 1e6)}</strong> mediante procesos registrados en el SEACE (licitaciones, concursos, adjudicaciones simplificadas…). No incluye compras pequeñas de menos de 8 UIT.`;
     const cat = Object.fromEntries(CON.porCategoria);
     $("#con-kpis").innerHTML = [
-      ["Monto adjudicado", millones(CON.monto / 1e6), `${nf0.format(CON.total)} contratos`],
+      ["Monto adjudicado", millones(CON.monto / 1e6), pl(CON.total, "contrato")],
       ["En obras", millones((cat.Obras || 0) / 1e6), pct(cat.Obras || 0, CON.monto) + " del total"],
       ["Empresas que ganaron", nf0.format(CON.proveedoresDistintos), "proveedores distintos"],
       ["Entidades que compraron", nf0.format(CON.entidadesDistintas), "municipios, regiones, ministerios…"]
     ].map(kpiHTML).join("");
-    const maxP = CON.topProveedores[0][2];
-    $("#con-proveedores").innerHTML = CON.topProveedores.slice(0, 15).map(([ruc, n, m, c, e]) => filaHTML({
+    const vacioCon = '<p class="vacio">Todavía no hay contratos registrados este año.</p>';
+    const maxP = CON.topProveedores.length ? CON.topProveedores[0][2] : 1;
+    $("#con-proveedores").innerHTML = !CON.topProveedores.length ? vacioCon : corta(CON.topProveedores.slice(0, 15).map(([ruc, n, m, c, e]) => filaHTML({
       nombre: esc(propio(n)), valorTexto: corto(m / 1e6), ancho: (m / maxP) * 100,
       detalle: `<p>${esRUC(ruc) ? `RUC ${esc(ruc)} · ` : ""}${nf0.format(c)} contrato${c === 1 ? "" : "s"} con ${nf0.format(e)} entidad${e === 1 ? "" : "es"} · total ${soles(m)}.</p><p><button type="button" class="boton boton--secundario boton--chico" data-buscar="${esc(esRUC(ruc) ? ruc : n)}">Ver sus contratos</button></p>`
-    })).join("");
-    const maxE = CON.topEntidades[0][1];
-    $("#con-entidades").innerHTML = CON.topEntidades.slice(0, 15).map(([n, m, c]) => filaHTML({
+    })), 8);
+    const maxE = CON.topEntidades.length ? CON.topEntidades[0][1] : 1;
+    $("#con-entidades").innerHTML = !CON.topEntidades.length ? vacioCon : corta(CON.topEntidades.slice(0, 15).map(([n, m, c]) => filaHTML({
       nombre: esc(propio(n)), valorTexto: corto(m / 1e6), ancho: (m / maxE) * 100,
-      detalle: `<p>${nf0.format(c)} contratos · total ${soles(m)}.</p><p><button type="button" class="boton boton--secundario boton--chico" data-buscar="${esc(n)}">Ver sus contratos</button></p>`
-    })).join("");
-    $$("#contratos [data-buscar]").forEach((b) => b.addEventListener("click", () => { activarTab("contratos:buscar"); $("#con-q").value = b.dataset.buscar; CO.q = b.dataset.buscar; buscarContratos(); $("#con-q").scrollIntoView({ behavior: "smooth", block: "center" }); }));
+      detalle: `<p>${pl(c, "contrato")} · total ${soles(m)}.</p><p><button type="button" class="boton boton--secundario boton--chico" data-buscar="${esc(n)}">Ver sus contratos</button></p>`
+    })), 8);
+    $$("#contratos [data-buscar]").forEach((b) => b.addEventListener("click", () => { activarTab("contratos:buscar"); $("#con-q").value = b.dataset.buscar; CO.q = b.dataset.buscar; buscarContratos(); $("#con-q").scrollIntoView({ behavior: SUAVE(), block: "center" }); }));
     $("#con-fuente").innerHTML = `Fuente: <a href="${esc(CON.fuente)}" target="_blank" rel="noopener">OECE — Portal de Contrataciones Abiertas (estándar OCDS)</a>. Actualizado: ${new Date(CON.actualizado).toLocaleDateString("es-PE")}.`;
     $("#con-conteo").textContent = "Los 50 contratos más grandes del año:";
     $("#con-lista").innerHTML = CON.mayores.slice(0, 20).map(tarjetaContrato).join("");
@@ -872,14 +896,17 @@
     else if (orden === "asistencia") lista.sort((a, b) => b.pct - a.pct || a.ausente - b.ausente);
     else lista.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
     const quien = camara === "senado" ? "Senador(a)" : "Diputado(a)";
-    $("#lista-congreso").innerHTML = lista.length ? lista.map((m) => {
+    const pocas = c.sesiones && c.sesiones.length < 15
+      ? `<p class="aviso-linea">Con solo ${pl(c.sesiones.length, "sesión", "sesiones")} registradas, una o dos faltas cambian mucho el porcentaje. Léelo como un primer dato, no como un juicio.</p>` : "";
+    const filas = lista.map((m) => {
       const w = (n) => ((n / m.sesiones) * 100).toFixed(1);
       return `<div class="asis">
         <div class="asis__top"><span class="asis__nombre">${esc(m.nombre)}<small>${quien}</small></span><span class="asis__pct">${nf0.format(m.pct)}%</span></div>
         <div class="asis__barra" aria-hidden="true"><span class="a-pre" style="width:${w(m.presente)}%"></span><span class="a-lic" style="width:${w(m.licencia + m.otro)}%"></span><span class="a-aus" style="width:${w(m.ausente)}%"></span></div>
         <p class="asis__txt">Asistió a ${m.presente} de ${m.sesiones} · ${m.licencia ? `${m.licencia} con licencia · ` : ""}<strong class="${m.ausente ? "rojo" : ""}">${m.ausente} ausencia${m.ausente === 1 ? "" : "s"}</strong></p>
       </div>`;
-    }).join("") : '<p class="vacio">No encontramos ese apellido.</p>';
+    });
+    $("#lista-congreso").innerHTML = lista.length ? pocas + (q ? filas.join("") : corta(filas, 12)) : '<p class="vacio">No encontramos ese apellido.</p>';
   }
   grupoBotones("camara", (v) => { camara = v; pintarCongreso(); if (!$('[data-panel="congreso:votos"]').hidden) pintarVotos(); });
   $("#buscar-congreso").addEventListener("input", () => CONG && pintarListaCongreso());
@@ -963,9 +990,31 @@
   let planilla = null, mostrarP = 50;
   const cachePlanillas = {};
   const MINUS_P = new Set(["de", "del", "la", "las", "los", "y", "e", "el", "en", "a"]);
-  const propio = (s) => (s && s === s.toUpperCase()
-    ? s.toLowerCase().replace(/\p{L}+/gu, (w, i) => (i > 0 && MINUS_P.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
-    : s || "");
+  // Siglas que deben ir en mayúsculas y palabras frecuentes sin tilde en las fuentes
+  const SIGLAS = new Set(["sa", "sac", "saa", "srl", "eirl", "sas", "scrl", "ugel", "sis", "essalud", "mef", "mtc", "minsa", "minedu", "onp", "sunat",
+    "sunarp", "reniec", "inpe", "pnp", "pcm", "oece", "osce", "midis", "mimp", "minam", "midagri", "mincetur", "mininter", "mindef", "sedapal",
+    "pronabec", "pronied", "foncodes", "sencico", "indeci", "senamhi", "ingemmet", "osinergmin", "osiptel", "sunass", "sutran", "indecopi", "sbs",
+    "bcrp", "jne", "onpe", "diresa", "dre", "ii", "iii", "iv", "vi", "vii", "viii", "ix", "xi", "xii", "xiii", "xiv", "xv"]);
+  const ACENTOS = { ...TILDES, peru: "perú", compania: "compañía", "compañia": "compañía", ingenieria: "ingeniería", construccion: "construcción",
+    construcciones: "construcciones", consultoria: "consultoría", asesoria: "asesoría", inversion: "inversión", region: "región", direccion: "dirección",
+    estrategicos: "estratégicos", tecnicos: "técnicos", medicos: "médicos", farmaceuticos: "farmacéuticos", logistica: "logística", maquinaria: "maquinaria",
+    huanuco: "huánuco", junin: "junín", apurimac: "apurímac", ancash: "áncash", "san martin": "san martín", martin: "martín", lima: "lima" };
+  const propio = (s) => {
+    if (!s) return "";
+    s = String(s).replace(/\s+/g, " ").trim();
+    const letras = s.replace(/[^\p{L}]/gu, "");
+    const mayus = letras.length > 0 && letras.replace(/[^\p{Lu}]/gu, "").length / letras.length > 0.6;
+    return s.replace(/\p{L}+/gu, (w, i) => {
+      const l = w.toLowerCase();
+      if (l.length > 1 && SIGLAS.has(l)) return l.toUpperCase();
+      const acc = Object.hasOwn(ACENTOS, l) ? ACENTOS[l] : null;
+      if (mayus) { const b = acc || l; return i > 0 && MINUS_P.has(l) ? b : b.charAt(0).toUpperCase() + b.slice(1); }
+      if (acc && w.length > 1) return w[0] === w[0].toUpperCase() ? acc.charAt(0).toUpperCase() + acc.slice(1) : acc;
+      return w;
+    });
+  };
+  // Textos que el robot cortó a 200 caracteres: terminar en palabra completa con "…"
+  const cortado = (s) => (s && s.length >= 200 && !s.endsWith("…") ? s.slice(0, 199).replace(/\s+\S*$/, "").replace(/[ ,;:-]+$/, "") + "…" : s || "");
   const periodoTexto = (p) => (p ? `${MESES_LARGO[+p.slice(5) - 1]} ${p.slice(0, 4)}` : "");
 
   // Grupos para filtrar (las entidades principales se agrupan como "Gobierno nacional y autónomos")
@@ -999,7 +1048,7 @@
     $$("#tabla-entidades [data-ent]").forEach((b) => b.addEventListener("click", () => {
       activarTab("sueldos:planilla");
       abrirPlanilla(+b.dataset.ent);
-      $("#planillas-card").scrollIntoView({ behavior: "smooth", block: "start" });
+      $("#planillas-card").scrollIntoView({ behavior: SUAVE(), block: "start" });
     }));
     $("#tabla-mas").hidden = filas.length <= PL.n;
     $("#tabla-mas").textContent = `Ver más (${nf0.format(filas.length - PL.n)} restantes)`;
@@ -1160,7 +1209,7 @@
     const suma = lista.reduce((a, f) => a + f.monto, 0);
     const max = Math.max(...lista.map((f) => f.monto));
     $("#res-reparto").innerHTML = lista.map((f) => filaHTML({
-      nombre: `<span aria-hidden="true">${f.icono}</span> ${esc(f.nombre)}`, valorTexto: soles((total * f.monto) / suma),
+      nombre: esc(f.nombre), valorTexto: soles((total * f.monto) / suma),
       pctTexto: pct(f.monto, suma), ancho: (f.monto / max) * 100, estado: f.estado, detalle: `<p>${esc(f.explica || "")}</p>`
     })).join("");
   }
@@ -1209,7 +1258,7 @@
     S: ["Sobre el valor referencial", "Se adjudicó más de 10% por encima del precio que la entidad había estimado."],
     C: ["Misma empresa, muchas veces", "La misma empresa ganó 5 o más contratos de la misma entidad en el año."]
   };
-  const chipsAlerta = (f) => (f || "").split("").filter((k) => ALERTA[k]).map((k) => `<span class="alerta alerta--${k}" title="${esc(ALERTA[k][1])}">🚩 ${esc(ALERTA[k][0])}</span>`).join("");
+  const chipsAlerta = (f) => (f || "").split("").filter((k) => ALERTA[k]).map((k) => `<span class="alerta alerta--${k}" title="${esc(ALERTA[k][1])}">${esc(ALERTA[k][0])}</span>`).join("");
 
   // ---------- Señales de alerta en contratos ----------
   const AL = { f: "", n: 20 };
@@ -1217,7 +1266,7 @@
     if (!CON || !CON.alertas) return;
     $("#alertas-tipos").innerHTML = Object.entries(ALERTA).map(([k, [t, d]]) => {
       const a = CON.alertas[k] || { contratos: 0, monto: 0 };
-      return `<button type="button" class="alerta-tipo${AL.f === k ? " alerta-tipo--activo" : ""}" data-al="${k}"><span class="alerta alerta--${k}">🚩 ${esc(t)}</span>
+      return `<button type="button" class="alerta-tipo${AL.f === k ? " alerta-tipo--activo" : ""}" data-al="${k}"><span class="alerta alerta--${k}">${esc(t)}</span>
         <b>${nf0.format(a.contratos)} contratos · ${corto(a.monto / 1e6)}</b><small>${esc(d)}</small></button>`;
     }).join("");
     $$("#alertas-tipos [data-al]").forEach((b) => b.addEventListener("click", () => { AL.f = AL.f === b.dataset.al ? "" : b.dataset.al; AL.n = 20; pintarAlertas(); }));
@@ -1238,10 +1287,10 @@
   const CT = { q: "", dep: "", solo: "resp", n: 20 };
   const tarjetaInforme = ([fecha, ent, dep, prov, dist, titulo, modalidad, personas, resp, numero, pdf, resumen]) => `
     <article class="proyecto">
-      <div class="ley__cab"><span class="ley__num">${esc(fecha)} · Informe ${esc(numero)}</span>${personas ? `<span class="etapa etapa--fin">${nf0.format(personas)} presunto${personas === 1 ? "" : "s"} responsable${personas === 1 ? "" : "s"}</span>` : '<span class="etapa etapa--inicio">Sin responsables señalados</span>'}</div>
+      <div class="ley__cab"><span class="ley__num">${esc(fechaHumana(fecha))} · Informe ${esc(numero)}</span>${personas ? `<span class="etapa etapa--fin">${nf0.format(personas)} presunto${personas === 1 ? "" : "s"} responsable${personas === 1 ? "" : "s"}</span>` : '<span class="etapa etapa--inicio">Sin responsables señalados</span>'}</div>
       <p class="ley__titulo">${esc(fraseL(titulo))}</p>
       <p class="ley__meta">${esc(propio(ent))} · ${esc(propio(dist))}, ${esc(propio(dep))} · ${esc(fraseL(modalidad))}</p>
-      ${resp ? `<p class="ley__meta">Tipo de responsabilidad: <strong>${esc(fraseL(resp))}</strong></p>` : ""}
+      ${resp && resp.replace(/[\s,]/g, "") ? `<p class="ley__meta">Tipo de responsabilidad: <strong>${esc(fraseL(resp.split(",").map((x) => x.trim()).filter(Boolean).join(", ")))}</strong></p>` : ""}
       <p class="enlaces-linea">${pdf ? `<a href="${esc(pdf)}" target="_blank" rel="noopener">Informe completo (PDF) ↗</a>` : ""}${resumen ? ` <a href="${esc(resumen)}" target="_blank" rel="noopener">Resumen ↗</a>` : ""}</p>
     </article>`;
   async function prepararControl() {
@@ -1267,7 +1316,7 @@
       detalle: `<p>${nf0.format(n)} informes, ${nf0.format(c)} con presuntos responsables.</p><p><a class="boton boton--secundario boton--chico" href="#control?q=${encodeURIComponent(e)}">Ver sus informes</a></p>`
     })).join("");
     const maxD = Math.max(1, ...CTRL.porDepartamento.map((x) => x[1]));
-    $("#control-deps").innerHTML = CTRL.porDepartamento.slice(0, 25).map(([d, n]) => filaSimple(propio(d), n, maxD, nf0.format(n))).join("");
+    $("#control-deps").innerHTML = corta(CTRL.porDepartamento.slice(0, 25).map(([d, n]) => filaSimple(propio(d), n, maxD, nf0.format(n))), 8);
     if ($("#control-dep").options.length <= 1) $("#control-dep").innerHTML = '<option value="">Todos</option>' + CTRL.porDepartamento.map(([d]) => `<option value="${esc(d)}">${esc(propio(d))}</option>`).join("");
     $("#control-fuente").innerHTML = `Fuente: <a href="${esc(CTRL.fuente)}" target="_blank" rel="noopener">Buscador de informes de la Contraloría</a>. Actualizado: ${new Date(CTRL.actualizado).toLocaleDateString("es-PE")}.`;
     pintarListaControl();
@@ -1361,9 +1410,9 @@
       <div class="ley__cab"><span class="ley__num">${esc(v[4])} → ${esc(v[5])}</span><span class="etapa ${v[10] === "Internacional" ? "etapa--avanza" : "etapa--inicio"}">${esc(v[10])}</span></div>
       <p class="ley__titulo">${esc(propio(v[3]))}</p>
       <p class="ley__meta">${esc(v[1])} · ${esc(v[2])}</p>
-      <p class="ley__meta">🧭 ${esc(v[6])}</p>
+      <p class="ley__meta">${esc(v[6])}</p>
       <div class="proyecto__montos"><span>Pasajes ${soles(v[7])} · viáticos ${soles(v[8])}</span><span>${soles(v[9])}</span></div>
-      ${v[12] ? '<p class="proyecto__alerta">⚠️ Monto inusual: probablemente un error de registro de la entidad. Verifícalo en la fuente; no se cuenta en los totales.</p>' : ""}
+      ${v[12] ? '<p class="proyecto__alerta">Monto inusual: probablemente un error de registro de la entidad. Verifícalo en la fuente; no se cuenta en los totales.</p>' : ""}
       <a class="ley__link" href="${esc(VIA.urlEntidad.replace("{id}", v[11]))}" target="_blank" rel="noopener">Ver en el Portal de Transparencia ↗</a>
     </article>`).join("") || '<p class="vacio">No hay viajes que coincidan.</p>';
     $("#viajes-mas").hidden = lista.length <= VJ.n;
@@ -1408,7 +1457,7 @@
           <span class="votacion__t">${tituloVotacion(x.titulo)}</span>${suVoto}
           <span class="votacion__barra" aria-label="${x.favor.length} a favor, ${x.contra.length} en contra, ${x.abstencion.length} abstenciones">
             <i class="v-favor" style="width:${(x.favor.length / tot) * 100}%"></i><i class="v-contra" style="width:${(x.contra.length / tot) * 100}%"></i><i class="v-abst" style="width:${(x.abstencion.length / tot) * 100}%"></i></span>
-          <span class="votacion__n">✔ ${x.favor.length} · ✖ ${x.contra.length} · ○ ${x.abstencion.length}</span></summary>
+          <span class="votacion__n">${x.favor.length} a favor · ${x.contra.length} en contra · ${x.abstencion.length} abst.</span></summary>
         <div class="votacion__det">${[["favor", "A favor"], ["contra", "En contra"], ["abstencion", "Abstención"]].map(([g, t]) => x[g].length ? `<p><strong>${t} (${x[g].length}):</strong> ${x[g].map(esc).join(", ")}</p>` : "").join("")}
         <p><a href="${esc(x.url)}" target="_blank" rel="noopener">Ver acta oficial (PDF) ↗</a></p></div></details>`;
     }).join("") : '<p class="vacio">Aún no hay votaciones leídas para esta cámara.</p>';
@@ -1446,6 +1495,11 @@
   let MAPA = null, capaMapa = null, nivelMapa = { dep: null }, geo = {}, metricas = null;
   function cargarLeaflet() {
     if (window.L) return Promise.resolve();
+    if (!document.querySelector("link[data-leaflet]")) {
+      const l = document.createElement("link");
+      l.rel = "stylesheet"; l.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"; l.dataset.leaflet = "";
+      document.head.appendChild(l);
+    }
     return new Promise((ok, mal) => {
       const s = document.createElement("script");
       s.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
@@ -1535,8 +1589,8 @@
   async function abrirDistrito(ub) {
     const box = $("#dist-ficha");
     box.hidden = false; box.innerHTML = '<p class="vacio">Armando la ficha del distrito…</p>';
-    box.scrollIntoView({ behavior: "smooth", block: "start" });
-    await prepararEntidades(); await prepararControl();
+    box.scrollIntoView({ behavior: SUAVE(), block: "start" });
+    await Promise.all([prepararEntidades(), prepararControl(), asegurar("obras", "programas", "sueldos")]);
     try { history.replaceState(null, "", "#distrito?u=" + ub); } catch (e) {}
     const ents = ENT.entidades.filter((e) => e[11] === ub);
     const muni = ents.find((e) => e[3] === "GOBIERNOS LOCALES" && /DISTRITAL|PROVINCIAL/.test(e[1])) || ents.find((e) => e[3] === "GOBIERNOS LOCALES");
@@ -1556,9 +1610,9 @@
     const maxR = Math.max(1, ...rub.map((r) => r[1]));
     box.innerHTML = `
       <div class="tarjeta__cabeza">
-        <div><h2>${esc(propio(dist))}</h2><p class="ayuda">${esc(propio(prov))}, ${esc(propio(dep))} · ubigeo ${esc(ub)}</p></div>
-        <div class="controles"><button type="button" class="boton boton--secundario boton--chico" id="dist-copiar">🔗 Copiar enlace</button>
-          <button type="button" class="boton boton--secundario boton--chico" id="dist-cerrar">Cerrar ✕</button></div>
+        <div><h2>${esc(propio(dist))}</h2><p class="ayuda">Provincia de ${esc(propio(prov))}, ${esc(propio(dep))}</p></div>
+        <div class="controles"><button type="button" class="boton boton--secundario boton--chico" id="dist-copiar">Copiar enlace</button>
+          <button type="button" class="boton boton--secundario boton--chico" id="dist-cerrar">Cerrar </button></div>
       </div>
       ${muni ? `<div class="kpis kpis--4">${[
         ["Presupuesto de la municipalidad", millones(muni[7] / M), propio(muni[1])],
@@ -1566,11 +1620,13 @@
         ["Obras paralizadas", nf0.format(obras.length), obras.length ? `falta ejecutar ${soles(obras.reduce((a, o) => a + o.saldo, 0))}` : "según la Contraloría"],
         ["Informes de Contraloría", nf0.format(cuentaDist[0]), `${nf0.format(cuentaDist[1])} con presuntos responsables`]
       ].map(kpiHTML).join("")}</div>` : ""}
+      <p class="dist-resumen">${muni ? `La municipalidad tiene <strong>${millones(muni[7] / M)}</strong> para este año y ya gastó el <strong>${pct(muni[8], muni[7])}</strong>. ` : ""}${obras.length ? `Hay <strong>${pl(obras.length, "obra paralizada", "obras paralizadas")}</strong> según la Contraloría` : "No hay obras paralizadas registradas"}${cuentaDist[0] ? ` y <strong>${pl(cuentaDist[0], "informe")} de control</strong>${cuentaDist[1] ? `, ${nf0.format(cuentaDist[1])} con presuntos responsables` : ""}.` : "."}</p>
       <div class="controles controles--enlaces">
-        ${muni ? `<a class="boton boton--secundario boton--chico" href="#entidades?id=${encodeURIComponent(muni[0])}">🏘️ Gasto y proyectos de la municipalidad</a>
-        <a class="boton boton--secundario boton--chico" href="#contratos?q=${encodeURIComponent(muni[1])}">🤝 Sus contratos</a>` : ""}
-        ${sueldo ? `<a class="boton boton--secundario boton--chico" href="#sueldos?ent=${sueldo.id}">💵 Sueldos de su personal</a>` : ""}
+        ${muni ? `<a class="boton boton--secundario boton--chico" href="#entidades?id=${encodeURIComponent(muni[0])}">Gasto y proyectos de la municipalidad</a>
+        <a class="boton boton--secundario boton--chico" href="#contratos?q=${encodeURIComponent(muni[1])}">Sus contratos</a>` : ""}
+        ${sueldo ? `<a class="boton boton--secundario boton--chico" href="#sueldos?ent=${sueldo.id}">Sueldos de su personal</a>` : ""}
       </div>
+      <details class="seccion-plegable"><summary>De dónde viene la plata y programas sociales</summary>
       <div class="dos-col dos-col--plano">
         <div><h3 class="exp-sub">¿De dónde viene la plata de la municipalidad?</h3>
           ${rub.length ? `<div class="barras">${rub.map(([n, p, d]) => filaSimple(bonito(n), p, maxR, `${corto(p / M)} · ${pct(p, rub.reduce((a, r) => a + r[1], 0))}`)).join("")}</div>
@@ -1581,23 +1637,23 @@
             <li><span>Adultos mayores en Pensión 65</span><b>${nf0.format(pg[3])}</b><small>padrón ${esc(PROG.pension65Periodo || "")}</small></li></ul>` : '<p class="vacio">Sin datos de programas sociales.</p>'}
           ${otras.length ? `<h3 class="exp-sub">Otras entidades con presupuesto aquí</h3><ul class="actividades actividades--1">${otras.slice(0, 8).map((e) => `<li><span><a href="#entidades?id=${encodeURIComponent(e[0])}">${esc(propio(e[1]))}</a></span><b>${corto(e[7] / M)}</b><small>${pct(e[8], e[7])} gastado</small></li>`).join("")}</ul>` : ""}
         </div>
-      </div>
-      ${obras.length ? `<h3 class="exp-sub">🚧 Obras paralizadas en el distrito</h3><div class="proyectos">${obras.slice(0, 6).map((o) => `<article class="proyecto"><div class="ley__cab"><span class="ley__num">CUI ${esc(o.cui)}</span><span class="etapa etapa--fin">${esc(o.causal || "Paralizada")}</span></div>
-        <p class="ley__titulo">${esc(fraseL(o.nombre))}</p><p class="ley__meta">${esc(propio(o.entidad))} · avance físico ${nf0.format(o.avance)}% · falta ${soles(o.saldo)}</p></article>`).join("")}</div>` : ""}
-      ${infs.length ? `<h3 class="exp-sub">🔎 Auditorías de la Contraloría en el distrito</h3><div class="proyectos">${infs.slice(0, 6).map(tarjetaInforme).join("")}</div>
-        ${infs.length > 6 ? `<p><a href="#control?q=${encodeURIComponent(dist)}">Ver los ${nf0.format(infs.length)} informes →</a></p>` : ""}` : ""}
-      ${det && det.proyectos && det.proyectos.length ? `<h3 class="exp-sub">🏗️ Principales proyectos de la municipalidad</h3><div class="proyectos">${det.proyectos.slice(0, 6).map((p) => tarjetaProyecto(p[0], p[1], bonito(p[2]), p[4], p[5])).join("")}</div>` : ""}
+      </div></details>
+      ${obras.length ? `<details class="seccion-plegable"><summary>Obras paralizadas <span>${nf0.format(obras.length)}</span></summary><div class="proyectos">${obras.slice(0, 6).map((o) => `<article class="proyecto"><div class="ley__cab"><span class="ley__num">CUI ${esc(o.cui)}</span><span class="etapa etapa--fin">${esc(o.causal || "Paralizada")}</span></div>
+        <p class="ley__titulo">${esc(fraseL(o.nombre))}</p><p class="ley__meta">${esc(propio(o.entidad))} · avance físico ${nf0.format(o.avance)}% · falta ${soles(o.saldo)}</p></article>`).join("")}</div>${obras.length > 6 ? `<p><a href="#obras?q=${encodeURIComponent(dist)}">Ver las ${nf0.format(obras.length)} obras →</a></p>` : ""}</details>` : ""}
+      ${infs.length ? `<details class="seccion-plegable"><summary>Auditorías de la Contraloría <span>${nf0.format(infs.length)}</span></summary><div class="proyectos">${infs.slice(0, 6).map(tarjetaInforme).join("")}</div>
+        ${infs.length > 6 ? `<p><a href="#control?q=${encodeURIComponent(dist)}">Ver los ${nf0.format(infs.length)} informes →</a></p>` : ""}</details>` : ""}
+      ${det && det.proyectos && det.proyectos.length ? `<details class="seccion-plegable"><summary>Principales proyectos de la municipalidad <span>${nf0.format(Math.min(6, det.proyectos.length))}</span></summary><div class="proyectos">${det.proyectos.slice(0, 6).map((p) => tarjetaProyecto(p[0], p[1], bonito(p[2]), p[4], p[5])).join("")}</div></details>` : ""}
       <p class="fuente">Fuentes: MEF (presupuesto ${PR.anio}), Contraloría (obras paralizadas e informes de control), MIDIS (Juntos y Pensión 65).</p>`;
     $("#dist-cerrar").addEventListener("click", () => { box.hidden = true; try { history.replaceState(null, "", "#distrito"); } catch (e) {} });
-    $("#dist-copiar").addEventListener("click", async (ev) => { const url = location.origin + location.pathname + "#distrito?u=" + ub; try { await navigator.clipboard.writeText(url); ev.target.textContent = "✓ Enlace copiado"; } catch (e) { prompt("Copia este enlace:", url); } });
+    $("#dist-copiar").addEventListener("click", async (ev) => { const url = location.origin + location.pathname + "#distrito?u=" + ub; try { await navigator.clipboard.writeText(url); ev.target.textContent = "Enlace copiado"; } catch (e) { prompt("Copia este enlace:", url); } });
   }
 
   // ---------- Menú: 4 temas, y dentro de cada tema una fila de secciones ----------
   const GRUPOS = {
-    dinero: ["💰 El dinero", [["gastos", "Gastos"], ["ingresos", "Impuestos"], ["deuda", "Deuda"], ["mi-impuesto", "Mi impuesto"]]],
-    zona: ["📍 Tu zona", [["distrito", "Tu distrito"], ["entidades", "Tu municipio"], ["obras", "Obras paralizadas"], ["programas", "Programas sociales"]]],
-    vigila: ["🔎 Vigila", [["contratos", "Contratos"], ["sueldos", "Sueldos"], ["control", "Auditorías"], ["viajes", "Viajes"]]],
-    poder: ["⚖️ El poder", [["congreso", "Congreso"], ["leyes", "Proyectos de ley"], ["visitas", "Visitas a Palacio"]]]
+    dinero: ["El dinero", [["gastos", "Gastos"], ["ingresos", "Impuestos"], ["deuda", "Deuda"], ["mi-impuesto", "Mi impuesto"]]],
+    zona: ["Tu zona", [["distrito", "Tu distrito"], ["entidades", "Tu municipio"], ["obras", "Obras paralizadas"], ["programas", "Programas sociales"]]],
+    vigila: ["Vigila", [["contratos", "Contratos"], ["sueldos", "Sueldos"], ["control", "Auditorías"], ["viajes", "Viajes"]]],
+    poder: ["El poder", [["congreso", "Congreso"], ["leyes", "Proyectos de ley"], ["visitas", "Visitas a Palacio"]]]
   };
   const GRUPO_DE = { inicio: "inicio", fuentes: "fuentes" };
   Object.entries(GRUPOS).forEach(([g, [, secs]]) => secs.forEach(([s]) => (GRUPO_DE[s] = g)));
@@ -1618,16 +1674,27 @@
   $("#buscar-btn").addEventListener("click", irABuscar);
 
   // ---------- Pestañas dentro de secciones ----------
-  function activarTab(clave) {
-    const [grupo] = clave.split(":");
-    $$(`[data-tab^="${grupo}:"]`).forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === clave)));
+  function activarTab(clave, enDireccion) {
+    const [grupo, parte] = clave.split(":");
+    $$(`[data-tab^="${grupo}:"]`).forEach((b) => { const si = b.dataset.tab === clave; b.setAttribute("aria-selected", String(si)); b.tabIndex = si ? 0 : -1; });
+    if (enDireccion) { try { history.replaceState(null, "", `#${grupo}?t=${parte}`); } catch (e) {} }
     $$(`[data-panel^="${grupo}:"]`).forEach((p) => (p.hidden = p.dataset.panel !== clave));
     if (clave === "gastos:tema" && vista === "arbol") pintarArbol();
     if (clave === "gastos:historia") pintarHistoria();
     if (clave === "congreso:votos") pintarVotos();
     if (clave === "contratos:alertas") pintarAlertas();
   }
-  $$("[data-tab]").forEach((b) => b.addEventListener("click", () => activarTab(b.dataset.tab)));
+  $$("[data-tab]").forEach((b) => {
+    b.addEventListener("click", () => activarTab(b.dataset.tab, true));
+    b.addEventListener("keydown", (ev) => {
+      const hermanos = $$('[role="tab"]', b.parentElement), i = hermanos.indexOf(b);
+      const j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: hermanos.length - 1 }[ev.key];
+      if (j == null) return;
+      ev.preventDefault();
+      const destino = hermanos[(j + hermanos.length) % hermanos.length];
+      destino.focus(); activarTab(destino.dataset.tab, true);
+    });
+  });
   $$("[data-ir-tab]").forEach((b) => b.addEventListener("click", () => { activarTab(b.dataset.irTab); b.closest(".vista").scrollIntoView({ block: "start" }); }));
 
   // ---------- Navegación ----------
@@ -1640,6 +1707,7 @@
     if (ancla) v = ancla.closest(".vista");
     v = v || vistas[0];
     vistas.forEach((x) => (x.hidden = x !== v));
+    vistaActual = v.id;
     const grupo = GRUPO_DE[v.id];
     $$("[data-grupo-link]").forEach((a) => {
       a.classList.toggle("nav__item--activo", a.dataset.grupoLink === grupo);
@@ -1651,8 +1719,17 @@
     if (panel) activarTab(panel.dataset.panel);
     if (ancla) setTimeout(() => ancla.scrollIntoView({ block: "start" }), 50); else window.scrollTo(0, 0);
 
-    // Parámetros en la dirección: #seccion?q=...
+    // Parámetros en la dirección: #seccion?q=... (después de descargar los datos de la sección)
+    const necesita = NECESITA[v.id] || [];
+    const listo = necesita.every((n) => cargado[n]);
+    if (!listo) v.setAttribute("aria-busy", "true");
+    asegurar(...necesita).then(() => { v.removeAttribute("aria-busy"); if (vistaActual === v.id) aplicarParametros(v, id, p, ancla); });
+  }
+  let vistaActual = null;
+  function aplicarParametros(v, id, p, ancla) {
     const q = p.get("q");
+    const t = p.get("t");
+    if (t && $(`[data-tab="${v.id}:${t}"]`)) activarTab(`${v.id}:${t}`);
     if (v.id === "entidades") {
       const pid = p.get("id");
       if (q) { EN.q = q; $("#ent-q").value = q; }
@@ -1694,7 +1771,10 @@
     const q = normal(texto.trim());
     const box = $("#busqueda-resultados");
     if (q.length < 3) { box.hidden = true; return; }
-    if (!ENT) await prepararEntidades();
+    if (!todoListo) { box.hidden = false; box.innerHTML = '<p class="vacio">Buscando en todos los datos…</p>'; }
+    await Promise.all([ENT ? null : prepararEntidades(), asegurar(...Object.keys(FUENTES))]);
+    todoListo = true;
+    if (normal($("#busqueda-global").value.trim()) !== q) return; // el texto cambió mientras se cargaba
     const hay = (s) => normal(s).includes(q);
     const grupos = [];
     const add = (titulo, items, verTodo) => { if (items.length) grupos.push({ titulo, items, verTodo }); };
@@ -1731,22 +1811,40 @@
   $$("#busqueda-ejemplos [data-ej]").forEach((b) => b.addEventListener("click", () => { $("#busqueda-global").value = b.dataset.ej; buscarTodo(b.dataset.ej); }));
 
   // ---------- Arranque ----------
+  // Datos que se descargan solo cuando hacen falta: [archivo, qué hacer al llegar]
+  let RES = null, todoListo = false;
+  const FUENTES = {
+    congreso: ["congreso.json", (d) => { CONG = d && d.camaras ? d : null; pintarCongreso(); }],
+    visitas: ["visitas.json", (d) => { VIS = d && d.semanas ? d : null; pintarVisitas(); }],
+    sueldos: ["sueldos.json", (d) => { SUE = d && d.entidades ? d : null; pintarSueldos(); pintarPlanillas(); }],
+    proyectos: ["proyectos.json", (d) => { PROY = d && d.proyectos ? d : null; pintarLeyes(); }],
+    obras: ["obras.json", (d) => { OBRAS = d && d.obras ? d : null; if (OBRAS) OBRAS.obras.forEach((o) => { if (!OBRAS_CUI.has(o.cui)) OBRAS_CUI.set(o.cui, o); }); pintarObras(); }],
+    partidas: ["partidas.json", (d) => { PART = d && d.partidas ? d : null; pintarPartidas(); }],
+    contratos: ["contratos.json", (d) => { CON = d && d.topProveedores ? d : null; pintarContratos(); }],
+    programas: ["programas.json", (d) => { PROG = d && d.distritos ? d : null; pintarProgramas(); }],
+    deuda: ["deuda.json", (d) => { DEU = d && d.trimestres ? d : null; pintarDeuda(); }]
+  };
+  const NECESITA = {
+    gastos: ["partidas"], deuda: ["deuda"], distrito: ["obras", "programas", "sueldos"], entidades: ["contratos", "sueldos"],
+    obras: ["obras"], programas: ["programas"], contratos: ["contratos"], sueldos: ["sueldos"], congreso: ["congreso", "proyectos"],
+    leyes: ["proyectos"], visitas: ["visitas"]
+  };
+  const cargado = {}, pedido = {};
+  function asegurar(...nombres) {
+    return Promise.all(nombres.map((n) => pedido[n] || (pedido[n] = cargar(FUENTES[n][0]).then((d) => {
+      try { FUENTES[n][1](d); } catch (e) { console.error("No se pudo mostrar " + n, e); }
+      cargado[n] = true;
+    }))));
+  }
+
   (async function iniciar() {
-    const [mef, cong, vis, rec, sue, proy, obras, part, con, prog, deu] = await Promise.all(["presupuesto.json", "congreso.json", "visitas.json", "recaudacion.json", "sueldos.json", "proyectos.json", "obras.json", "partidas.json", "contratos.json", "programas.json", "deuda.json"].map(cargar));
-    OBRAS = obras && obras.obras ? obras : null;
-    PART = part && part.partidas ? part : null;
-    CON = con && con.topProveedores ? con : null;
-    PROG = prog && prog.distritos ? prog : null;
-    DEU = deu && deu.trimestres ? deu : null;
-    if (OBRAS) OBRAS.obras.forEach((o) => { if (!OBRAS_CUI.has(o.cui)) OBRAS_CUI.set(o.cui, o); });
+    // Primero lo liviano: presupuesto, recaudación y el resumen de la portada (~40 KB en total)
+    const [mef, rec, res] = await Promise.all(["presupuesto.json", "recaudacion.json", "resumen.json"].map(cargar));
+    RES = res;
     REC = rec; ING = modeloIngresos(rec);
-    SUE = sue && sue.entidades ? sue : null;
-    PROY = proy && proy.proyectos ? proy : null;
     PR = modeloPresupuesto(mef);
-    CONG = cong && cong.camaras ? cong : null;
-    VIS = vis && vis.semanas ? vis : null;
     try { const v = localStorage.getItem("vistaGastos"); if (v === "arbol") { vista = "arbol"; $$("[data-vista]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.vista === "arbol"))); } } catch (e) {}
-    const fechas = [mef, cong, vis, rec, sue, proy, obras, con].map((x) => x && x.actualizado).filter(Boolean).sort();
+    const fechas = [mef && mef.actualizado, rec && rec.actualizado, res && res.actualizado].filter(Boolean).sort();
     if (fechas.length) {
       const f = new Date(fechas[fechas.length - 1]);
       const chip = $("#chip-act");
@@ -1757,17 +1855,7 @@
     pintarInicio();
     pintarIngresos();
     pintarGastos();
-    pintarSueldos();
-    pintarPlanillas();
-    pintarLeyes();
-    pintarObras();
-    pintarPartidas();
-    pintarContratos();
-    pintarProgramas();
-    pintarDeuda();
     $("#buscadores").innerHTML = enlacesHTML(D.buscadoresOficiales);
-    pintarCongreso();
-    pintarVisitas();
     calcular();
     pintarFuentes();
     mostrar();

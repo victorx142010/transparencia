@@ -68,7 +68,7 @@
         return `<button type="button" class="arbol__caja${clic ? " arbol__caja--clic" : ""}" data-i="${c.i}"
             style="left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px;--mezcla:${mezcla}%"
             title="${esc(etiqueta)}${clic ? " — toca para ver el detalle" : ""}" aria-label="${esc(etiqueta)}">
-            ${mediano ? `<span class="arbol__nombre">${c.it.icono ? c.it.icono + " " : ""}${esc(c.it.nombre)}</span>` : ""}
+            ${mediano ? `<span class="arbol__nombre">${esc(c.it.nombre)}</span>` : ""}
             ${grande ? `<span class="arbol__valor">${fmt(c.it.valor)} · ${pct.toFixed(1)}%</span>` : ""}
           </button>`;
       })

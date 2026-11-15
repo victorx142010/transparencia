@@ -196,7 +196,8 @@ def main():
     os.makedirs(os.path.join(DATA, "contratos"), exist_ok=True)
     por_mes_lista = defaultdict(list)
     for r in lista:
-        r[5] = r[5][:200]
+        if len(r[5]) > 200:  # se corta en la última palabra completa y se marca con "…"
+            r[5] = r[5][:199].rsplit(" ", 1)[0].rstrip(" ,;:-") + "…"
         r[8] = r[8].replace("ocds-dgv273-", "")
         por_mes_lista[r[0][:7]].append(r)
     for m, filas in por_mes_lista.items():
