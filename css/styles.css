@@ -748,6 +748,9 @@ main [id] { scroll-margin-top: 135px; }
 .grupo__ico .ico { width: 1.4rem; height: 1.4rem; }
 .grupo { box-shadow: none; }
 
+/* Mapa redibujándose (por ejemplo, al entrar a un departamento) */
+.mapa[aria-busy="true"] { opacity: .55; cursor: progress; transition: opacity .2s ease; }
+
 /* Opciones de vista: debajo del dato, no antes */
 .ver-como { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; margin-top: 1rem; padding-top: .9rem; border-top: 1px solid var(--borde); }
 .ver-como__t { font-size: .85rem; font-weight: 600; color: var(--texto-suave); }

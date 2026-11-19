@@ -1535,19 +1535,22 @@
   }
   const METRICA_TXT = { ejec: ["% gastado", (v) => nf0.format(v) + "%"], obras: ["obras paralizadas", nf0.format], control: ["informes con responsables", nf0.format],
     juntos: ["hogares en Juntos", nf0.format], p65: ["usuarios de Pensión 65", nf0.format] };
-  function colorEscala(t) { // de claro a oscuro, verde azulado
-    const a = [226, 239, 237], b = [10, 87, 87];
+  function colorEscala(t) { // de claro a oscuro, añil
+    const a = [231, 236, 246], b = [28, 52, 102];
     return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`;
   }
   async function pintarMapa() {
     const caja = $("#mapa");
-    caja.innerHTML = '<p class="vacio">Cargando mapa…</p>';
+    // Solo la primera vez: después el contenedor ya es el mapa y borrarlo lo rompería
+    if (!MAPA) caja.innerHTML = '<p class="vacio">Cargando mapa…</p>';
+    else caja.setAttribute("aria-busy", "true");
     try { await cargarLeaflet(); } catch (e) { caja.innerHTML = '<p class="vacio">No se pudo cargar el mapa. Usa el buscador de distritos.</p>'; return; }
     await prepararEntidades();
     await prepararControl();
     const nivel = nivelMapa.dep ? "distrital" : "departamental";
     if (!geo[nivel]) geo[nivel] = await cargar(`mapas/${nivel}.geojson`);
-    if (!geo[nivel]) { caja.innerHTML = '<p class="vacio">No se pudo cargar el mapa.</p>'; return; }
+    caja.removeAttribute("aria-busy");
+    if (!geo[nivel]) { if (MAPA) { MAPA.remove(); MAPA = null; capaMapa = null; } caja.innerHTML = '<p class="vacio">No se pudo cargar el mapa.</p>'; return; }
     const met = calcularMetricas(), clave_m = $("#mapa-metrica").value;
     const feats = nivelMapa.dep ? geo.distrital.features.filter((f) => f.properties.id.slice(0, 2) === nivelMapa.dep) : geo.departamental.features;
     const valor = (f) => { const o = (nivelMapa.dep ? met.dist : met.dep)[f.properties.id] || {}; return o[clave_m] || 0; };
@@ -1654,7 +1657,7 @@
   // ---------- Menú: 4 temas, y dentro de cada tema una fila con TODO lo que contiene ----------
   // Cada entrada: [sección, nombre, pestaña opcional]. Las pestañas valiosas tienen su propia entrada.
   const GRUPOS = {
-    zona: ["Tu distrito", [["distrito", "Tu distrito"], ["entidades", "Hospitales, UGEL y otras entidades"], ["programas", "Programas sociales"]]],
+    zona: ["Tu distrito", [["distrito", "Mapa y ficha de tu distrito"], ["entidades", "Hospitales, UGEL y otras entidades"], ["programas", "Programas sociales"]]],
     dinero: ["El dinero", [["ingresos", "Impuestos"], ["gastos", "En qué se gasta"], ["gastos", "Qué compra el Estado", "partidas"], ["gastos", "Años anteriores", "historia"], ["deuda", "Deuda"], ["mi-impuesto", "Cuánto aportas tú"]]],
     contratos: ["Contratos y obras", [["contratos", "Contratos"], ["contratos", "Señales de alerta", "alertas"], ["contratos", "Buscar un contrato", "buscar"], ["obras", "Obras paralizadas"], ["control", "Auditorías"]]],
     autoridades: ["Autoridades", [["sueldos", "Sueldos"], ["viajes", "Viajes"], ["congreso", "Asistencia al Congreso"], ["congreso", "Cómo votan", "votos"], ["leyes", "Proyectos de ley"], ["visitas", "Visitas a Palacio"]]]
