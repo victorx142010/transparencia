@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=202611201200">
+  <link rel="stylesheet" href="css/styles.css?v=202611201300">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="i-inicio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol><symbol id="i-dinero" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></symbol><symbol id="i-zona" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.4a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.6" r="2.5"/></symbol><symbol id="i-vigila" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-poder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5z"/><path d="M5.5 10v7.5M10 10v7.5M14 10v7.5M18.5 10v7.5"/><path d="M3 20.5h18"/></symbol><symbol id="i-fuentes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5c3-1 6-1 9.5 1 3.5-2 6.5-2 9.5-1v13c-3-1-6-1-9.5 1-3.5-2-6.5-2-9.5-1z"/><path d="M12 6.5v13"/></symbol><symbol id="i-buscar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol></svg>
@@ -63,8 +63,8 @@
       <div class="grupos" id="grupos-inicio">
         <div class="grupo">
           <a class="grupo__cab" href="#distrito"><span class="grupo__ico"><svg class="ico" aria-hidden="true"><use href="#i-zona"/></svg></span><span><b class="grupo__t">Tu distrito</b><span class="grupo__d">¿Qué pasa con la plata cerca de ti?</span></span></a>
-          <a href="#distrito"><span>Tu distrito en el mapa</span><small>1,890 distritos</small></a>
-          <a href="#entidades"><span>Tu municipalidad, hospital o UGEL</span><small data-dato="entidades"></small></a>
+          <a href="#distrito"><span>Tu distrito: municipalidad, obras y auditorías</span><small>1,890 distritos</small></a>
+          <a href="#entidades"><span>Hospitales, UGEL y otras entidades</span><small data-dato="entidades"></small></a>
           <a href="#programas"><span>Programas sociales</span><small data-dato="programas"></small></a>
         </div>
         <div class="grupo">
@@ -188,7 +188,7 @@
           <h2 id="gastos-partidas">¿Qué se compra exactamente?</h2>
           <span class="chip-dato" id="partidas-total"></span>
         </div>
-        <p class="ayuda">Todo el presupuesto del Estado (nacional, regiones y municipios) por <strong>partida específica</strong>: el nivel más detallado de "en qué" se gasta. Toca un tema rápido o busca.</p>
+        <p class="ayuda">Todo el presupuesto del Estado (nacional, regiones y municipios) cosa por cosa: pasajes, publicidad, combustible, alimentos… Es el nivel más detallado del presupuesto (los técnicos lo llaman <em>partida</em>). Toca un tema rápido o busca.</p>
         <div class="chips" id="partidas-chips"></div>
         <div class="filtros">
           <label class="campo"><span>Buscar partida</span><input type="search" id="partidas-q" placeholder="Pasajes, publicidad, combustible, alimentos…" autocomplete="off"></label>
@@ -208,7 +208,7 @@
       </div>
       <div class="tarjeta">
         <h2>Por tema, año a año</h2>
-        <p class="ayuda">Lo gastado (devengado) en cada función. Las flechas comparan el último año completo con el anterior.</p>
+        <p class="ayuda">Lo realmente gastado en cada tema (salud, educación, transporte…). Las flechas comparan el último año completo con el anterior.</p>
         <div class="tabla-scroll"><table class="tabla" id="historia-funciones"></table></div>
         <p class="fuente" id="historia-fuente"></p>
       </div>
@@ -269,9 +269,10 @@
       <div data-panel="sueldos:comparar" id="panel-sueldos-comparar" role="tabpanel" aria-labelledby="tab-sueldos-comparar" hidden>
       <div class="tarjeta" id="entidades-card" hidden>
         <h2>Comparación entre entidades</h2>
-        <p class="ayuda">Cuánta gente trabaja en cada entidad, cuánto se paga en total al mes y cuánto gana la persona del medio (mediana) y la que más gana. Usa los mismos filtros de arriba (tipo y departamento).</p>
+        <p class="ayuda">Cuánta gente trabaja en cada entidad, cuánto se paga en total al mes y cuánto gana la persona del medio (la mitad gana menos que ella) y la que más gana.</p>
+        <p class="ayuda">Se muestran las entidades del tipo y departamento que elegiste en <button type="button" class="enlace-btn" data-ir-tab="sueldos:planilla">Buscar en planillas</button>. Cámbialos ahí para comparar otras.</p>
         <label class="selector">Ordenar:
-          <select id="tabla-orden"><option value="maximo">Sueldo más alto</option><option value="mediana">Sueldo mediano</option><option value="personas">Más personal</option><option value="planilla">Planilla más grande</option></select>
+          <select id="tabla-orden"><option value="maximo">Sueldo más alto</option><option value="mediana">Sueldo del medio</option><option value="personas">Más personal</option><option value="planilla">Planilla más grande</option></select>
         </label>
         <div class="tabla-scroll"><table class="tabla" id="tabla-entidades"></table></div>
         <button type="button" class="boton boton--secundario" id="tabla-mas" hidden>Ver más</button>
@@ -422,12 +423,12 @@
       <div class="dos-col">
         <div class="tarjeta">
           <div class="tarjeta__cabeza"><h2>Empresas que más contratos ganaron</h2></div>
-          <p class="ayuda">Monto total adjudicado en el año. Muchos son consorcios formados para una sola obra.</p>
+          <p class="ayuda">Monto total de los contratos que ganó cada empresa en el año. Muchas son <em>consorcios</em>: varias empresas que se juntan para una sola obra.</p>
           <div id="con-proveedores" class="barras"></div>
         </div>
         <div class="tarjeta">
           <h2>Entidades que más contrataron</h2>
-          <p class="ayuda">Monto total adjudicado por cada entidad compradora.</p>
+          <p class="ayuda">Monto total de los contratos que entregó cada entidad.</p>
           <div id="con-entidades" class="barras"></div>
         </div>
       </div>
@@ -495,6 +496,7 @@
     <section id="distrito" class="vista" aria-labelledby="t-distrito" hidden>
       <h1 id="t-distrito">¿Qué pasa con la plata en tu distrito?</h1>
       <p class="intro">Elige tu distrito en el mapa o búscalo por nombre. Verás cuánto recibe y gasta su municipalidad, de dónde viene esa plata (canon, FONCOMUN, impuestos…), sus obras, auditorías, contratos y programas sociales.</p>
+      <p class="ayuda">¿Buscas un hospital, una UGEL, un gobierno regional o un ministerio? <a href="#entidades">Buscar otra entidad →</a></p>
       <div class="tarjeta">
         <div class="filtros">
           <div class="campo combo">
@@ -654,9 +656,9 @@
             <small>Mercado, ropa, servicios, restaurantes… Todo lo que lleva IGV.</small>
           </label>
           <label class="campo">
-            <span>¿Cuál es tu sueldo bruto mensual en planilla? (S/)</span>
+            <span>¿Cuánto ganas al mes en planilla, antes de descuentos? (S/)</span>
             <input type="number" inputmode="decimal" min="0" step="50" id="in-sueldo" value="2500">
-            <small>Si no estás en planilla, pon 0.</small>
+            <small>Es tu sueldo bruto: el que aparece en tu boleta antes de restar AFP u ONP. Si no estás en planilla, pon 0.</small>
           </label>
         </form>
 
@@ -693,15 +695,26 @@
         <p class="ayuda">Estos datos son públicos pero no se pueden descargar automáticamente sin saltarse protecciones (captcha o bloqueos), cosa que no hacemos. Te dejamos el enlace oficial.</p>
         <ul class="enlaces" id="no-disponible"></ul>
       </div>
-      <details class="tarjeta plegable">
-        <summary><h2>Glosario</h2></summary>
+      <details class="tarjeta plegable" id="glosario" open>
+        <summary><h2>Glosario: las palabras difíciles, en simple</h2></summary>
         <dl class="glosario">
+          <dt>Presupuesto</dt><dd>Lo que una entidad puede gastar en el año.</dd>
+          <dt>Gastado</dt><dd>Lo que ya se pagó porque el bien o servicio se recibió o la obra avanzó (los técnicos lo llaman <em>devengado</em>).</dd>
+          <dt>Partida</dt><dd>Cada cosa concreta en que se gasta: pasajes, publicidad, combustible, alimentos, sueldos…</dd>
+          <dt>Tema (función)</dt><dd>La gran finalidad del gasto: educación, salud, transporte… sin importar qué entidad lo gaste.</dd>
+          <dt>Entregar un contrato (adjudicar)</dt><dd>Cuando una entidad elige a la empresa que se queda con un contrato.</dd>
+          <dt>Consorcio</dt><dd>Varias empresas que se juntan para ganar un contrato, muchas veces para una sola obra.</dd>
+          <dt>Código de obra (CUI)</dt><dd>Código Único de Inversiones: el número oficial de cada obra o proyecto. Sirve para buscarla en Infobras o en el MEF.</dd>
+          <dt>Sueldo del medio (mediana)</dt><dd>Si ordenas a todos de menor a mayor sueldo, es el de la persona del medio: la mitad gana menos y la otra mitad más.</dd>
+          <dt>Sueldo bruto</dt><dd>Tu sueldo antes de que te descuenten AFP u ONP e impuestos.</dd>
+          <dt>Canon y regalías</dt><dd>Parte de lo que pagan las empresas mineras, petroleras o de gas que se reparte a las regiones y municipios donde trabajan.</dd>
+          <dt>FONCOMUN</dt><dd>Fondo de Compensación Municipal: dinero que el Estado reparte a todas las municipalidades, más a las más pobres.</dd>
+          <dt>UGEL</dt><dd>Unidad de Gestión Educativa Local: la oficina que maneja los colegios públicos de una zona.</dd>
+          <dt>SEACE</dt><dd>El sistema oficial donde el Estado publica sus compras y contratos.</dd>
           <dt>PIA</dt><dd>Presupuesto Institucional de Apertura: lo que aprueba el Congreso para el año, antes de cambios.</dd>
           <dt>PIM</dt><dd>Presupuesto Institucional Modificado: el PIA más los cambios durante el año.</dd>
-          <dt>Devengado</dt><dd>Lo que realmente se gastó (el servicio se recibió o la obra se avanzó).</dd>
           <dt>UIT</dt><dd>Unidad Impositiva Tributaria. En 2026 equivale a S/ 5,500 y se usa para calcular impuestos y multas.</dd>
           <dt>IGV</dt><dd>Impuesto General a las Ventas: 18% incluido en el precio de casi todo lo que compras.</dd>
-          <dt>Función</dt><dd>La gran finalidad del gasto (educación, salud, transporte…), sin importar qué entidad lo gaste.</dd>
         </dl>
       </details>
     </section>
@@ -725,15 +738,16 @@
         <p class="pie__titulo">Revísalo tú</p>
         <ul>
           <li><a href="https://github.com/victorx142010/transparencia" target="_blank" rel="noopener">Código y datos en GitHub ↗</a></li>
-          <li><a href="#fuentes">Fuentes y glosario</a></li>
+          <li><a href="#fuentes">Fuentes oficiales</a></li>
+          <li><a href="#glosario">Glosario de palabras difíciles</a></li>
           <li><a href="https://github.com/victorx142010/transparencia/issues" target="_blank" rel="noopener">¿Encontraste un error? Avísanos ↗</a></li>
         </ul>
       </div>
     </div>
   </footer>
 
-  <script defer src="js/datos.js?v=202611201200"></script>
-  <script defer src="js/arbol.js?v=202611201200"></script>
-  <script defer src="js/app.js?v=202611201200"></script>
+  <script defer src="js/datos.js?v=202611201300"></script>
+  <script defer src="js/arbol.js?v=202611201300"></script>
+  <script defer src="js/app.js?v=202611201300"></script>
 </body>
 </html>

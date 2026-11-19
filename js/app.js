@@ -203,7 +203,7 @@
       [`Presupuesto ${PR.anio}`, millones(PR.pim || PR.pia), PR.dev ? `ya se gastó el ${pct(PR.dev, PR.pim)}` : "lo aprobado por el Congreso", "#gastos"]
     ];
     const R = RES || {};
-    if (R.contratos) kpis.push(["Contratos adjudicados " + R.contratos.anio, millones(R.contratos.monto / 1e6), `${pl(R.contratos.total, "contrato")} con ${pl(R.contratos.proveedores, "empresa")}`, "#contratos"]);
+    if (R.contratos) kpis.push(["Contratos entregados " + R.contratos.anio, millones(R.contratos.monto / 1e6), `${pl(R.contratos.total, "contrato")} con ${pl(R.contratos.proveedores, "empresa")}`, "#contratos"]);
     if (R.obras) kpis.push(["Obras paralizadas", nf0.format(R.obras.total), `falta ejecutar ${millones(R.obras.saldo / 1e6)}`, "#obras"]);
     $("#kpis").innerHTML = kpis.map(kpiHTML).join("");
     $("#kpis").removeAttribute("aria-busy");
@@ -216,7 +216,7 @@
       contratos: R.contratos ? pl(R.contratos.total, "contrato") : "",
       obras: R.obras ? pl(R.obras.total, "obra") : "",
       sueldos: R.sueldos ? pl(R.sueldos.personas, "persona") : "",
-      congreso: R.congreso && R.congreso.senado != null ? `${nf0.format(R.congreso.senado)}% · ${nf0.format(R.congreso.diputados)}% asistencia` : "",
+      congreso: R.congreso && R.congreso.senado != null ? `asistencia: Senado ${nf0.format(R.congreso.senado)}% · Diputados ${nf0.format(R.congreso.diputados)}%` : "",
       leyes: R.leyes ? pl(R.leyes.total, "proyecto") : "",
       visitas: R.visitas ? pl(R.visitas.total, "reunión", "reuniones") : "",
       programas: R.programas ? `${nf0.format(R.programas.juntos)} hogares en Juntos` : "",
@@ -523,7 +523,7 @@
         : pim > 0 && dev === 0 ? '<span class="etapa etapa--avanza">Sin gasto este año</span>'
         : av < 30 ? '<span class="etapa etapa--avanza">Avance bajo</span>' : av >= 95 ? '<span class="etapa etapa--ley">Casi todo gastado</span>' : "";
       return `<article class="proyecto">
-        <div class="ley__cab"><span class="ley__num">CUI ${esc(cui)}</span>${etiqueta}</div>
+        <div class="ley__cab"><span class="ley__num" title="Código Único de Inversiones (CUI): el número oficial de la obra">Código ${esc(cui)}</span>${etiqueta}</div>
         <p class="ley__titulo">${esc(fraseL(nombre))}</p>
         <p class="ley__meta">${esc(propio(ejec))} · ${esc(propio(dep))}</p>
         <div class="proyecto__montos"><span>Presupuesto ${soles(pim)}</span><span>Gastado ${soles(dev)} (${nf0.format(av)}%)</span></div>
@@ -565,7 +565,7 @@
     $("#obras-conteo").textContent = `${nf0.format(lista.length)} obras`;
     $("#lista-obras").innerHTML = lista.length ? lista.slice(0, OB.n).map((o) => `
       <article class="proyecto">
-        <div class="ley__cab"><span class="ley__num">CUI ${esc(o.cui)}</span><span class="etapa etapa--fin">${esc(o.causal || "Paralizada")}</span></div>
+        <div class="ley__cab"><span class="ley__num" title="Código Único de Inversiones (CUI): el número oficial de la obra">Código ${esc(o.cui)}</span><span class="etapa etapa--fin">${esc(o.causal || "Paralizada")}</span></div>
         <p class="ley__titulo">${esc(fraseL(o.nombre))}</p>
         <p class="ley__meta">${esc(propio(o.entidad))} · ${esc(propio(o.distrito))}, ${esc(propio(o.departamento))}${o.inicio ? ` · empezó en ${o.inicio}` : ""}</p>
         <div class="proyecto__montos"><span>Costo de la obra ${soles(o.costo)}</span><span>Avance físico ${nf0.format(o.avance)}%</span></div>
@@ -589,7 +589,7 @@
       : pim > 0 && dev === 0 ? '<span class="etapa etapa--avanza">Sin gasto este año</span>'
       : av < 30 ? '<span class="etapa etapa--avanza">Avance bajo</span>' : av >= 95 ? '<span class="etapa etapa--ley">Casi todo gastado</span>' : "";
     return `<article class="proyecto">
-      <div class="ley__cab"><span class="ley__num">CUI ${esc(cui)}</span>${etiqueta}</div>
+      <div class="ley__cab"><span class="ley__num" title="Código Único de Inversiones (CUI): el número oficial de la obra">Código ${esc(cui)}</span>${etiqueta}</div>
       <p class="ley__titulo">${esc(fraseL(nombre))}</p>
       ${sub ? `<p class="ley__meta">${esc(sub)}</p>` : ""}
       <div class="proyecto__montos"><span>Presupuesto ${soles(pim)}</span><span>Gastado ${soles(dev)} (${nf0.format(av)}%)</span></div>
@@ -784,10 +784,10 @@
   }
   function pintarContratos() {
     if (!CON) { $("#con-lista").innerHTML = '<p class="vacio">Aún no hay datos de contratos.</p>'; return; }
-    $("#con-intro").innerHTML = `En <strong>${CON.anio}</strong> las entidades públicas adjudicaron <strong>${pl(CON.total, "contrato")}</strong> por <strong>${millones(CON.monto / 1e6)}</strong> mediante procesos registrados en el SEACE (licitaciones, concursos, adjudicaciones simplificadas…). No incluye compras pequeñas de menos de 8 UIT.`;
+    $("#con-intro").innerHTML = `En <strong>${CON.anio}</strong> las entidades públicas entregaron <strong>${pl(CON.total, "contrato")}</strong> por <strong>${millones(CON.monto / 1e6)}</strong> mediante procesos registrados en el SEACE (licitaciones, concursos, adjudicaciones simplificadas…). No incluye compras pequeñas de menos de 8 UIT.`;
     const cat = Object.fromEntries(CON.porCategoria);
     $("#con-kpis").innerHTML = [
-      ["Monto adjudicado", millones(CON.monto / 1e6), pl(CON.total, "contrato")],
+      ["Monto total", millones(CON.monto / 1e6), pl(CON.total, "contrato")],
       ["En obras", millones((cat.Obras || 0) / 1e6), pct(cat.Obras || 0, CON.monto) + " del total"],
       ["Empresas que ganaron", nf0.format(CON.proveedoresDistintos), "proveedores distintos"],
       ["Entidades que compraron", nf0.format(CON.entidadesDistintas), "municipios, regiones, ministerios…"]
@@ -1045,7 +1045,7 @@
 
   function pintarTablaEntidades() {
     const filas = entidadesFiltradas().sort((a, b) => b[PL.orden] - a[PL.orden]);
-    $("#tabla-entidades").innerHTML = `<thead><tr><th>Entidad</th><th>Mes</th><th>Personas</th><th>Planilla del mes</th><th>Sueldo mediano</th><th>Sueldo más alto</th></tr></thead><tbody>` +
+    $("#tabla-entidades").innerHTML = `<thead><tr><th>Entidad</th><th>Mes</th><th>Personas</th><th>Planilla del mes</th><th>Sueldo del medio</th><th>Sueldo más alto</th></tr></thead><tbody>` +
       filas.slice(0, PL.n).map((e) => `<tr><td><button type="button" class="enlace-btn" data-ent="${e.id}">${esc(propio(e.nombre))}</button>${e.departamento ? `<small class="tabla__sub">${esc(propio(e.departamento))}</small>` : ""}</td><td>${esc(periodoTexto(e.periodo))}</td>
         <td>${nf0.format(e.personas)}</td><td>${corto(e.planilla / 1e6)}</td><td>${soles(e.mediana)}</td><td>${soles(e.maximo)}</td></tr>`).join("") + "</tbody>";
     $$("#tabla-entidades [data-ent]").forEach((b) => b.addEventListener("click", () => {
@@ -1088,7 +1088,7 @@
     $("#planilla-kpis").innerHTML = [
       ["Personas en planilla", nf0.format(e.personas), "sin contar pensionistas"],
       ["Pago total del mes", millones(e.planilla / 1e6), `≈ ${millones((e.planilla * 14) / 1e6)} al año (con gratificaciones)`],
-      ["Sueldo mediano", soles(e.mediana), `la mitad gana menos de esto · máx. ${soles(e.maximo)}`]
+      ["Sueldo del medio", soles(e.mediana), `la mitad gana menos de esto · máx. ${soles(e.maximo)}`]
     ].map(kpiHTML).join("");
     pintarListaPlanilla(e);
   }
@@ -1491,7 +1491,7 @@
         const cambio = prev && v(prev) ? (v(ult) - v(prev)) / v(prev) : 0;
         return `<tr><td>${esc(bonito(f))}</td>${anios.map((a) => `<td>${v(a) ? nf1.format(v(a) / 1e9) : "—"}</td>`).join("")}<td class="${cambio >= 0 ? "sube" : "baja"}">${cambio >= 0 ? "▲" : "▼"} ${nf0.format(Math.abs(cambio * 100))}%</td></tr>`;
       }).join("") + "</tbody>";
-    $("#historia-fuente").innerHTML = `Montos en miles de millones de soles (devengado). * ${PR.anio}: año en curso. Fuente: MEF — Datos Abiertos, presupuesto y ejecución de cada año.`;
+    $("#historia-fuente").innerHTML = `Montos en miles de millones de soles, lo realmente gastado. * ${PR.anio}: año en curso. Fuente: MEF — Datos Abiertos, presupuesto y ejecución de cada año.`;
   }
 
   // ---------- Tu distrito: mapa y ficha ----------
@@ -1641,7 +1641,7 @@
           ${otras.length ? `<h3 class="exp-sub">Otras entidades con presupuesto aquí</h3><ul class="actividades actividades--1">${otras.slice(0, 8).map((e) => `<li><span><a href="#entidades?id=${encodeURIComponent(e[0])}">${esc(propio(e[1]))}</a></span><b>${corto(e[7] / M)}</b><small>${pct(e[8], e[7])} gastado</small></li>`).join("")}</ul>` : ""}
         </div>
       </div></details>
-      ${obras.length ? `<details class="seccion-plegable"><summary>Obras paralizadas <span>${nf0.format(obras.length)}</span></summary><div class="proyectos">${obras.slice(0, 6).map((o) => `<article class="proyecto"><div class="ley__cab"><span class="ley__num">CUI ${esc(o.cui)}</span><span class="etapa etapa--fin">${esc(o.causal || "Paralizada")}</span></div>
+      ${obras.length ? `<details class="seccion-plegable"><summary>Obras paralizadas <span>${nf0.format(obras.length)}</span></summary><div class="proyectos">${obras.slice(0, 6).map((o) => `<article class="proyecto"><div class="ley__cab"><span class="ley__num" title="Código Único de Inversiones (CUI): el número oficial de la obra">Código ${esc(o.cui)}</span><span class="etapa etapa--fin">${esc(o.causal || "Paralizada")}</span></div>
         <p class="ley__titulo">${esc(fraseL(o.nombre))}</p><p class="ley__meta">${esc(propio(o.entidad))} · avance físico ${nf0.format(o.avance)}% · falta ${soles(o.saldo)}</p></article>`).join("")}</div>${obras.length > 6 ? `<p><a href="#obras?q=${encodeURIComponent(dist)}">Ver las ${nf0.format(obras.length)} obras →</a></p>` : ""}</details>` : ""}
       ${infs.length ? `<details class="seccion-plegable"><summary>Auditorías de la Contraloría <span>${nf0.format(infs.length)}</span></summary><div class="proyectos">${infs.slice(0, 6).map(tarjetaInforme).join("")}</div>
         ${infs.length > 6 ? `<p><a href="#control?q=${encodeURIComponent(dist)}">Ver los ${nf0.format(infs.length)} informes →</a></p>` : ""}</details>` : ""}
@@ -1654,7 +1654,7 @@
   // ---------- Menú: 4 temas, y dentro de cada tema una fila con TODO lo que contiene ----------
   // Cada entrada: [sección, nombre, pestaña opcional]. Las pestañas valiosas tienen su propia entrada.
   const GRUPOS = {
-    zona: ["Tu distrito", [["distrito", "Mapa de distritos"], ["entidades", "Tu municipalidad u otra entidad"], ["programas", "Programas sociales"]]],
+    zona: ["Tu distrito", [["distrito", "Tu distrito"], ["entidades", "Hospitales, UGEL y otras entidades"], ["programas", "Programas sociales"]]],
     dinero: ["El dinero", [["ingresos", "Impuestos"], ["gastos", "En qué se gasta"], ["gastos", "Qué compra el Estado", "partidas"], ["deuda", "Deuda"], ["mi-impuesto", "Cuánto aportas tú"]]],
     contratos: ["Contratos y obras", [["contratos", "Contratos"], ["contratos", "Señales de alerta", "alertas"], ["obras", "Obras paralizadas"], ["control", "Auditorías"]]],
     autoridades: ["Autoridades", [["sueldos", "Sueldos"], ["viajes", "Viajes"], ["congreso", "Asistencia al Congreso"], ["congreso", "Cómo votan", "votos"], ["leyes", "Proyectos de ley"], ["visitas", "Visitas a Palacio"]]]
@@ -1778,13 +1778,13 @@
   const SECCIONES = [
     ["Impuestos", "#ingresos", "impuestos recaudacion igv renta sunat"], ["Gastos del presupuesto", "#gastos", "gastos presupuesto educacion salud transporte"],
     ["¿Qué se compra?", "#gastos-partidas", "partidas compras pasajes publicidad combustible"], ["Mi impuesto (calculadora)", "#mi-impuesto", "calculadora mi impuesto cuanto pago"],
-    ["Tu municipio", "#entidades", "municipio municipalidad region ugel hospital entidad"], ["Contratos", "#contratos", "contratos empresas proveedores licitacion"],
+    ["Hospitales, UGEL y otras entidades", "#entidades", "municipio municipalidad region ugel hospital entidad ministerio"], ["Contratos", "#contratos", "contratos empresas proveedores licitacion"],
     ["Obras paralizadas", "#obras", "obras paralizadas contraloria"], ["Sueldos", "#sueldos", "sueldos planilla salario remuneracion"],
-    ["Asistencia al Congreso", "#congreso", "congreso asistencia senado diputados faltas"], ["Proyectos de ley", "#leyes", "leyes proyectos de ley congreso"],
+    ["Asistencia al Congreso", "#congreso", "congreso asistencia senado diputados faltas"], ["Cómo vota cada congresista", "#congreso?t=votos", "votos votacion congresista a favor en contra"], ["Proyectos de ley", "#leyes", "leyes proyectos de ley congreso"],
     ["Visitas a Palacio", "#visitas", "visitas palacio presidencia presidenta"], ["Fuentes y glosario", "#fuentes", "fuentes glosario metodologia"],
-    ["Tu distrito (mapa)", "#distrito", "distrito mapa ficha canon foncomun"], ["Auditorías de la Contraloría", "#control", "auditoria contraloria informe control responsabilidad penal"],
+    ["Tu distrito", "#distrito", "distrito mapa ficha municipio municipalidad canon foncomun"], ["Auditorías de la Contraloría", "#control", "auditoria contraloria informe control responsabilidad penal"],
     ["Programas sociales", "#programas", "programas sociales juntos pension 65"], ["Deuda pública", "#deuda", "deuda publica prestamos bonos"],
-    ["Viajes de funcionarios", "#viajes", "viajes viaticos pasajes funcionarios"], ["Señales de alerta en contratos", "#contratos", "alertas banderas rojas postor unico contratacion directa"]
+    ["Viajes de funcionarios", "#viajes", "viajes viaticos pasajes funcionarios"], ["Señales de alerta en contratos", "#contratos?t=alertas", "alertas banderas rojas postor unico contratacion directa"]
   ];
   let tBus;
   async function buscarTodo(texto) {
@@ -1808,7 +1808,7 @@
     if (ENT) add("Distritos", distritosLista().filter((e) => hay(e[6])).sort((a, b) => (normal(a[6]) === q ? -1 : 1) - (normal(b[6]) === q ? -1 : 1)).slice(0, 3)
       .map((e) => [propio(e[6]), `${propio(e[5])}, ${propio(e[4])} · ficha del distrito y mapa`, `#distrito?u=${e[11]}`]));
     if (SUE) add("Sueldos: planillas", SUE.entidades.filter((e) => hay(`${e.nombre} ${e.departamento || ""}`)).slice(0, 4)
-      .map((e) => [propio(e.nombre), `${nf0.format(e.personas)} personas · sueldo mediano ${soles(e.mediana)}`, `#sueldos?ent=${e.id}`]));
+      .map((e) => [propio(e.nombre), `${nf0.format(e.personas)} personas · sueldo del medio ${soles(e.mediana)}`, `#sueldos?ent=${e.id}`]));
     if (CON) add("Contratos: empresas", CON.topProveedores.filter((r) => hay(`${r[1]} ${r[0]}`)).slice(0, 3)
       .map((r) => [propio(r[1]), `${corto(r[2] / 1e6)} en ${nf0.format(r[3])} contratos`, `#contratos?q=${encodeURIComponent(r[1])}`]), `#contratos?q=${enc}`);
     if (OBRAS) add("Obras paralizadas", OBRAS.obras.filter((o) => hay(`${o.cui} ${o.nombre} ${o.distrito} ${o.provincia} ${o.entidad}`)).slice(0, 4)
