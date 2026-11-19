@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Plata Clara Perú</title>
   <meta name="description" content="Portal ciudadano para entender cuánto recauda el Estado peruano, en qué lo gasta y cuánto ganan sus autoridades. En lenguaje simple.">
-  <meta name="theme-color" content="#f7f4ee" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0f1720" media="(prefers-color-scheme: dark)">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='14' cy='14' r='9' fill='none' stroke='%230e6e6e' stroke-width='3.5'/><path d='M21 21l7 7' stroke='%230e6e6e' stroke-width='4' stroke-linecap='round'/><text x='14' y='18.5' font-size='11' font-family='Arial' font-weight='700' text-anchor='middle' fill='%23c8102e'>S/</text></svg>">
+  <meta name="theme-color" content="#f5f3ef" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#12151b" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='14' cy='14' r='9' fill='none' stroke='%2327437e' stroke-width='3.5'/><path d='M21 21l7 7' stroke='%2327437e' stroke-width='4' stroke-linecap='round'/><text x='14' y='18.5' font-size='11' font-family='Arial' font-weight='700' text-anchor='middle' fill='%23b3132f'>S/</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=202611201300">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87.5..100,400..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css?v=202611201400">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="i-inicio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol><symbol id="i-dinero" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></symbol><symbol id="i-zona" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.4a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.6" r="2.5"/></symbol><symbol id="i-vigila" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-poder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5z"/><path d="M5.5 10v7.5M10 10v7.5M14 10v7.5M18.5 10v7.5"/><path d="M3 20.5h18"/></symbol><symbol id="i-fuentes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5c3-1 6-1 9.5 1 3.5-2 6.5-2 9.5-1v13c-3-1-6-1-9.5 1-3.5-2-6.5-2-9.5-1z"/><path d="M12 6.5v13"/></symbol><symbol id="i-buscar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol></svg>
@@ -133,42 +133,38 @@
     <section id="gastos" class="vista" aria-labelledby="t-gastos" hidden>
       <h1 id="t-gastos">¿En qué se gasta el dinero?</h1>
       <p class="intro" id="gastos-intro"></p>
-      <div class="tabs" role="tablist" aria-label="Partes de esta sección"><button type="button" role="tab" id="tab-gastos-resumen" aria-controls="panel-gastos-resumen" tabindex="0" data-tab="gastos:resumen" aria-selected="true">Resumen</button><button type="button" role="tab" id="tab-gastos-tema" aria-controls="panel-gastos-tema" tabindex="-1" data-tab="gastos:tema" aria-selected="false">Por tema y proyecto</button><button type="button" role="tab" id="tab-gastos-partidas" aria-controls="panel-gastos-partidas" tabindex="-1" data-tab="gastos:partidas" aria-selected="false">¿Qué se compra?</button><button type="button" role="tab" id="tab-gastos-historia" aria-controls="panel-gastos-historia" tabindex="-1" data-tab="gastos:historia" aria-selected="false">Años anteriores</button></div>
+      <div class="tabs" role="tablist" aria-label="Partes de esta sección" hidden><button type="button" role="tab" id="tab-gastos-tema" aria-controls="panel-gastos-tema" tabindex="0" data-tab="gastos:tema" aria-selected="true">En qué se gasta</button><button type="button" role="tab" id="tab-gastos-partidas" aria-controls="panel-gastos-partidas" tabindex="-1" data-tab="gastos:partidas" aria-selected="false">¿Qué se compra?</button><button type="button" role="tab" id="tab-gastos-historia" aria-controls="panel-gastos-historia" tabindex="-1" data-tab="gastos:historia" aria-selected="false">Años anteriores</button></div>
 
-      <div data-panel="gastos:resumen" id="panel-gastos-resumen" role="tabpanel" aria-labelledby="tab-gastos-resumen">
+      <div data-panel="gastos:tema" id="panel-gastos-tema" role="tabpanel" aria-labelledby="tab-gastos-tema">
       <div class="kpis kpis--3" id="ejecucion"></div>
-      <div class="tarjeta">
-        <h2>¿Quién lo administra?</h2>
-        <div id="niveles" class="apilada"></div>
-        <ul id="niveles-leyenda" class="leyenda"></ul>
-        <p class="fuente" id="niveles-fuente"></p>
-      </div>
-      <p class="siguiente">Sigue: <button type="button" class="enlace-btn" data-ir-tab="gastos:tema">ver en qué se gasta, hasta cada proyecto →</button></p>
-      </div>
-
-      <div data-panel="gastos:tema" id="panel-gastos-tema" role="tabpanel" aria-labelledby="tab-gastos-tema" hidden>
 
       <div class="tarjeta">
-        <div class="tarjeta__cabeza">
-          <h2>¿Para qué se usa?</h2>
-          <div class="controles">
-            <div class="segmentado" role="group" aria-label="Forma de ver">
-              <button data-vista="barras" aria-pressed="true">Barras</button>
-              <button data-vista="arbol" aria-pressed="false">▦ Árbol</button>
-            </div>
-            <div class="segmentado" role="group" aria-label="Unidad" id="seg-unidad">
-              <button data-unidad="total" aria-pressed="true">Total</button>
-              <button data-unidad="persona" aria-pressed="false">Por persona</button>
-            </div>
-          </div>
-        </div>
-        <p class="ayuda" id="gastos-ayuda">Presupuesto por función. Toca cada fila para ver qué incluye y cuánto se ha gastado.</p>
+        <h2>¿Para qué se usa?</h2>
+        <p class="ayuda" id="gastos-ayuda">Presupuesto por tema. Toca cada fila para ver qué incluye y cuánto se ha gastado.</p>
         <div id="gastos-barras" class="barras"></div>
         <div id="gastos-arbol-wrap" hidden>
           <nav class="migas" id="arbol-migas" aria-label="Nivel del árbol"></nav>
           <div id="gastos-arbol" class="arbol"></div>
         </div>
+        <div class="ver-como">
+          <span class="ver-como__t">Ver como</span>
+          <div class="segmentado" role="group" aria-label="Forma de ver">
+            <button data-vista="barras" aria-pressed="true">Lista</button>
+            <button data-vista="arbol" aria-pressed="false">Mapa de cuadros</button>
+          </div>
+          <div class="segmentado" role="group" aria-label="Unidad" id="seg-unidad">
+            <button data-unidad="total" aria-pressed="true">Total</button>
+            <button data-unidad="persona" aria-pressed="false">Por persona</button>
+          </div>
+        </div>
         <p class="fuente" id="gastos-fuente"></p>
+      </div>
+
+      <div class="tarjeta">
+        <h2>¿Quién lo administra?</h2>
+        <div id="niveles" class="apilada"></div>
+        <ul id="niveles-leyenda" class="leyenda"></ul>
+        <p class="fuente" id="niveles-fuente"></p>
       </div>
 
       <div class="tarjeta tarjeta--explorador" id="explorador" hidden>
@@ -312,15 +308,8 @@
       </div>
 
       <div class="tarjeta">
-        <div class="tarjeta__cabeza">
-          <h2>Todos los proyectos</h2>
-          <div class="segmentado" role="group" aria-label="Cámara">
-            <button data-pcamara="" aria-pressed="true">Ambas</button>
-            <button data-pcamara="D" aria-pressed="false">Diputados</button>
-            <button data-pcamara="S" aria-pressed="false">Senado</button>
-          </div>
-        </div>
-        <div class="filtros">
+        <h2>Todos los proyectos</h2>
+        <div class="filtros filtros--3">
           <label class="campo">
             <span>Buscar</span>
             <input type="search" id="buscar-leyes" placeholder="Tema, número o autor: pensiones, 00818, Zunini…" autocomplete="off">
@@ -328,6 +317,10 @@
           <label class="campo">
             <span>Etapa</span>
             <select id="sel-estado" class="select-grande"><option value="">Todas</option></select>
+          </label>
+          <label class="campo">
+            <span>Cámara</span>
+            <select id="sel-pcamara" class="select-grande"><option value="">Ambas</option><option value="D">Diputados</option><option value="S">Senado</option></select>
           </label>
         </div>
         <p class="ayuda" id="leyes-conteo"></p>
@@ -347,7 +340,7 @@
         <button data-camara="diputados" aria-pressed="false">Diputados (130)</button>
       </div>
 
-      <div class="tabs" role="tablist" aria-label="Partes de esta sección"><button type="button" role="tab" id="tab-congreso-asistencia" aria-controls="panel-congreso-asistencia" tabindex="0" data-tab="congreso:asistencia" aria-selected="true">Asistencia</button><button type="button" role="tab" id="tab-congreso-votos" aria-controls="panel-congreso-votos" tabindex="-1" data-tab="congreso:votos" aria-selected="false">Cómo votan</button></div>
+      <div class="tabs" role="tablist" aria-label="Partes de esta sección" hidden><button type="button" role="tab" id="tab-congreso-asistencia" aria-controls="panel-congreso-asistencia" tabindex="0" data-tab="congreso:asistencia" aria-selected="true">Asistencia</button><button type="button" role="tab" id="tab-congreso-votos" aria-controls="panel-congreso-votos" tabindex="-1" data-tab="congreso:votos" aria-selected="false">Cómo votan</button></div>
       <div data-panel="congreso:asistencia" id="panel-congreso-asistencia" role="tabpanel" aria-labelledby="tab-congreso-asistencia">
       <div class="kpis kpis--3" id="congreso-kpis"></div>
 
@@ -374,11 +367,11 @@
         <div id="lista-congreso" class="asistencias"></div>
       </div>
 
-      <div class="tarjeta">
-        <h2>Sesiones leídas</h2>
+      <details class="tarjeta plegable">
+        <summary><h2>Sesiones leídas y actas oficiales</h2></summary>
         <div id="sesiones-congreso" class="tabla-scroll"></div>
-        <p class="fuente" id="congreso-fuente"></p>
-      </div>
+      </details>
+      <p class="fuente" id="congreso-fuente"></p>
       </div>
 
       <div data-panel="congreso:votos" id="panel-congreso-votos" role="tabpanel" aria-labelledby="tab-congreso-votos" hidden>
@@ -416,7 +409,7 @@
     <section id="contratos" class="vista" aria-labelledby="t-contratos" hidden>
       <h1 id="t-contratos">¿A quién le paga el Estado?</h1>
       <p class="intro" id="con-intro"></p>
-      <div class="tabs" role="tablist" aria-label="Partes de esta sección"><button type="button" role="tab" id="tab-contratos-resumen" aria-controls="panel-contratos-resumen" tabindex="0" data-tab="contratos:resumen" aria-selected="true">Resumen</button><button type="button" role="tab" id="tab-contratos-alertas" aria-controls="panel-contratos-alertas" tabindex="-1" data-tab="contratos:alertas" aria-selected="false">Señales de alerta</button><button type="button" role="tab" id="tab-contratos-buscar" aria-controls="panel-contratos-buscar" tabindex="-1" data-tab="contratos:buscar" aria-selected="false">Buscar contratos</button></div>
+      <div class="tabs" role="tablist" aria-label="Partes de esta sección" hidden><button type="button" role="tab" id="tab-contratos-resumen" aria-controls="panel-contratos-resumen" tabindex="0" data-tab="contratos:resumen" aria-selected="true">Resumen</button><button type="button" role="tab" id="tab-contratos-alertas" aria-controls="panel-contratos-alertas" tabindex="-1" data-tab="contratos:alertas" aria-selected="false">Señales de alerta</button><button type="button" role="tab" id="tab-contratos-buscar" aria-controls="panel-contratos-buscar" tabindex="-1" data-tab="contratos:buscar" aria-selected="false">Buscar contratos</button></div>
 
       <div data-panel="contratos:resumen" id="panel-contratos-resumen" role="tabpanel" aria-labelledby="tab-contratos-resumen">
       <div class="kpis kpis--4" id="con-kpis"></div>
@@ -746,8 +739,8 @@
     </div>
   </footer>
 
-  <script defer src="js/datos.js?v=202611201300"></script>
-  <script defer src="js/arbol.js?v=202611201300"></script>
-  <script defer src="js/app.js?v=202611201300"></script>
+  <script defer src="js/datos.js?v=202611201400"></script>
+  <script defer src="js/arbol.js?v=202611201400"></script>
+  <script defer src="js/app.js?v=202611201400"></script>
 </body>
 </html>

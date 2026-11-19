@@ -315,7 +315,7 @@
       ? "El tamaño de cada bloque es proporcional a su presupuesto. Toca un bloque para ver en qué se divide."
       : conDev
         ? 'Toca cada fila para ver el detalle. <span class="mini-leyenda"><i class="ml-pim"></i>Presupuesto del año <i class="ml-dev"></i>Ya gastado</span>'
-        : "Presupuesto por función. Toca cada fila para ver qué incluye y la fuente.";
+        : "Presupuesto por tema. Toca cada fila para ver qué incluye y la fuente.";
     $("#gastos-barras").hidden = vista !== "barras";
     $("#gastos-arbol-wrap").hidden = vista !== "arbol";
     if (vista === "arbol") return pintarArbol();
@@ -1181,7 +1181,7 @@
     $("#mas-leyes").hidden = lista.length <= mostrarL;
     $("#mas-leyes").textContent = `Ver más (${nf0.format(lista.length - mostrarL)} restantes)`;
   }
-  grupoBotones("pcamara", (v) => { pCamara = v; mostrarL = 30; PROY && pintarListaLeyes(); });
+  $("#sel-pcamara").addEventListener("change", (ev) => { pCamara = ev.target.value; mostrarL = 30; PROY && pintarListaLeyes(); });
   grupoBotones("ranking", (v) => { ranking = v; PROY && pintarRanking(); });
   $("#buscar-leyes").addEventListener("input", () => { mostrarL = 30; PROY && pintarListaLeyes(); });
   $("#sel-estado").addEventListener("change", () => { mostrarL = 30; PROY && pintarListaLeyes(); });
@@ -1655,8 +1655,8 @@
   // Cada entrada: [sección, nombre, pestaña opcional]. Las pestañas valiosas tienen su propia entrada.
   const GRUPOS = {
     zona: ["Tu distrito", [["distrito", "Tu distrito"], ["entidades", "Hospitales, UGEL y otras entidades"], ["programas", "Programas sociales"]]],
-    dinero: ["El dinero", [["ingresos", "Impuestos"], ["gastos", "En qué se gasta"], ["gastos", "Qué compra el Estado", "partidas"], ["deuda", "Deuda"], ["mi-impuesto", "Cuánto aportas tú"]]],
-    contratos: ["Contratos y obras", [["contratos", "Contratos"], ["contratos", "Señales de alerta", "alertas"], ["obras", "Obras paralizadas"], ["control", "Auditorías"]]],
+    dinero: ["El dinero", [["ingresos", "Impuestos"], ["gastos", "En qué se gasta"], ["gastos", "Qué compra el Estado", "partidas"], ["gastos", "Años anteriores", "historia"], ["deuda", "Deuda"], ["mi-impuesto", "Cuánto aportas tú"]]],
+    contratos: ["Contratos y obras", [["contratos", "Contratos"], ["contratos", "Señales de alerta", "alertas"], ["contratos", "Buscar un contrato", "buscar"], ["obras", "Obras paralizadas"], ["control", "Auditorías"]]],
     autoridades: ["Autoridades", [["sueldos", "Sueldos"], ["viajes", "Viajes"], ["congreso", "Asistencia al Congreso"], ["congreso", "Cómo votan", "votos"], ["leyes", "Proyectos de ley"], ["visitas", "Visitas a Palacio"]]]
   };
   const GRUPO_DE = { inicio: "inicio", fuentes: "fuentes" };
