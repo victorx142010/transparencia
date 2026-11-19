@@ -740,8 +740,15 @@ main [id] { scroll-margin-top: 135px; }
 .grupo__ico .ico { width: 1.4rem; height: 1.4rem; }
 .grupo { box-shadow: none; }
 
+/* Enlace "Ver todo el portal" al final de cada fila de subsecciones */
+.subnav__fila a.subnav__todo { margin-left: auto; color: var(--primario-texto); font-weight: 600; white-space: nowrap; }
+.subnav__fila a.subnav__todo::after { content: " →"; }
+
 /* Celular */
 @media (max-width: 759.98px) {
+  .solo-escritorio { display: none; }
+  .nav__fila { padding: 0 2px; }
+  .nav__item { padding-left: .1rem; padding-right: .1rem; letter-spacing: -.01em; }
   .cab-enlace.solo-movil { display: inline-flex; }
   .nav__item .nav__ico .ico { width: 1.35rem; height: 1.35rem; }
 }

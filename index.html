@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=202611151200">
+  <link rel="stylesheet" href="css/styles.css?v=202611201200">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="i-inicio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol><symbol id="i-dinero" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></symbol><symbol id="i-zona" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.4a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.6" r="2.5"/></symbol><symbol id="i-vigila" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-poder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5z"/><path d="M5.5 10v7.5M10 10v7.5M14 10v7.5M18.5 10v7.5"/><path d="M3 20.5h18"/></symbol><symbol id="i-fuentes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5c3-1 6-1 9.5 1 3.5-2 6.5-2 9.5-1v13c-3-1-6-1-9.5 1-3.5-2-6.5-2-9.5-1z"/><path d="M12 6.5v13"/></symbol><symbol id="i-buscar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol></svg>
@@ -31,10 +31,10 @@
     <nav id="nav" class="nav" aria-label="Secciones">
       <div class="contenedor nav__fila">
         <a href="#inicio" class="nav__item" data-grupo-link="inicio"><span class="nav__ico"><svg class="ico" aria-hidden="true"><use href="#i-inicio"/></svg></span><span class="nav__txt">Inicio</span></a>
-        <a href="#gastos" class="nav__item" data-grupo-link="dinero"><span class="nav__ico"><svg class="ico" aria-hidden="true"><use href="#i-dinero"/></svg></span><span class="nav__txt">El dinero</span></a>
-        <a href="#distrito" class="nav__item" data-grupo-link="zona"><span class="nav__ico"><svg class="ico" aria-hidden="true"><use href="#i-zona"/></svg></span><span class="nav__txt">Tu zona</span></a>
-        <a href="#contratos" class="nav__item" data-grupo-link="vigila"><span class="nav__ico"><svg class="ico" aria-hidden="true"><use href="#i-vigila"/></svg></span><span class="nav__txt">Vigila</span></a>
-        <a href="#congreso" class="nav__item" data-grupo-link="poder"><span class="nav__ico"><svg class="ico" aria-hidden="true"><use href="#i-poder"/></svg></span><span class="nav__txt">El poder</span></a>
+        <a href="#distrito" class="nav__item" data-grupo-link="zona"><span class="nav__ico"><svg class="ico" aria-hidden="true"><use href="#i-zona"/></svg></span><span class="nav__txt">Tu distrito</span></a>
+        <a href="#ingresos" class="nav__item" data-grupo-link="dinero"><span class="nav__ico"><svg class="ico" aria-hidden="true"><use href="#i-dinero"/></svg></span><span class="nav__txt">El dinero</span></a>
+        <a href="#contratos" class="nav__item" data-grupo-link="contratos"><span class="nav__ico"><svg class="ico" aria-hidden="true"><use href="#i-vigila"/></svg></span><span class="nav__txt">Contratos<span class="solo-escritorio"> y obras</span></span></a>
+        <a href="#sueldos" class="nav__item" data-grupo-link="autoridades"><span class="nav__ico"><svg class="ico" aria-hidden="true"><use href="#i-poder"/></svg></span><span class="nav__txt">Autoridades</span></a>
         <a href="#fuentes" class="nav__item nav__item--fuentes" data-grupo-link="fuentes"><span class="nav__ico"><svg class="ico" aria-hidden="true"><use href="#i-fuentes"/></svg></span><span class="nav__txt">Fuentes</span></a>
       </div>
     </nav>
@@ -48,50 +48,53 @@
     <!-- ===================== INICIO ===================== -->
     <section id="inicio" class="vista" aria-labelledby="t-inicio">
       <div class="hero">
-        <h1 id="t-inicio">La plata del Estado es <em>tu</em> plata. Aquí puedes ver a dónde va.</h1>
+        <h1 id="t-inicio">El dinero del Estado es <em>tu</em> dinero. Les pagamos el sueldo.</h1>
         <p class="hero__sub">Impuestos, gastos, contratos, sueldos, obras y leyes. Explicado en simple, con la fuente oficial al lado de cada número.</p>
         <div class="buscador" role="search">
           <label for="busqueda-global" class="visualmente-oculto">Buscar en todo el portal</label>
           <input type="search" id="busqueda-global" placeholder="Busca tu distrito, una empresa, una obra, una ley…" autocomplete="off" aria-controls="busqueda-resultados">
-          <div class="buscador__ej" id="busqueda-ejemplos">Prueba: <button type="button" data-ej="Miraflores">Miraflores</button> <button type="button" data-ej="UGEL Cusco">UGEL Cusco</button> <button type="button" data-ej="colegio">colegio</button> <button type="button" data-ej="pensiones">pensiones</button> <button type="button" data-ej="consorcio vial">consorcio vial</button></div>
+          <div class="buscador__ej" id="busqueda-ejemplos">Prueba: <button type="button" data-ej="Miraflores">Miraflores</button> <button type="button" data-ej="colegio">colegio</button> <button type="button" data-ej="pensiones">pensiones</button></div>
           <div class="buscador__res" id="busqueda-resultados" aria-live="polite" hidden></div>
         </div>
         <p class="promesas">Solo datos oficiales, con enlace a la fuente · Sin publicidad ni partido político · Código abierto · Se actualiza solo cada semana</p>
       </div>
 
-      <h2 class="titulo-seccion">Lo más importante, en números</h2>
-      <div class="kpis kpis--4" id="kpis" aria-busy="true"><div class="kpi kpi--cargando" aria-hidden="true"><p class="kpi__label"></p><p class="kpi__valor"></p><p class="kpi__extra"></p></div><div class="kpi kpi--cargando" aria-hidden="true"><p class="kpi__label"></p><p class="kpi__valor"></p><p class="kpi__extra"></p></div><div class="kpi kpi--cargando" aria-hidden="true"><p class="kpi__label"></p><p class="kpi__valor"></p><p class="kpi__extra"></p></div><div class="kpi kpi--cargando" aria-hidden="true"><p class="kpi__label"></p><p class="kpi__valor"></p><p class="kpi__extra"></p></div></div>
-
-      <h2 class="titulo-seccion">¿Qué quieres saber?</h2>
+      <h2 class="titulo-seccion" id="temas">Todo lo que puedes ver aquí</h2>
       <div class="grupos" id="grupos-inicio">
         <div class="grupo">
-          <a class="grupo__cab" href="#gastos"><span class="grupo__ico"><svg class="ico" aria-hidden="true"><use href="#i-dinero"/></svg></span><span><b class="grupo__t">El dinero</b><span class="grupo__d">¿Cuánto entra y en qué se gasta?</span></span></a>
-          <a href="#ingresos"><span>Impuestos</span><small data-dato="ingresos"></small></a>
-          <a href="#gastos"><span>Gastos del presupuesto</span><small data-dato="gastos"></small></a>
-          <a href="#deuda"><span>Deuda pública</span><small data-dato="deuda"></small></a>
-          <a href="#mi-impuesto"><span>Mi impuesto</span><small>calculadora</small></a>
-        </div>
-        <div class="grupo">
-          <a class="grupo__cab" href="#distrito"><span class="grupo__ico"><svg class="ico" aria-hidden="true"><use href="#i-zona"/></svg></span><span><b class="grupo__t">Tu zona</b><span class="grupo__d">¿Qué pasa en tu distrito?</span></span></a>
-          <a href="#distrito"><span>Tu distrito (mapa)</span><small>1,890 distritos</small></a>
-          <a href="#entidades"><span>Tu municipio o entidad</span><small data-dato="entidades"></small></a>
-          <a href="#obras"><span>Obras paralizadas</span><small data-dato="obras"></small></a>
+          <a class="grupo__cab" href="#distrito"><span class="grupo__ico"><svg class="ico" aria-hidden="true"><use href="#i-zona"/></svg></span><span><b class="grupo__t">Tu distrito</b><span class="grupo__d">¿Qué pasa con la plata cerca de ti?</span></span></a>
+          <a href="#distrito"><span>Tu distrito en el mapa</span><small>1,890 distritos</small></a>
+          <a href="#entidades"><span>Tu municipalidad, hospital o UGEL</span><small data-dato="entidades"></small></a>
           <a href="#programas"><span>Programas sociales</span><small data-dato="programas"></small></a>
         </div>
         <div class="grupo">
-          <a class="grupo__cab" href="#contratos"><span class="grupo__ico"><svg class="ico" aria-hidden="true"><use href="#i-vigila"/></svg></span><span><b class="grupo__t">Vigila</b><span class="grupo__d">¿A quién se le paga y cuánto?</span></span></a>
-          <a href="#contratos"><span>Contratos</span><small data-dato="contratos"></small></a>
-          <a href="#sueldos"><span>Sueldos</span><small data-dato="sueldos"></small></a>
-          <a href="#control"><span>Auditorías</span><small data-dato="control"></small></a>
-          <a href="#viajes"><span>Viajes de funcionarios</span><small data-dato="viajes"></small></a>
+          <a class="grupo__cab" href="#ingresos"><span class="grupo__ico"><svg class="ico" aria-hidden="true"><use href="#i-dinero"/></svg></span><span><b class="grupo__t">El dinero</b><span class="grupo__d">¿Cuánto entra y en qué se gasta?</span></span></a>
+          <a href="#ingresos"><span>Cuánto se recauda en impuestos</span><small data-dato="ingresos"></small></a>
+          <a href="#gastos"><span>En qué se gasta</span><small data-dato="gastos"></small></a>
+          <a href="#gastos?t=partidas"><span>Qué compra el Estado</span><small data-dato="partidas"></small></a>
+          <a href="#deuda"><span>Cuánto debe el Perú</span><small data-dato="deuda"></small></a>
+          <a href="#mi-impuesto"><span>Cuánto aportas tú</span><small>calculadora</small></a>
         </div>
         <div class="grupo">
-          <a class="grupo__cab" href="#congreso"><span class="grupo__ico"><svg class="ico" aria-hidden="true"><use href="#i-poder"/></svg></span><span><b class="grupo__t">El poder</b><span class="grupo__d">¿Qué hacen el Congreso y Palacio?</span></span></a>
-          <a href="#congreso"><span>Asistencia y votos</span><small data-dato="congreso"></small></a>
+          <a class="grupo__cab" href="#contratos"><span class="grupo__ico"><svg class="ico" aria-hidden="true"><use href="#i-vigila"/></svg></span><span><b class="grupo__t">Contratos y obras</b><span class="grupo__d">¿A quién se le paga y qué se construye?</span></span></a>
+          <a href="#contratos"><span>Contratos del Estado</span><small data-dato="contratos"></small></a>
+          <a href="#contratos?t=alertas"><span>Contratos con señales de alerta</span><small data-dato="alertas"></small></a>
+          <a href="#obras"><span>Obras paralizadas</span><small data-dato="obras"></small></a>
+          <a href="#control"><span>Auditorías de la Contraloría</span><small data-dato="control"></small></a>
+        </div>
+        <div class="grupo">
+          <a class="grupo__cab" href="#sueldos"><span class="grupo__ico"><svg class="ico" aria-hidden="true"><use href="#i-poder"/></svg></span><span><b class="grupo__t">Autoridades</b><span class="grupo__d">¿Cuánto ganan y qué hacen?</span></span></a>
+          <a href="#sueldos"><span>Sueldos y planillas</span><small data-dato="sueldos"></small></a>
+          <a href="#viajes"><span>Viajes de funcionarios</span><small data-dato="viajes"></small></a>
+          <a href="#congreso"><span>Asistencia al Congreso</span><small data-dato="congreso"></small></a>
+          <a href="#congreso?t=votos"><span>Cómo vota cada congresista</span><small data-dato="votos"></small></a>
           <a href="#leyes"><span>Proyectos de ley</span><small data-dato="leyes"></small></a>
           <a href="#visitas"><span>Visitas a Palacio</span><small data-dato="visitas"></small></a>
         </div>
       </div>
+
+      <h2 class="titulo-seccion">Lo más importante, en números</h2>
+      <div class="kpis kpis--4" id="kpis" aria-busy="true"><div class="kpi kpi--cargando" aria-hidden="true"><p class="kpi__label"></p><p class="kpi__valor"></p><p class="kpi__extra"></p></div><div class="kpi kpi--cargando" aria-hidden="true"><p class="kpi__label"></p><p class="kpi__valor"></p><p class="kpi__extra"></p></div><div class="kpi kpi--cargando" aria-hidden="true"><p class="kpi__label"></p><p class="kpi__valor"></p><p class="kpi__extra"></p></div><div class="kpi kpi--cargando" aria-hidden="true"><p class="kpi__label"></p><p class="kpi__valor"></p><p class="kpi__extra"></p></div></div>
 
       <details class="tarjeta plegable">
         <summary><h2>¿Cómo funciona el dinero del Estado? (3 pasos)</h2></summary>
@@ -729,8 +732,8 @@
     </div>
   </footer>
 
-  <script defer src="js/datos.js?v=202611151200"></script>
-  <script defer src="js/arbol.js?v=202611151200"></script>
-  <script defer src="js/app.js?v=202611151200"></script>
+  <script defer src="js/datos.js?v=202611201200"></script>
+  <script defer src="js/arbol.js?v=202611201200"></script>
+  <script defer src="js/app.js?v=202611201200"></script>
 </body>
 </html>

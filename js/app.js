@@ -222,7 +222,10 @@
       programas: R.programas ? `${nf0.format(R.programas.juntos)} hogares en Juntos` : "",
       deuda: R.deuda ? millones(R.deuda.total) : "",
       control: "informes de control",
-      viajes: "pasajes y viáticos"
+      viajes: "pasajes y viáticos",
+      partidas: "pasajes, publicidad, combustible…",
+      alertas: "patrones para revisar",
+      votos: "a favor, en contra o abstención"
     };
     $$("#grupos-inicio [data-dato]").forEach((s) => (s.textContent = dato[s.dataset.dato] || ""));
   }
@@ -1648,23 +1651,35 @@
     $("#dist-copiar").addEventListener("click", async (ev) => { const url = location.origin + location.pathname + "#distrito?u=" + ub; try { await navigator.clipboard.writeText(url); ev.target.textContent = "Enlace copiado"; } catch (e) { prompt("Copia este enlace:", url); } });
   }
 
-  // ---------- Menú: 4 temas, y dentro de cada tema una fila de secciones ----------
+  // ---------- Menú: 4 temas, y dentro de cada tema una fila con TODO lo que contiene ----------
+  // Cada entrada: [sección, nombre, pestaña opcional]. Las pestañas valiosas tienen su propia entrada.
   const GRUPOS = {
-    dinero: ["El dinero", [["gastos", "Gastos"], ["ingresos", "Impuestos"], ["deuda", "Deuda"], ["mi-impuesto", "Mi impuesto"]]],
-    zona: ["Tu zona", [["distrito", "Tu distrito"], ["entidades", "Tu municipio"], ["obras", "Obras paralizadas"], ["programas", "Programas sociales"]]],
-    vigila: ["Vigila", [["contratos", "Contratos"], ["sueldos", "Sueldos"], ["control", "Auditorías"], ["viajes", "Viajes"]]],
-    poder: ["El poder", [["congreso", "Congreso"], ["leyes", "Proyectos de ley"], ["visitas", "Visitas a Palacio"]]]
+    zona: ["Tu distrito", [["distrito", "Mapa de distritos"], ["entidades", "Tu municipalidad u otra entidad"], ["programas", "Programas sociales"]]],
+    dinero: ["El dinero", [["ingresos", "Impuestos"], ["gastos", "En qué se gasta"], ["gastos", "Qué compra el Estado", "partidas"], ["deuda", "Deuda"], ["mi-impuesto", "Cuánto aportas tú"]]],
+    contratos: ["Contratos y obras", [["contratos", "Contratos"], ["contratos", "Señales de alerta", "alertas"], ["obras", "Obras paralizadas"], ["control", "Auditorías"]]],
+    autoridades: ["Autoridades", [["sueldos", "Sueldos"], ["viajes", "Viajes"], ["congreso", "Asistencia al Congreso"], ["congreso", "Cómo votan", "votos"], ["leyes", "Proyectos de ley"], ["visitas", "Visitas a Palacio"]]]
   };
   const GRUPO_DE = { inicio: "inicio", fuentes: "fuentes" };
   Object.entries(GRUPOS).forEach(([g, [, secs]]) => secs.forEach(([s]) => (GRUPO_DE[s] = g)));
-  function pintarSubnav(grupo, actual) {
+  function pintarSubnav(grupo) {
     const box = $("#subnav"), def = GRUPOS[grupo];
     box.hidden = !def;
     if (!def) return;
-    $("#subnav-fila").innerHTML = `<span class="subnav__t">${def[0]}</span>` + def[1].map(([s, n]) =>
-      `<a href="#${s}"${s === actual ? ' aria-current="page"' : ""}>${n}</a>`).join("");
-    const a = $("#subnav-fila [aria-current]");
-    if (a) a.scrollIntoView({ block: "nearest", inline: "center" });
+    $("#subnav-fila").innerHTML = `<span class="subnav__t">${def[0]}</span>` + def[1].map(([s, n, t]) =>
+      `<a href="#${s}${t ? "?t=" + t : ""}" data-sec="${s}" data-t="${t || ""}">${n}</a>`).join("") +
+      `<a href="#temas" class="subnav__todo">Ver todo el portal</a>`;
+    marcarSubnav();
+  }
+  // Marca la entrada actual: la de la pestaña abierta si tiene entrada propia; si no, la de la sección.
+  function marcarSubnav() {
+    const links = $$("#subnav-fila a[data-sec]");
+    if (!links.length || !vistaActual) return;
+    const tabAbierta = $(`[data-tab^="${vistaActual}:"][aria-selected="true"]`);
+    const parte = tabAbierta ? tabAbierta.dataset.tab.split(":")[1] : "";
+    const actual = links.find((a) => a.dataset.sec === vistaActual && a.dataset.t === parte) ||
+      links.find((a) => a.dataset.sec === vistaActual && !a.dataset.t);
+    links.forEach((a) => (a === actual ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
+    if (actual) actual.scrollIntoView({ block: "nearest", inline: "center" });
   }
   const irABuscar = (ev) => {
     ev.preventDefault();
@@ -1683,6 +1698,7 @@
     if (clave === "gastos:historia") pintarHistoria();
     if (clave === "congreso:votos") pintarVotos();
     if (clave === "contratos:alertas") pintarAlertas();
+    marcarSubnav();
   }
   $$("[data-tab]").forEach((b) => {
     b.addEventListener("click", () => activarTab(b.dataset.tab, true));
@@ -1713,7 +1729,7 @@
       a.classList.toggle("nav__item--activo", a.dataset.grupoLink === grupo);
       a.dataset.grupoLink === grupo ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current");
     });
-    pintarSubnav(grupo, v.id);
+    pintarSubnav(grupo);
     // Si el destino está dentro de una pestaña, abrirla
     const panel = ancla && ancla.closest("[data-panel]");
     if (panel) activarTab(panel.dataset.panel);
@@ -1730,6 +1746,10 @@
     const q = p.get("q");
     const t = p.get("t");
     if (t && $(`[data-tab="${v.id}:${t}"]`)) activarTab(`${v.id}:${t}`);
+    else if (!t && !ancla) { // sin pestaña en la dirección: volver a la primera (p. ej. de "Señales de alerta" a "Contratos")
+      const prim = $(`[data-tab^="${v.id}:"]`);
+      if (prim && prim.getAttribute("aria-selected") !== "true") activarTab(prim.dataset.tab);
+    }
     if (v.id === "entidades") {
       const pid = p.get("id");
       if (q) { EN.q = q; $("#ent-q").value = q; }
