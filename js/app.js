@@ -225,7 +225,8 @@
       viajes: "pasajes y viáticos",
       partidas: "pasajes, publicidad, combustible…",
       alertas: "patrones para revisar",
-      votos: "a favor, en contra o abstención"
+      votos: "a favor, en contra o abstención",
+      bancadas: R.congreso ? "asientos por partido" : ""
     };
     $$("#grupos-inicio [data-dato]").forEach((s) => (s.textContent = dato[s.dataset.dato] || ""));
   }
@@ -254,7 +255,7 @@
       html += filaHTML({ nombre: "Menos: devoluciones", valorTexto: "− " + millones(ING.devoluciones), ancho: (ING.devoluciones / max) * 100, gris: true,
         detalle: "<p>Dinero que SUNAT devuelve: a exportadores, saldos a favor del Impuesto a la Renta, etc.</p>" });
     $("#ingresos-barras").innerHTML = html;
-    $("#ingresos-fuente").innerHTML = `Fuente: ${enlace(ING.fuente)}${ING.oficial ? " — se actualiza automáticamente cada semana." : ""}`;
+    $("#ingresos-fuente").innerHTML = `Fuente: ${enlace(ING.fuente)}${ING.oficial ? " — se actualiza automáticamente tres veces por semana." : ""}`;
 
     if (ING.meses) {
       $("#ingresos-meses-card").hidden = false;
@@ -290,7 +291,7 @@
     $("#gastos-intro").innerHTML = PR.pim
       ? `Para <strong>${PR.anio}</strong> el Congreso aprobó <strong>${millones(PR.pia)}</strong>. Durante el año el presupuesto se amplió a <strong>${millones(PR.pim)}</strong> y ya se gastó <strong>${millones(PR.dev)}</strong>.${corte} ${sello("oficial")}`
       : `Para <strong>${PR.anio}</strong> el Congreso aprobó un presupuesto de <strong>${millones(PR.pia)}</strong>. ${sello("oficial")}`;
-    $("#gastos-fuente").innerHTML = `Fuente: ${enlace(PR.fuente)}${PR.oficial ? " — se actualiza automáticamente cada semana." : ""}`;
+    $("#gastos-fuente").innerHTML = `Fuente: ${enlace(PR.fuente)}${PR.oficial ? " — se actualiza automáticamente tres veces por semana." : ""}`;
 
     if (PR.pim) {
       $("#ejecucion").innerHTML = [
@@ -874,7 +875,7 @@
   function pintarCongreso() {
     if (!CONG) {
       $("#congreso-kpis").innerHTML = "";
-      $("#lista-congreso").innerHTML = '<p class="vacio">Aún no hay datos de asistencia. Ejecuta <code>python scripts/actualizar_congreso.py</code> o espera la actualización semanal.</p>';
+      $("#lista-congreso").innerHTML = '<p class="vacio">Aún no hay datos de asistencia. Ejecuta <code>python scripts/actualizar_congreso.py</code> o espera la próxima actualización automática.</p>';
       return;
     }
     const c = CONG.camaras[camara];
@@ -904,14 +905,106 @@
     const filas = lista.map((m) => {
       const w = (n) => ((n / m.sesiones) * 100).toFixed(1);
       return `<div class="asis">
-        <div class="asis__top"><span class="asis__nombre">${esc(m.nombre)}<small>${quien}</small></span><span class="asis__pct">${nf0.format(m.pct)}%</span></div>
+        <div class="asis__top"><span class="asis__nombre">${esc(m.nombre)}<small>${quien}${m.bancada ? " · " + esc(m.bancada) : ""}</small></span><span class="asis__pct">${nf0.format(m.pct)}%</span></div>
         <div class="asis__barra" aria-hidden="true"><span class="a-pre" style="width:${w(m.presente)}%"></span><span class="a-lic" style="width:${w(m.licencia + m.otro)}%"></span><span class="a-aus" style="width:${w(m.ausente)}%"></span></div>
         <p class="asis__txt">Asistió a ${m.presente} de ${m.sesiones} · ${m.licencia ? `${m.licencia} con licencia · ` : ""}<strong class="${m.ausente ? "rojo" : ""}">${m.ausente} ausencia${m.ausente === 1 ? "" : "s"}</strong></p>
       </div>`;
     });
     $("#lista-congreso").innerHTML = lista.length ? pocas + (q ? filas.join("") : corta(filas, 12)) : '<p class="vacio">No encontramos ese apellido.</p>';
   }
-  grupoBotones("camara", (v) => { camara = v; pintarCongreso(); if (!$('[data-panel="congreso:votos"]').hidden) pintarVotos(); });
+  grupoBotones("camara", (v) => { camara = v; bancadaSel = null; pintarCongreso(); if (!$('[data-panel="congreso:votos"]').hidden) pintarVotos(); if (!$('[data-panel="congreso:bancadas"]').hidden) pintarBancadas(); });
+
+  // ---------- Bancadas: cómo está conformada cada cámara ----------
+  // Cada bancada tiene SIEMPRE el mismo color (en ambas cámaras); el orden fija su lugar en el hemiciclo.
+  const ORDEN_BANCADAS = ["Fuerza Popular", "Juntos por el Perú", "Partido del Buen Gobierno", "Renovación Popular", "Partido Cívico Obras", "Ahora Nación"];
+  const colorBancada = (b) => { const i = ORDEN_BANCADAS.indexOf(b); return i >= 0 ? `var(--bancada-${i + 1})` : "var(--bancada-otra)"; };
+  let bancadaSel = null;
+  function contarBancadas(c) {
+    const n = {};
+    c.integrantes.forEach((p) => (n[p.bancada] = (n[p.bancada] || 0) + 1));
+    return Object.entries(n).sort((a, b) => {
+      const ia = ORDEN_BANCADAS.indexOf(a[0]), ib = ORDEN_BANCADAS.indexOf(b[0]);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || b[1] - a[1];
+    });
+  }
+  // Asientos en filas concéntricas; se reparten de izquierda a derecha por bancada.
+  function hemicicloSVG(grupos, total) {
+    const filas = total <= 70 ? 5 : 8, r0 = 0.42;
+    const radios = Array.from({ length: filas }, (_, i) => r0 + ((1 - r0) * i) / (filas - 1));
+    const sumaR = radios.reduce((a, r) => a + r, 0);
+    let quedan = total;
+    const porFila = radios.map((r, i) => { const k = i === filas - 1 ? quedan : Math.round((total * r) / sumaR); quedan -= k; return k; });
+    const asientos = [];
+    radios.forEach((r, i) => { const k = porFila[i]; for (let j = 0; j < k; j++) { const a = Math.PI * (1 - (k === 1 ? 0.5 : j / (k - 1))); asientos.push({ a, r }); } });
+    asientos.sort((x, y) => y.a - x.a || x.r - y.r);
+    const paso = (1 - r0) / (filas - 1), punto = Math.min(paso * 0.4, (Math.PI * r0) / (porFila[0] - 1) * 0.4);
+    const W = 200, cx = 100, cy = 98, R = 92;
+    let k = 0, circulos = "";
+    grupos.forEach(([b, n]) => {
+      for (let i = 0; i < n; i++, k++) {
+        const s = asientos[k];
+        circulos += `<circle cx="${(cx + R * s.r * Math.cos(s.a)).toFixed(2)}" cy="${(cy - R * s.r * Math.sin(s.a)).toFixed(2)}" r="${(R * punto).toFixed(2)}" fill="${colorBancada(b)}" data-b="${esc(b)}"><title>${esc(b)}: ${n} ${n === 1 ? "asiento" : "asientos"}</title></circle>`;
+      }
+    });
+    return `<svg viewBox="0 0 ${W} ${(cy + R * punto + 1).toFixed(1)}" role="img" aria-label="Hemiciclo con ${total} asientos coloreados por bancada">${circulos}
+      <text x="${cx}" y="${cy - 14}" text-anchor="middle" class="hemiciclo__n">${total}</text>
+      <text x="${cx}" y="${cy - 3}" text-anchor="middle" class="hemiciclo__l">asientos</text></svg>`;
+  }
+  function pintarBancadas() {
+    const c = CONG && CONG.camaras[camara];
+    if (!c || !c.integrantes || !c.integrantes.length) {
+      $("#hemiciclo").innerHTML = ""; $("#bancadas-leyenda").innerHTML = "";
+      $("#bancada-lista").innerHTML = '<p class="vacio">Aún no hay datos de las bancadas. Ejecuta <code>python scripts/actualizar_congreso.py</code>.</p>';
+      return;
+    }
+    const total = c.integrantes.length, mayoria = Math.floor(total / 2) + 1;
+    const grupos = contarBancadas(c);
+    const mayor = [...grupos].sort((a, b) => b[1] - a[1])[0];
+    $("#bancadas-titulo").textContent = camara === "senado" ? "¿Cómo está conformado el Senado?" : "¿Cómo está conformada la Cámara de Diputados?";
+    $("#bancadas-resumen").innerHTML = `${pl(total, "asiento")} repartidos entre ${pl(grupos.length, "bancada")}. Para aprobar algo por mayoría absoluta se necesitan <strong>${mayoria} votos</strong>. ` +
+      (mayor[1] >= mayoria ? `<strong>${esc(mayor[0])}</strong> la tiene por sí sola.` : `Ninguna bancada la tiene sola: la más grande, <strong>${esc(mayor[0])}</strong>, tiene ${mayor[1]}, así que necesita aliarse con otras.`);
+    $("#hemiciclo").innerHTML = hemicicloSVG(grupos, total);
+    $("#bancadas-leyenda").innerHTML = grupos.map(([b, n]) => `<li><button type="button" data-bancada="${esc(b)}" aria-pressed="${b === bancadaSel}">
+        <i style="background:${colorBancada(b)}"></i><span class="bancadas__n">${esc(b)}</span>
+        <span class="bancadas__v"><strong>${n}</strong> <small>${nf0.format((100 * n) / total)}%</small></span>
+        <span class="bancadas__barra" aria-hidden="true"><span style="width:${(100 * n) / mayor[1]}%;background:${colorBancada(b)}"></span></span></button></li>`).join("");
+    $("#hemiciclo").classList.toggle("hemiciclo--filtro", !!bancadaSel);
+    $$("#hemiciclo circle").forEach((ci) => ci.classList.toggle("on", ci.dataset.b === bancadaSel));
+    pintarIntegrantes();
+    $("#bancadas-fuente").innerHTML = `Fuente: fichas oficiales de cada integrante en <a href="${esc(c.fuente)}" target="_blank" rel="noopener">${esc(c.fuente.replace("https://", ""))}</a>. La <strong>bancada</strong> (grupo parlamentario) es el grupo con el que trabaja en el Congreso; el <strong>partido</strong> es por el que postuló, y casi siempre coinciden. Actualizado: ${new Date(CONG.actualizado).toLocaleDateString("es-PE")}.`;
+  }
+  function pintarIntegrantes() {
+    const c = CONG.camaras[camara];
+    const q = clave($("#bancada-q").value);
+    const asis = {}; c.miembros.forEach((m) => (asis[clave(m.nombre)] = m));
+    const lista = c.integrantes.filter((p) => (!bancadaSel || p.bancada === bancadaSel) &&
+      (!q || clave(`${p.apellidos} ${p.nombres} ${p.distrito || ""}`).includes(q)));
+    const quien = camara === "senado" ? "senadores" : "diputados";
+    $("#bancada-lista-t").textContent = bancadaSel ? `${bancadaSel}: ${pl(lista.length, "integrante")}` : `Todos los ${quien}`;
+    $("#bancada-todas").hidden = !bancadaSel;
+    const porBancada = contarBancadas({ integrantes: lista });
+    const fila = (p) => {
+      const m = p.clave && asis[p.clave];
+      const otroPartido = p.partido && p.partido !== p.bancada ? ` · postuló por ${esc(p.partido)}` : "";
+      return `<div class="integrante"><i style="background:${colorBancada(p.bancada)}" aria-hidden="true"></i>
+        <span class="integrante__n"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.apellidos)}, ${esc(p.nombres)}</a>
+        <small>${bancadaSel ? "" : esc(p.bancada) + " · "}${esc(p.distrito || "")}${otroPartido}</small></span>
+        ${m ? `<a class="integrante__a" href="#congreso?c=${camara}&q=${encodeURIComponent(m.nombre)}" title="Asistencia a los plenos">${nf0.format(m.pct)}% asist.</a>` : ""}</div>`;
+    };
+    $("#bancada-lista").innerHTML = !lista.length ? '<p class="vacio">No encontramos a nadie con esa búsqueda.</p>'
+      : porBancada.map(([b]) => {
+        const filas = lista.filter((p) => p.bancada === b).map(fila);
+        return `${bancadaSel ? "" : `<h3 class="integrantes__b"><i style="background:${colorBancada(b)}"></i>${esc(b)} <small>${filas.length}</small></h3>`}<div class="integrantes__g">${q || bancadaSel ? filas.join("") : corta(filas, 6)}</div>`;
+      }).join("");
+  }
+  $("#bancadas-leyenda").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-bancada]");
+    if (!b) return;
+    bancadaSel = bancadaSel === b.dataset.bancada ? null : b.dataset.bancada;
+    pintarBancadas();
+  });
+  $("#bancada-todas").addEventListener("click", () => { bancadaSel = null; pintarBancadas(); });
+  $("#bancada-q").addEventListener("input", () => CONG && pintarIntegrantes());
   $("#buscar-congreso").addEventListener("input", () => CONG && pintarListaCongreso());
   $("#orden-congreso").addEventListener("change", () => CONG && pintarListaCongreso());
 
@@ -1444,7 +1537,7 @@
     const quien = q ? c.miembros.filter((m) => clave(m.nombre).includes(q)).slice(0, 1)[0] : null;
     if (quien) {
       const v = quien.votos || {};
-      $("#votos-persona").innerHTML = `<div class="tarjeta tarjeta--acento"><h3 class="exp-sub" style="margin-top:0">${esc(quien.nombre)}</h3>
+      $("#votos-persona").innerHTML = `<div class="tarjeta tarjeta--acento"><h3 class="exp-sub" style="margin-top:0">${esc(quien.nombre)}${quien.bancada ? ` <small class="ayuda">· ${esc(quien.bancada)}</small>` : ""}</h3>
         <p>A favor: <strong>${nf0.format(v.favor || 0)}</strong> · En contra: <strong>${nf0.format(v.contra || 0)}</strong> · Abstenciones: <strong>${nf0.format(v.abstencion || 0)}</strong> · Sin voto registrado: <strong>${nf0.format(vs.length - (v.favor || 0) - (v.contra || 0) - (v.abstencion || 0))}</strong> de ${nf0.format(vs.length)} votaciones.</p></div>`;
     } else $("#votos-persona").innerHTML = q ? '<p class="vacio">No encontramos ese apellido en esta cámara.</p>' : "";
     const k = quien ? clave(quien.nombre) : null;
@@ -1660,7 +1753,7 @@
     zona: ["Tu distrito", [["distrito", "Mapa y ficha de tu distrito"], ["entidades", "Hospitales, UGEL y otras entidades"], ["programas", "Programas sociales"]]],
     dinero: ["El dinero", [["ingresos", "Impuestos"], ["gastos", "En qué se gasta"], ["gastos", "Qué compra el Estado", "partidas"], ["gastos", "Años anteriores", "historia"], ["deuda", "Deuda"], ["mi-impuesto", "Cuánto aportas tú"]]],
     contratos: ["Contratos y obras", [["contratos", "Contratos"], ["contratos", "Señales de alerta", "alertas"], ["contratos", "Buscar un contrato", "buscar"], ["obras", "Obras paralizadas"], ["control", "Auditorías"]]],
-    autoridades: ["Autoridades", [["sueldos", "Sueldos"], ["viajes", "Viajes"], ["congreso", "Asistencia al Congreso"], ["congreso", "Cómo votan", "votos"], ["leyes", "Proyectos de ley"], ["visitas", "Visitas a Palacio"]]]
+    autoridades: ["Autoridades", [["sueldos", "Sueldos"], ["viajes", "Viajes"], ["congreso", "Bancadas", "bancadas"], ["congreso", "Asistencia al Congreso"], ["congreso", "Cómo votan", "votos"], ["leyes", "Proyectos de ley"], ["visitas", "Visitas a Palacio"]]]
   };
   const GRUPO_DE = { inicio: "inicio", fuentes: "fuentes" };
   Object.entries(GRUPOS).forEach(([g, [, secs]]) => secs.forEach(([s]) => (GRUPO_DE[s] = g)));
@@ -1709,6 +1802,12 @@
   });
 
   // ---------- Pestañas dentro de secciones ----------
+  // La sección Congreso cambia de título según la pestaña
+  const TEXTOS_CONGRESO = {
+    asistencia: [$("#t-congreso").textContent, $("#congreso-intro").innerHTML],
+    votos: ["¿Cómo vota cada congresista?", "Votaciones nominales leídas de las actas oficiales del Pleno de cada cámara."],
+    bancadas: ["¿Cómo está conformado el Congreso?", "Desde 2026 el Congreso tiene dos cámaras: el <strong>Senado</strong> (60) y la <strong>Cámara de Diputados</strong> (130). Aquí ves cuántos asientos tiene cada bancada y quiénes la integran."]
+  };
   function activarTab(clave, enDireccion) {
     const [grupo, parte] = clave.split(":");
     $$(`[data-tab^="${grupo}:"]`).forEach((b) => { const si = b.dataset.tab === clave; b.setAttribute("aria-selected", String(si)); b.tabIndex = si ? 0 : -1; });
@@ -1717,6 +1816,11 @@
     if (clave === "gastos:tema" && vista === "arbol") pintarArbol();
     if (clave === "gastos:historia") pintarHistoria();
     if (clave === "congreso:votos") pintarVotos();
+    if (clave === "congreso:bancadas") pintarBancadas();
+    if (grupo === "congreso") {
+      const [t, intro] = TEXTOS_CONGRESO[parte] || TEXTOS_CONGRESO.asistencia;
+      $("#t-congreso").textContent = t; $("#congreso-intro").innerHTML = intro;
+    }
     if (clave === "contratos:alertas") pintarAlertas();
     marcarSubnav();
   }
@@ -1800,7 +1904,7 @@
     ["¿Qué se compra?", "#gastos-partidas", "partidas compras pasajes publicidad combustible"], ["Mi impuesto (calculadora)", "#mi-impuesto", "calculadora mi impuesto cuanto pago"],
     ["Hospitales, UGEL y otras entidades", "#entidades", "municipio municipalidad region ugel hospital entidad ministerio"], ["Contratos", "#contratos", "contratos empresas proveedores licitacion"],
     ["Obras paralizadas", "#obras", "obras paralizadas contraloria"], ["Sueldos", "#sueldos", "sueldos planilla salario remuneracion"],
-    ["Asistencia al Congreso", "#congreso", "congreso asistencia senado diputados faltas"], ["Cómo vota cada congresista", "#congreso?t=votos", "votos votacion congresista a favor en contra"], ["Proyectos de ley", "#leyes", "leyes proyectos de ley congreso"],
+    ["Cómo está conformado el Congreso", "#congreso?t=bancadas", "bancadas partidos composicion congreso senado diputados fuerza popular"], ["Asistencia al Congreso", "#congreso", "congreso asistencia senado diputados faltas"], ["Cómo vota cada congresista", "#congreso?t=votos", "votos votacion congresista a favor en contra"], ["Proyectos de ley", "#leyes", "leyes proyectos de ley congreso"],
     ["Visitas a Palacio", "#visitas", "visitas palacio presidencia presidenta"], ["Fuentes y glosario", "#fuentes", "fuentes glosario metodologia"],
     ["Tu distrito", "#distrito", "distrito mapa ficha municipio municipalidad canon foncomun"], ["Auditorías de la Contraloría", "#control", "auditoria contraloria informe control responsabilidad penal"],
     ["Programas sociales", "#programas", "programas sociales juntos pension 65"], ["Deuda pública", "#deuda", "deuda publica prestamos bonos"],
@@ -1854,7 +1958,7 @@
   // Datos que se descargan solo cuando hacen falta: [archivo, qué hacer al llegar]
   let RES = null, todoListo = false;
   const FUENTES = {
-    congreso: ["congreso.json", (d) => { CONG = d && d.camaras ? d : null; pintarCongreso(); }],
+    congreso: ["congreso.json", (d) => { CONG = d && d.camaras ? d : null; pintarCongreso(); if (!$('[data-panel="congreso:bancadas"]').hidden) pintarBancadas(); }],
     visitas: ["visitas.json", (d) => { VIS = d && d.semanas ? d : null; pintarVisitas(); }],
     sueldos: ["sueldos.json", (d) => { SUE = d && d.entidades ? d : null; pintarSueldos(); pintarPlanillas(); }],
     proyectos: ["proyectos.json", (d) => { PROY = d && d.proyectos ? d : null; pintarLeyes(); }],

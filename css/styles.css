@@ -48,12 +48,17 @@
   --ancho-titular: 88%;
   /* Greca escalonada andina: el borde de tejido que marca el inicio y el fin */
   --greca: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 8'%3E%3Cpath d='M0 8V6h3V4h3V2h3V0h6v2h3v2h3v2h3v2z'/%3E%3C/svg%3E");
+  /* Bancadas del Congreso: un color fijo por bancada (paleta validada para daltonismo) */
+  --bancada-1: #eb6834; --bancada-2: #2a78d6; --bancada-3: #1baf7a;
+  --bancada-4: #6250d6; --bancada-5: #eda100; --bancada-6: #e87ba4; --bancada-otra: #8b8f97;
   color-scheme: light;
 }
 /* Tema oscuro: lo activa el script del <head> (elección guardada o la del sistema) */
 :root[data-theme="dark"] {
   --fondo: #12151b;
   --fondo-2: #171b23;
+  --bancada-1: #d95926; --bancada-2: #3987e5; --bancada-3: #199e70;
+  --bancada-4: #9085e9; --bancada-5: #c98500; --bancada-6: #d55181; --bancada-otra: #6b717c;
   --superficie: #1c212b;
   --borde: #2b313d;
   --borde-fuerte: #3a4150;
@@ -448,6 +453,38 @@ code { background: var(--fondo-2); padding: .05rem .35rem; border-radius: 6px; f
 .a-lic { background: var(--aviso); }
 .a-aus { background: var(--mal); }
 .asis__txt { margin: 0; font-size: .84rem; color: var(--texto-suave); }
+/* Hemiciclo y bancadas */
+.hemiciclo-caja { display: grid; gap: 1.2rem; align-items: center; margin-top: .8rem; }
+@media (min-width: 860px) { .hemiciclo-caja { grid-template-columns: 1.15fr 1fr; gap: 2rem; } }
+.hemiciclo svg { display: block; width: 100%; max-width: 560px; height: auto; margin: 0 auto; }
+.hemiciclo circle { stroke: var(--superficie); stroke-width: .5; transition: opacity .2s var(--ease-out); }
+.hemiciclo--filtro circle:not(.on) { opacity: .18; }
+.hemiciclo__n { font-size: 15px; font-weight: 800; fill: var(--texto); font-variant-numeric: tabular-nums; }
+.hemiciclo__l { font-size: 6px; fill: var(--texto-suave); text-transform: uppercase; letter-spacing: .08em; }
+.bancadas { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.bancadas button {
+  width: 100%; display: grid; grid-template-columns: 14px 1fr auto; column-gap: .65rem; row-gap: .3rem; align-items: center;
+  padding: .55rem .6rem; border: 0; border-radius: var(--radio-sm); background: none; color: var(--texto);
+  font: inherit; text-align: left; cursor: pointer; transition: background-color .15s var(--ease-out);
+}
+@media (hover: hover) { .bancadas button:hover { background: var(--fondo-2); } }
+.bancadas button[aria-pressed="true"] { background: var(--primario-suave); box-shadow: inset 0 0 0 1px var(--borde-fuerte); }
+.bancadas i, .integrante > i, .integrantes__b i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
+.bancadas__n { font-weight: 600; font-size: .95rem; min-width: 0; }
+.bancadas__v { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bancadas__v small { color: var(--texto-tenue); margin-left: .25rem; }
+.bancadas__barra { grid-column: 2 / -1; height: 6px; border-radius: 999px; background: var(--barra-fondo); overflow: hidden; }
+.bancadas__barra span { display: block; height: 100%; border-radius: 999px; }
+.integrantes__b { display: flex; align-items: center; gap: .5rem; font-size: 1rem; margin: 1.2rem 0 .2rem; }
+.integrantes__b small { color: var(--texto-tenue); font-weight: 500; font-variant-numeric: tabular-nums; }
+.integrantes__g { display: grid; }
+@media (min-width: 760px) { .integrantes__g { grid-template-columns: 1fr 1fr; column-gap: 28px; } .integrantes__g > .ver-todos, .integrantes__g > .mas-items { grid-column: 1 / -1; } .integrantes__g > .mas-items:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; } }
+.integrante { display: flex; align-items: center; gap: .65rem; padding: .55rem 0; border-bottom: 1px solid var(--borde); min-width: 0; }
+.integrante__n { flex: 1; min-width: 0; font-weight: 600; font-size: .95rem; }
+.integrante__n a { color: var(--texto); text-decoration: none; }
+.integrante__n a:hover { text-decoration: underline; }
+.integrante__n small { display: block; font-weight: 400; color: var(--texto-tenue); font-size: .8rem; }
+.integrante__a { font-size: .82rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .tabla-scroll { overflow-x: auto; }
 .tabla { width: 100%; border-collapse: collapse; font-size: .92rem; font-variant-numeric: tabular-nums; }
 .tabla th, .tabla td { text-align: left; padding: .55rem .6rem; border-bottom: 1px solid var(--borde); white-space: nowrap; }

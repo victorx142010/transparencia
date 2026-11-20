@@ -11,6 +11,7 @@ a descargarlas. El resumen para la web va en data/congreso.json.
 
 Uso:  python scripts/actualizar_congreso.py
 """
+import html
 import io
 import json
 import re
@@ -22,9 +23,18 @@ from pypdf import PdfReader
 from comun import ahora_lima, clave, guardar_json, http, leer_json
 
 CAMARAS = {
-    "senado": {"nombre": "Senado", "base": "https://senado.congreso.gob.pe", "miembro": "senador"},
-    "diputados": {"nombre": "Cámara de Diputados", "base": "https://diputados.congreso.gob.pe", "miembro": "diputad"},
+    "senado": {"nombre": "Senado", "base": "https://senado.congreso.gob.pe", "miembro": "senador", "tipo": "senador"},
+    "diputados": {"nombre": "Cámara de Diputados", "base": "https://diputados.congreso.gob.pe", "miembro": "diputad", "tipo": "diputado"},
 }
+# Nombres oficiales de las agrupaciones (las fichas solo traen el "slug")
+NOMBRES_GRUPO = {
+    "fuerza-popular": "Fuerza Popular", "juntos-por-el-peru": "Juntos por el Perú",
+    "partido-del-buen-gobierno": "Partido del Buen Gobierno", "renovacion-popular": "Renovación Popular",
+    "partido-civico-obras": "Partido Cívico Obras", "ahora-nacion": "Ahora Nación",
+}
+DISTRITOS = {"nacional-distrito-unico": "Distrito nacional único", "peruanos-en-el-exterior": "Peruanos en el extranjero",
+             "peruanos-en-el-extranjero": "Peruanos en el extranjero", "provincia-constitucional-del-callao": "Callao",
+             "san-martin": "San Martín", "junin": "Junín", "huanuco": "Huánuco", "apurimac": "Apurímac"}
 DESDE = "2026-07-01T00:00:00"  # inicio del Congreso bicameral
 # Nombres de archivo de actas: "11_28.oct_.2026sen.pdf", "09-0622.oct_.2026-CD.pdf"
 PATRON_ACTA = re.compile(r"^\d{1,3}[-_]\d{1,4}\.[a-z]+_?\.\d{4}(sen|senado|-cd|cd)(-\d+)?\.pdf$")
@@ -162,6 +172,60 @@ def parsear_votaciones(t, miembro):
     return votos
 
 
+def nombre_slug(slug, tabla=None):
+    if tabla and slug in tabla:
+        return tabla[slug]
+    menores = {"de", "del", "la", "las", "los", "el", "y", "por"}
+    return " ".join(p if i and p in menores else p.capitalize() for i, p in enumerate(slug.split("-")))
+
+
+def listar_integrantes(base, tipo):
+    """Fichas oficiales de cada senador/diputado: bancada, partido por el que postuló y distrito electoral.
+    Vienen como etiquetas del WordPress de cada cámara ("grupo_parlamentario-fuerza-popular", …)."""
+    pagina, fichas = 1, []
+    while True:
+        try:
+            lote = json.loads(http(f"{base}/wp-json/wp/v2/{tipo}?per_page=100&page={pagina}&_fields=title,link,class_list", intentos=2))
+        except Exception:
+            if pagina > 1:
+                break
+            raise
+        if not lote:
+            break
+        fichas.extend(lote)
+        pagina += 1
+    out = []
+    for f in fichas:
+        etq = {}
+        for c in f.get("class_list", []):
+            for t in ("grupo_parlamentario", "partido_politico", "distrito_electoral", "condicion"):
+                if c.startswith(t + "-"):
+                    etq[t] = c[len(t) + 1:]
+        titulo = html.unescape(f["title"]["rendered"])
+        apellidos, _, nombres = titulo.partition(",")
+        if "condicion" in etq and etq["condicion"] not in ("en-ejercicio", "electo"):
+            continue  # p. ej. suspendidos o reemplazados
+        bancada = etq.get("grupo_parlamentario") or etq.get("partido_politico")
+        out.append({
+            "apellidos": apellidos.strip(), "nombres": nombres.strip(), "url": f.get("link"),
+            "bancada": nombre_slug(bancada, NOMBRES_GRUPO) if bancada else "Sin bancada",
+            "partido": nombre_slug(etq["partido_politico"], NOMBRES_GRUPO) if etq.get("partido_politico") else None,
+            "distrito": nombre_slug(etq["distrito_electoral"], DISTRITOS) if etq.get("distrito_electoral") else None,
+        })
+    return out
+
+
+def emparejar(integrantes, nombre):
+    """Busca la ficha de alguien de las actas ("Duarte Patiño de Pezet") por sus apellidos."""
+    k = clave(nombre)
+    exactos = [p for p in integrantes if clave(p["apellidos"]) == k]
+    if len(exactos) == 1:
+        return exactos[0]
+    # Apellidos abreviados en una de las dos fuentes ("Duarte" ↔ "Duarte Patiño de Pezet")
+    parecidos = [p for p in integrantes if clave(p["apellidos"]).startswith(k) or k.startswith(clave(p["apellidos"]))]
+    return parecidos[0] if len(parecidos) == 1 else None
+
+
 def main():
     cache = leer_json("congreso_sesiones.json", {"procesados": {}, "sesiones": {}})
     if cache.get("version") != 2:  # versión 2: también lee las votaciones (se reprocesan las actas)
@@ -245,6 +309,24 @@ def main():
             p["votos"] = conteo.get(k, {"favor": 0, "contra": 0, "abstencion": 0})
         salida["camaras"][cid] = {"nombre": cam["nombre"], "sesiones": resumen, "miembros": lista,
                                   "votaciones": votaciones[::-1], "fuente": cam["base"]}
+
+        # ---------- Composición: bancada y partido de cada integrante ----------
+        try:
+            integrantes = listar_integrantes(cam["base"], cam["tipo"])
+        except Exception as e:
+            print(f"  ! no se pudo leer la lista de integrantes: {e}")
+            previo = (leer_json("congreso.json", {}) or {}).get("camaras", {}).get(cid, {})
+            integrantes = previo.get("integrantes") or []
+        for p in lista:
+            ficha = emparejar(integrantes, p["nombre"])
+            if ficha:
+                p["bancada"] = ficha["bancada"]
+                ficha["clave"] = clave(p["nombre"])  # para enlazar con su asistencia
+        sin = [p["nombre"] for p in lista if "bancada" not in p]
+        if sin:
+            print(f"  ! sin bancada identificada: {', '.join(sin)}")
+        print(f"  {len(integrantes)} integrantes con bancada")
+        salida["camaras"][cid]["integrantes"] = sorted(integrantes, key=lambda x: clave(x["apellidos"]))
     guardar_json("congreso.json", salida)
 
 

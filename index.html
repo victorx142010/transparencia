@@ -66,7 +66,7 @@
           <div class="buscador__ej" id="busqueda-ejemplos">Prueba: <button type="button" data-ej="Miraflores">Miraflores</button> <button type="button" data-ej="colegio">colegio</button> <button type="button" data-ej="pensiones">pensiones</button></div>
           <div class="buscador__res" id="busqueda-resultados" aria-live="polite" hidden></div>
         </div>
-        <p class="promesas">Solo datos oficiales, con enlace a la fuente · Sin publicidad ni partido político · Código abierto · Se actualiza solo cada semana</p>
+        <p class="promesas">Solo datos oficiales, con enlace a la fuente · Sin publicidad ni partido político · Código abierto · Se actualiza solo tres veces por semana</p>
         <canvas class="andes" id="andes" aria-hidden="true"></canvas>
       </div>
 
@@ -97,6 +97,7 @@
           <a class="grupo__cab" href="#sueldos"><span class="grupo__ico"><svg class="ico" aria-hidden="true"><use href="#i-poder"/></svg></span><span><b class="grupo__t">Autoridades</b><span class="grupo__d">¿Cuánto ganan y qué hacen?</span></span></a>
           <a href="#sueldos"><span>Sueldos y planillas</span><small data-dato="sueldos"></small></a>
           <a href="#viajes"><span>Viajes de funcionarios</span><small data-dato="viajes"></small></a>
+          <a href="#congreso?t=bancadas"><span>Cómo está conformado el Congreso</span><small data-dato="bancadas"></small></a>
           <a href="#congreso"><span>Asistencia al Congreso</span><small data-dato="congreso"></small></a>
           <a href="#congreso?t=votos"><span>Cómo vota cada congresista</span><small data-dato="votos"></small></a>
           <a href="#leyes"><span>Proyectos de ley</span><small data-dato="leyes"></small></a>
@@ -344,14 +345,14 @@
     <!-- ===================== CONGRESO ===================== -->
     <section id="congreso" class="vista" aria-labelledby="t-congreso" hidden>
       <h1 id="t-congreso">¿Van a trabajar los congresistas?</h1>
-      <p class="intro">Asistencia a las sesiones del Pleno, leída automáticamente de las actas oficiales que publica cada cámara. Una <strong>licencia</strong> es una falta justificada (viaje oficial, enfermedad, motivo personal); una <strong>ausencia</strong> no tiene justificación registrada.</p>
+      <p class="intro" id="congreso-intro">Asistencia a las sesiones del Pleno, leída automáticamente de las actas oficiales que publica cada cámara. Una <strong>licencia</strong> es una falta justificada (viaje oficial, enfermedad, motivo personal); una <strong>ausencia</strong> no tiene justificación registrada.</p>
 
       <div class="segmentado segmentado--grande" role="group" aria-label="Cámara" id="seg-camara">
         <button data-camara="senado" aria-pressed="true">Senado (60)</button>
         <button data-camara="diputados" aria-pressed="false">Diputados (130)</button>
       </div>
 
-      <div class="tabs" role="tablist" aria-label="Partes de esta sección" hidden><button type="button" role="tab" id="tab-congreso-asistencia" aria-controls="panel-congreso-asistencia" tabindex="0" data-tab="congreso:asistencia" aria-selected="true">Asistencia</button><button type="button" role="tab" id="tab-congreso-votos" aria-controls="panel-congreso-votos" tabindex="-1" data-tab="congreso:votos" aria-selected="false">Cómo votan</button></div>
+      <div class="tabs" role="tablist" aria-label="Partes de esta sección" hidden><button type="button" role="tab" id="tab-congreso-asistencia" aria-controls="panel-congreso-asistencia" tabindex="0" data-tab="congreso:asistencia" aria-selected="true">Asistencia</button><button type="button" role="tab" id="tab-congreso-votos" aria-controls="panel-congreso-votos" tabindex="-1" data-tab="congreso:votos" aria-selected="false">Cómo votan</button><button type="button" role="tab" id="tab-congreso-bancadas" aria-controls="panel-congreso-bancadas" tabindex="-1" data-tab="congreso:bancadas" aria-selected="false">Bancadas</button></div>
       <div data-panel="congreso:asistencia" id="panel-congreso-asistencia" role="tabpanel" aria-labelledby="tab-congreso-asistencia">
       <div class="kpis kpis--3" id="congreso-kpis"></div>
 
@@ -393,6 +394,29 @@
         <div id="votos-persona"></div>
         <div id="votos-lista" class="votaciones"></div>
       </div>
+      </div>
+
+      <div data-panel="congreso:bancadas" id="panel-congreso-bancadas" role="tabpanel" aria-labelledby="tab-congreso-bancadas" hidden>
+      <div class="tarjeta">
+        <h2 id="bancadas-titulo">Asientos por bancada</h2>
+        <p class="ayuda" id="bancadas-resumen"></p>
+        <div class="hemiciclo-caja">
+          <div class="hemiciclo" id="hemiciclo"></div>
+          <ul class="bancadas" id="bancadas-leyenda" aria-label="Bancadas: toca una para ver a sus integrantes"></ul>
+        </div>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta__cabeza">
+          <h2 id="bancada-lista-t">Integrantes</h2>
+          <button type="button" class="boton boton--secundario" id="bancada-todas" hidden>Ver todas las bancadas</button>
+        </div>
+        <label class="campo">
+          <span class="visualmente-oculto">Buscar por apellido</span>
+          <input type="search" id="bancada-q" placeholder="Buscar por apellido o región…" autocomplete="off">
+        </label>
+        <div id="bancada-lista" class="integrantes"></div>
+      </div>
+      <p class="fuente" id="bancadas-fuente"></p>
       </div>
     </section>
 
@@ -736,7 +760,7 @@
         <ul>
           <li>Cada número enlaza a su fuente oficial.</li>
           <li>Marcamos qué es <span class="sello sello--oficial">Oficial</span> y qué es <span class="nowrap"><span class="sello sello--estimado">Estimado</span>.</span></li>
-          <li>Los datos se descargan solos cada lunes; nadie los edita a mano.</li>
+          <li>Los datos se descargan solos los lunes, miércoles y viernes (los sueldos, cada domingo); nadie los edita a mano.</li>
         </ul>
       </div>
       <div>
