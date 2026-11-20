@@ -745,6 +745,22 @@
           <dt>IGV</dt><dd>Impuesto General a las Ventas: 18% incluido en el precio de casi todo lo que compras.</dd>
         </dl>
       </details>
+
+      <div class="tarjeta" id="reportar">
+        <h2>¿Encontraste un error? Avísanos</h2>
+        <p class="ayuda">Si un número no cuadra, un enlace no funciona o algo no se entiende, cuéntanos. Lo revisamos contra la fuente oficial.</p>
+        <form id="form-reporte" class="reporte" novalidate>
+          <label class="campo"><span>¿En qué parte de la web?</span>
+            <input type="text" name="pagina" id="reporte-pagina" maxlength="200" autocomplete="off"></label>
+          <label class="campo"><span>¿Qué está mal?</span>
+            <textarea name="mensaje" id="reporte-mensaje" rows="5" maxlength="3000" required placeholder="Ej.: el sueldo del ministro de Salud no coincide con la planilla oficial…"></textarea></label>
+          <label class="campo"><span>Tu correo <small>(opcional, solo si quieres respuesta)</small></span>
+            <input type="email" name="email" maxlength="200" autocomplete="email"></label>
+          <input type="checkbox" name="botcheck" class="visualmente-oculto" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <button type="submit" class="boton">Enviar</button>
+          <p class="reporte__estado" id="reporte-estado" role="status" aria-live="polite"></p>
+        </form>
+      </div>
     </section>
   </main>
 
@@ -769,7 +785,7 @@
           <li><a href="https://github.com/victorx142010/transparencia" target="_blank" rel="noopener">Código y datos en GitHub ↗</a></li>
           <li><a href="#fuentes">Fuentes oficiales</a></li>
           <li><a href="#glosario">Glosario de palabras difíciles</a></li>
-          <li><a href="https://github.com/victorx142010/transparencia/issues" target="_blank" rel="noopener">¿Encontraste un error? Avísanos ↗</a></li>
+          <li><a href="#reportar" id="link-reportar">¿Encontraste un error? Avísanos</a></li>
         </ul>
       </div>
     </div>

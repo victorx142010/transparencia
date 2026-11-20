@@ -1866,6 +1866,41 @@
     asegurar(...necesita).then(() => { v.removeAttribute("aria-busy"); if (vistaActual === v.id) aplicarParametros(v, id, p, ancla); });
   }
   let vistaActual = null;
+
+  // ---------- Reportar un error ----------
+  // Web3Forms reenvía el mensaje al correo del proyecto sin mostrarlo en la página.
+  // La clave se obtiene en web3forms.com (está pensada para ir en el código público).
+  const WEB3FORMS_CLAVE = "";
+  // Al ir al formulario se anota desde qué parte de la web venía la persona.
+  $("#link-reportar").addEventListener("click", () => {
+    const h = (location.hash || "#inicio").slice(1);
+    const titulo = $(`#${(h.split("?")[0] || "inicio").replace(/[^\w-]/g, "")} h1`);
+    if (!h.startsWith("reportar")) $("#reporte-pagina").value = `${titulo ? titulo.textContent.trim() + " — " : ""}${location.origin}/#${h}`;
+    setTimeout(() => $("#reporte-mensaje").focus({ preventScroll: true }), 120);
+  });
+  $("#form-reporte").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const f = ev.target, estado = $("#reporte-estado"), boton = $("button[type=submit]", f);
+    const pon = (txt, cls) => { estado.textContent = txt; estado.className = "reporte__estado " + (cls || ""); };
+    if (!f.mensaje.value.trim()) { pon("Cuéntanos qué está mal antes de enviar.", "mal"); f.mensaje.focus(); return; }
+    if (f.email.value && !f.email.checkValidity()) { pon("Ese correo no parece válido (o déjalo vacío).", "mal"); f.email.focus(); return; }
+    if (!WEB3FORMS_CLAVE) { pon("El formulario todavía no está activo. Inténtalo más tarde.", "mal"); return; }
+    boton.disabled = true; pon("Enviando…");
+    try {
+      const r = await fetch("https://api.web3forms.com/submit", {
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_CLAVE, subject: "Lupa Ciudadana: reporte de error", from_name: "Lupa Ciudadana",
+          pagina: f.pagina.value, mensaje: f.mensaje.value, email: f.email.value || undefined, botcheck: f.botcheck.checked
+        })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.success) throw new Error(d.message || r.status);
+      f.reset(); pon("¡Gracias! Recibimos tu aviso y lo vamos a revisar.", "ok");
+    } catch (e) {
+      pon("No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.", "mal");
+    } finally { boton.disabled = false; }
+  });
   function aplicarParametros(v, id, p, ancla) {
     const q = p.get("q");
     const t = p.get("t");
