@@ -8,7 +8,11 @@ lista ENTIDADES de actualizar_sueldos.py).
 
 Salida: data/viajes.json
 
-Uso:  python scripts/actualizar_viajes.py [--anio 2026] [--hilos 6]
+Para no repetir cientos de consultas, solo se vuelven a pedir los últimos RECIENTES
+meses (las entidades publican con atraso); los anteriores se toman de viajes.json.
+El primer lunes de cada mes (o con --completo) se revisa el año entero.
+
+Uso:  python scripts/actualizar_viajes.py [--anio 2026] [--hilos 6] [--completo]
 """
 import argparse
 import html
@@ -18,10 +22,11 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from actualizar_sueldos import ENTIDADES
-from comun import ahora_lima, guardar_json, http
+from comun import ahora_lima, guardar_json, http, leer_json
 
 URL = "https://www.transparencia.gob.pe/contrataciones/pte_transparencia_viaticos.aspx"
 PAGINA = URL + "?id_entidad={id}&id_tema=34&ver=D"
+RECIENTES = 3  # meses que se vuelven a consultar siempre
 
 
 def monto(s):
@@ -48,11 +53,22 @@ def main():
     hoy = ahora_lima()
     ap.add_argument("--anio", type=int, default=hoy.year)
     ap.add_argument("--hilos", type=int, default=6)
+    ap.add_argument("--completo", action="store_true", help="volver a consultar todos los meses del año")
     args = ap.parse_args()
     ultimo_mes = hoy.month if args.anio == hoy.year else 12
 
-    tareas = [(i, n, m, t) for i, n, _ in ENTIDADES for m in range(1, ultimo_mes + 1) for t in ("1", "2")]
-    viajes = []
+    # Viajes ya guardados, agrupados por (entidad, mes, tipo), sin la marca de atípico (se recalcula)
+    previo = leer_json("viajes.json", {}) or {}
+    guardados = defaultdict(list)
+    if previo.get("anio") == args.anio:
+        for v in previo.get("viajes", []):
+            guardados[(v[11], int(v[0][5:7]), "2" if v[10] == "Internacional" else "1")].append(v[:12])
+    completo = args.completo or not guardados or (hoy.weekday() == 0 and hoy.day <= 7)
+    desde_mes = 1 if completo else max(1, ultimo_mes - RECIENTES + 1)
+    print(f"Consultando {'todo el año' if completo else f'desde el mes {desde_mes}'} ({args.anio})")
+
+    viajes = [v for (i, m, t), vs in guardados.items() if m < desde_mes for v in vs]
+    tareas = [(i, n, m, t) for i, n, _ in ENTIDADES for m in range(desde_mes, ultimo_mes + 1) for t in ("1", "2")]
 
     def trabajo(x):
         i, n, m, t = x
@@ -60,11 +76,14 @@ def main():
             return x, consultar(i, args.anio, m, t)
         except Exception as e:
             print(f"  ! {n} {m:02d}: {e}")
-            return x, []
+            return x, None
 
     with ThreadPoolExecutor(max_workers=args.hilos) as ex:
         for k, fu in enumerate(as_completed([ex.submit(trabajo, x) for x in tareas]), 1):
             (i, n, m, t), filas = fu.result()
+            if filas is None:  # falló la consulta: se conserva lo que ya teníamos de ese mes
+                viajes.extend(guardados.get((i, m, t), []))
+                continue
             for c in filas:
                 # área, persona, salida, retorno, ruta, pasajes, viáticos, total, fuente, autorización
                 viajes.append([f"{args.anio}-{m:02d}", n, c[0], c[1], c[2], c[3], c[4], monto(c[5]), monto(c[6]),

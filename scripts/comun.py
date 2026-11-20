@@ -1,6 +1,7 @@
 """Utilidades compartidas por los scrapers."""
 import json
 import os
+import ssl
 import time
 import unicodedata
 import urllib.error
@@ -18,6 +19,26 @@ def ahora_lima():
     return datetime.now(LIMA)
 
 
+def _contexto_ssl():
+    """Certificados de confianza: los de certifi (o los del sistema) más los intermedios de
+    scripts/certificados/. Algunas webs del Estado envían un certificado intermedio equivocado
+    (p. ej. consulta-visitas.presidencia.gob.pe); el navegador lo corrige solo, Python no."""
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        ctx = ssl.create_default_context()
+    carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "certificados")
+    if os.path.isdir(carpeta):
+        for nombre in sorted(os.listdir(carpeta)):
+            if nombre.endswith(".pem"):
+                ctx.load_verify_locations(os.path.join(carpeta, nombre))
+    return ctx
+
+
+SSL = _contexto_ssl()
+
+
 def http(url, data=None, timeout=60, intentos=4, stream=False):
     """GET (o POST si data es dict). Reintenta con espera creciente."""
     body = urllib.parse.urlencode(data).encode() if isinstance(data, dict) else data
@@ -25,7 +46,7 @@ def http(url, data=None, timeout=60, intentos=4, stream=False):
     for i in range(intentos):
         try:
             req = urllib.request.Request(url, data=body, headers={"User-Agent": UA})
-            resp = urllib.request.urlopen(req, timeout=timeout)
+            resp = urllib.request.urlopen(req, timeout=timeout, context=SSL)
             return resp if stream else resp.read()
         except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
             ultimo = e

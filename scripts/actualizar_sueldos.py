@@ -15,7 +15,10 @@ Salidas:
 Además de la lista ENTIDADES, recorre el directorio del Portal de Transparencia
 para sumar municipalidades distritales y provinciales y UGEL (más de 1,300).
 
-Uso:  python scripts/actualizar_sueldos.py [--solo 10031,145] [--sin-directorio] [--max 50]
+Normalmente solo se descargan las planillas de meses más nuevos que la guardada; el primer
+domingo de cada mes (o con --completo) se vuelven a descargar todas.
+
+Uso:  python scripts/actualizar_sueldos.py [--solo 10031,145] [--sin-directorio] [--max 50] [--completo]
 """
 import argparse
 import csv
@@ -225,11 +228,16 @@ def directorio():
     return out
 
 
-def procesar(id_ent, nombre, hoy, meses_atras):
-    """Descarga la planilla más reciente de una entidad. Devuelve (periodo, personas)."""
+def procesar(id_ent, nombre, hoy, meses_atras, guardado=None):
+    """Descarga la planilla más reciente de una entidad. Devuelve (periodo, personas).
+    Si ya tenemos guardada la planilla de un mes (guardado = {"periodo", "personas"}), solo se buscan
+    meses MÁS NUEVOS; si no hay ninguno se devuelve (None, []) y se conserva la guardada sin descargarla."""
     filas, periodo = [], None
     a, m = hoy.year, hoy.month
+    ya = (guardado or {}).get("periodo")
     for _ in range(meses_atras):
+        if ya and f"{a}-{m:02d}" <= ya:
+            return None, []  # lo más reciente publicado es lo que ya tenemos
         try:
             filas = descargar(id_ent, a, m)
         except Exception as e:
@@ -238,11 +246,17 @@ def procesar(id_ent, nombre, hoy, meses_atras):
         if filas:
             periodo = f"{a}-{m:02d}"
             pa, pm = (a, m - 1) if m > 1 else (a - 1, 12)
-            try:
-                previas = descargar(id_ent, pa, pm)
-            except Exception:
-                previas = []
-            if len(previas) > 1.5 * len(filas):  # el mes recién empezó a publicarse
+            if ya == f"{pa}-{pm:02d}":  # el mes anterior ya lo tenemos: comparar sin volver a bajarlo
+                n_previas, previas = len(guardado.get("personas", [])), None
+            else:
+                try:
+                    previas = descargar(id_ent, pa, pm)
+                except Exception:
+                    previas = []
+                n_previas = len(previas)
+            if n_previas > 1.5 * len(filas):  # el mes recién empezó a publicarse
+                if previas is None:
+                    return None, []  # se queda la planilla guardada del mes anterior
                 filas, periodo = previas, f"{pa}-{pm:02d}"
             break
         m -= 1
@@ -276,11 +290,16 @@ def main():
     ap.add_argument("--sin-directorio", action="store_true", help="solo las entidades principales")
     ap.add_argument("--max", type=int, default=0, help="máximo de entidades del directorio (pruebas)")
     ap.add_argument("--hilos", type=int, default=6)
+    ap.add_argument("--completo", action="store_true", help="volver a descargar todas las planillas")
     args = ap.parse_args()
     solo = {int(x) for x in args.solo.split(",") if x}
 
     previo = {e["id"]: e for e in (leer_json("sueldos.json", {}) or {}).get("entidades", [])}
     hoy = ahora_lima()
+    # Normalmente solo se bajan planillas de meses nuevos. El primer domingo de cada mes (o con
+    # --completo) se vuelve a bajar todo, por si alguna entidad corrigió o completó su planilla.
+    completo = args.completo or hoy.day <= 7
+    print("Modo:", "completo (se vuelven a bajar todas las planillas)" if completo else "solo planillas nuevas")
     os.makedirs(os.path.join(DATA, "sueldos"), exist_ok=True)
 
     tareas = [(i, n, g, "", 6, 5) for i, n, g in ENTIDADES]
@@ -302,7 +321,8 @@ def main():
         id_ent, nombre, grupo, dep, meses, top = t
         if solo and id_ent not in solo:
             return conservar(id_ent, nombre, grupo, dep, top)
-        periodo, personas = procesar(id_ent, nombre, hoy, meses)
+        guardado = None if completo else leer_json(f"sueldos/{id_ent}.json")
+        periodo, personas = procesar(id_ent, nombre, hoy, meses, guardado)
         if not personas:
             return conservar(id_ent, nombre, grupo, dep, top)
         guardar_json(f"sueldos/{id_ent}.json", {

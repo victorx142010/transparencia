@@ -103,6 +103,19 @@ def desde_oece(anio):
     return procesos, awards, proveedores, "https://contratacionesabiertas.oece.gob.pe/"
 
 
+def version_espejo(anio):
+    """Etiqueta de versión del archivo del espejo (cambia cuando se publica uno nuevo), sin descargarlo."""
+    try:
+        import urllib.request
+        from comun import SSL, UA
+        req = urllib.request.Request(ESPEJO.format(anio=anio), method="HEAD", headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=60, context=SSL) as r:
+            return r.headers.get("ETag") or r.headers.get("Last-Modified") or r.url
+    except Exception as e:
+        print(f"  (no se pudo consultar la versión del espejo: {e})")
+        return None
+
+
 def desde_espejo(anio, archivo=None):
     """Mismos datos del OECE, copiados cada mes por Open Contracting Partnership (CSV aplanado)."""
     origen = open(archivo, "rb") if archivo else http(ESPEJO.format(anio=anio), timeout=900, stream=True)
@@ -137,12 +150,19 @@ def main():
     ap.add_argument("--espejo", action="store_true", help="usar directamente el espejo de Open Contracting")
     args = ap.parse_args()
 
+    version = None
     try:
         if args.espejo:
             raise RuntimeError("se pidió el espejo")
         procesos, awards, proveedores, fuente = desde_oece(args.anio)
     except Exception as e:
         print(f"OECE no disponible ({e}); usando el espejo de Open Contracting…")
+        # El espejo pesa ~200 MB y solo cambia una vez al mes: si es el mismo de la última vez, no bajarlo.
+        version = version_espejo(args.anio)
+        previo = leer_json("contratos.json", {}) or {}
+        if version and previo.get("anio") == args.anio and previo.get("versionEspejo") == version:
+            print(f"El espejo no cambió desde la última descarga ({version}); se conservan los datos.")
+            return 0
         procesos, awards, proveedores, fuente = desde_espejo(args.anio)
 
     lista = []
@@ -158,6 +178,9 @@ def main():
     if "open-contracting" in fuente and previo.get("anio") == args.anio and previo.get("total", 0) > len(lista):
         # El espejo se publica una vez al mes: si ya tenemos datos más completos, no retroceder.
         print(f"El espejo ({len(lista):,}) es más antiguo que los datos actuales ({previo['total']:,}); no se cambia nada.")
+        if version:  # recordar esta versión para no volver a bajarla
+            previo["versionEspejo"] = version
+            guardar_json("contratos.json", previo)
         return 0
 
     # ---------- Señales de alerta (no prueban irregularidades: indican qué revisar) ----------
@@ -204,7 +227,7 @@ def main():
         guardar_json(f"contratos/{m}.json", {"mes": m, "contratos": filas})
     guardar_json("contratos.json", {
         "anio": args.anio, "actualizado": ahora_lima().isoformat(timespec="minutes"),
-        "fuente": fuente,
+        "fuente": fuente, "versionEspejo": version,
         "total": len(lista), "monto": round(sum(r[4] for r in lista)),
         "proveedoresDistintos": len(por_prov), "entidadesDistintas": len(por_ent),
         "topProveedores": top_prov, "topEntidades": top_ent,
