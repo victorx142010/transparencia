@@ -1,4 +1,6 @@
-# Plata Clara Perú
+# Lupa Ciudadana
+
+*El Estado, visto de cerca.*
 
 Portal ciudadano para entender en simple cuánto recauda el Estado peruano, en qué lo gasta, cuánto ganan sus autoridades, si los congresistas van a trabajar y quién visita Palacio de Gobierno.
 

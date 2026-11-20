@@ -1,5 +1,5 @@
 /* ==========================================================
-   Plata Clara Perú — estilos
+   Lupa Ciudadana — estilos
    Tono: serio y peruano. Colores de los tintes textiles andinos:
    carmín de cochinilla (marca y énfasis), añil (datos y enlaces),
    sobre blanco sillar. Una sola letra, Archivo, de corte periodístico.
@@ -575,6 +575,7 @@ code { background: var(--fondo-2); padding: .05rem .35rem; border-radius: 6px; f
 .pie ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
 .pie__marca { font-family: var(--titular); font-stretch: var(--ancho-titular); font-weight: 700; font-size: 1.2rem; color: var(--texto); }
 .pie__marca span { color: var(--rojo); }
+.pie .pie__lema { color: var(--texto); font-weight: 600; margin: -.25rem 0 .8rem; }
 .pie__titulo { font-weight: 700; color: var(--texto); font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; }
 
 /* Entrada suave de cada sección */
