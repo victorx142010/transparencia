@@ -46,41 +46,41 @@
   --sans: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --titular: var(--sans); /* misma familia; los titulares van más angostos (--ancho-titular) y más gruesos */
   --ancho-titular: 88%;
+  /* Greca escalonada andina: el borde de tejido que marca el inicio y el fin */
+  --greca: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 8'%3E%3Cpath d='M0 8V6h3V4h3V2h3V0h6v2h3v2h3v2h3v2z'/%3E%3C/svg%3E");
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --fondo: #12151b;
-    --fondo-2: #171b23;
-    --superficie: #1c212b;
-    --borde: #2b313d;
-    --borde-fuerte: #3a4150;
-    --texto: #eceef1;
-    --texto-suave: #adb3bd;
-    --texto-tenue: #9198a4;
-    --foco: #a9bcec;
-    --primario: #8ea7e0;
-    --primario-fuerte: #a9bcec;
-    --primario-suave: #222c43;
-    --primario-texto: #a6baeb;
-    --rojo: #ff7d8c;
-    --ok: #6fcf97;
-    --ok-fondo: #173226;
-    --aviso: #f0bf62;
-    --aviso-fondo: #362b14;
-    --mal: #f08a74;
-    --mal-fondo: #3a2019;
-    --barra-fondo: #272e3b;
-    --nivel-1: #8ea7e0;
-    --nivel-2: #5a73aa;
-    --nivel-3: #3e4b66;
-    --arbol-base: #15203a;
-    --sombra: 0 1px 2px rgba(0, 0, 0, .3);
-    --sombra-hover: 0 4px 18px rgba(0, 0, 0, .35);
-    color-scheme: dark;
-  }
+/* Tema oscuro: lo activa el script del <head> (elección guardada o la del sistema) */
+:root[data-theme="dark"] {
+  --fondo: #12151b;
+  --fondo-2: #171b23;
+  --superficie: #1c212b;
+  --borde: #2b313d;
+  --borde-fuerte: #3a4150;
+  --texto: #eceef1;
+  --texto-suave: #adb3bd;
+  --texto-tenue: #9198a4;
+  --foco: #a9bcec;
+  --primario: #8ea7e0;
+  --primario-fuerte: #a9bcec;
+  --primario-suave: #222c43;
+  --primario-texto: #a6baeb;
+  --rojo: #ef5a6d;
+  --ok: #6fcf97;
+  --ok-fondo: #173226;
+  --aviso: #f0bf62;
+  --aviso-fondo: #362b14;
+  --mal: #f08a74;
+  --mal-fondo: #3a2019;
+  --barra-fondo: #272e3b;
+  --nivel-1: #8ea7e0;
+  --nivel-2: #5a73aa;
+  --nivel-3: #3e4b66;
+  --arbol-base: #15203a;
+  --sombra: 0 1px 2px rgba(0, 0, 0, .3);
+  --sombra-hover: 0 4px 18px rgba(0, 0, 0, .35);
+  color-scheme: dark;
 }
-:root[data-theme="dark"] { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -119,10 +119,10 @@ strong { font-weight: 650; }
   border-bottom: 1px solid var(--borde);
 }
 /* Greca escalonada andina en carmín (como el borde de un tejido) */
-.franja {
-  height: 8px; background: var(--rojo);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 8'%3E%3Cpath d='M0 8V6h3V4h3V2h3V0h6v2h3v2h3v2h3v2z'/%3E%3C/svg%3E") repeat-x 0 0 / 24px 8px;
-          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 8'%3E%3Cpath d='M0 8V6h3V4h3V2h3V0h6v2h3v2h3v2h3v2z'/%3E%3C/svg%3E") repeat-x 0 0 / 24px 8px;
+.franja, .hero::after, .pie::before {
+  content: ""; display: block; height: 8px; background: var(--rojo);
+  -webkit-mask: var(--greca) repeat-x 0 0 / 24px 8px;
+          mask: var(--greca) repeat-x 0 0 / 24px 8px;
 }
 .cabecera__fila { display: flex; align-items: center; gap: .75rem; height: 60px; }
 .marca { display: flex; gap: .55rem; align-items: center; text-decoration: none; color: var(--texto); margin-right: auto; }
@@ -142,6 +142,19 @@ strong { font-weight: 650; }
   background: var(--superficie); border: 1px solid var(--borde); border-radius: 999px; padding: .4rem .9rem;
 }
 .buscar-btn:hover { border-color: var(--primario); }
+.pie::before { margin-bottom: 2.2rem; }
+.tema-btn {
+  display: inline-grid; place-items: center; width: 44px; height: 44px; flex: none; cursor: pointer;
+  color: var(--texto); background: var(--superficie); border: 1px solid var(--borde); border-radius: 999px;
+}
+.tema-btn:hover { border-color: var(--primario); color: var(--primario-texto); }
+.tema-btn .ico { width: 1.15rem; height: 1.15rem; }
+.marca__texto, .nowrap { white-space: nowrap; }
+/* Celulares chicos: Fuentes sigue en el pie y en el inicio; así la marca entra en una línea */
+@media (max-width: 399.98px) {
+  .cab-enlace.solo-movil { display: none !important; }
+  .cabecera__fila { gap: .5rem; }
+}
 .nav__fila { display: flex; align-items: stretch; gap: .2rem; }
 .nav__item {
   font: inherit; display: inline-flex; align-items: center; gap: .35rem; background: none; border: 0; cursor: pointer;
@@ -160,7 +173,6 @@ strong { font-weight: 650; }
 }
 .subnav__fila a:hover { color: var(--texto); border-color: var(--primario); }
 .subnav__fila a[aria-current="page"] { background: var(--primario); border-color: var(--primario); color: #fff; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .subnav__fila a[aria-current="page"] { color: #12151b; } }
 :root[data-theme="dark"] .subnav__fila a[aria-current="page"] { color: #12151b; }
 
 @media (min-width: 760px) {
@@ -201,11 +213,13 @@ strong { font-weight: 650; }
 
 /* ---------- Hero ---------- */
 .hero {
-  margin-top: 1.25rem; padding: 1.6rem 0 1.4rem; border-bottom: 2px solid var(--texto);
+  margin-top: 1.25rem; padding: 1.6rem 0 0;
 }
-@media (min-width: 760px) { .hero { padding: 2.6rem 0 2rem; } }
+.hero::after { margin-top: 1.6rem; }
+@media (min-width: 760px) { .hero::after { margin-top: 2.2rem; } }
+@media (min-width: 760px) { .hero { padding: 3rem 0 0; } }
 .hero .eyebrow { margin-top: 0; }
-.hero h1 { max-width: 22ch; font-size: clamp(1.9rem, 5.2vw, 3rem); }
+.hero h1 { max-width: 17ch; font-size: clamp(2.3rem, 6.6vw, 4.1rem); line-height: 1.02; letter-spacing: -.025em; margin-bottom: 1rem; }
 .hero__sub { color: var(--texto-suave); font-size: 1.1rem; max-width: 60ch; margin: 0 0 1.2rem; }
 .promesas { margin: 0; font-size: .88rem; color: var(--texto-suave); max-width: 70ch; }
 
@@ -283,7 +297,6 @@ a.kpi::after { content: "→"; position: absolute; right: .2rem; top: .8rem; col
 }
 .boton:hover { background: var(--primario-fuerte); }
 .boton:not(.boton--secundario) { color: #fff; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .boton:not(.boton--secundario) { color: #12151b; } }
 :root[data-theme="dark"] .boton:not(.boton--secundario) { color: #12151b; }
 
 .segmentado { display: inline-flex; background: var(--fondo-2); border-radius: 999px; padding: 3px; }
@@ -551,7 +564,7 @@ code { background: var(--fondo-2); padding: .05rem .35rem; border-radius: 6px; f
 .glosario dd { margin: .1rem 0 0; color: var(--texto-suave); }
 
 /* ---------- Pie ---------- */
-.pie { margin-top: 3rem; padding: 2.2rem 0 2.6rem; background: var(--fondo-2); border-top: 1px solid var(--borde); color: var(--texto-suave); font-size: .9rem; }
+.pie { margin-top: 3rem; padding: 0 0 2.6rem; background: var(--fondo-2); color: var(--texto-suave); font-size: .9rem; }
 .pie__grid { display: grid; gap: 1.5rem; }
 @media (min-width: 760px) { .pie__grid { grid-template-columns: 1.3fr 1fr 1fr; gap: 2.5rem; } }
 .pie p { margin: 0 0 .5rem; }
@@ -591,7 +604,6 @@ code { background: var(--fondo-2); padding: .05rem .35rem; border-radius: 6px; f
 .combo__op span { font-weight: 600; }
 .combo__op small { color: var(--texto-suave); font-size: .8rem; }
 .chip--activo { background: var(--primario); color: #fff; border-color: var(--primario); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .chip--activo { color: #12151b; } }
 :root[data-theme="dark"] .chip--activo { color: #12151b; }
 .chip small { opacity: .75; margin-left: .2rem; }
 .entidad-elegida { margin: -.3rem 0 .8rem; color: var(--texto-suave); }
@@ -737,7 +749,6 @@ main [id] { scroll-margin-top: 135px; }
 /* Submenú del tema: pestañas de texto con desvanecido en el borde */
 .subnav__fila a { border: 0; background: none; border-radius: 0; padding: .45rem .7rem; min-height: 40px; display: inline-flex; align-items: center; }
 .subnav__fila a[aria-current="page"] { background: none; color: var(--texto); box-shadow: inset 0 -2px 0 var(--primario); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .subnav__fila a[aria-current="page"] { color: var(--texto); } }
 :root[data-theme="dark"] .subnav__fila a[aria-current="page"] { color: var(--texto); }
 .subnav__fila { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); padding-right: 28px; scroll-snap-type: x proximity; }
 .subnav__fila a { scroll-snap-align: start; }

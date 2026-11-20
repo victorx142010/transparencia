@@ -1691,6 +1691,23 @@
   };
   $("#buscar-btn").addEventListener("click", irABuscar);
 
+  // ---------- Tema claro / oscuro (el script del <head> ya puso el inicial) ----------
+  function aplicarTema(t, guardar) {
+    document.documentElement.dataset.theme = t;
+    const meta = $("#meta-tema"); if (meta) meta.content = t === "dark" ? "#12151b" : "#f5f3ef";
+    const otro = t === "dark" ? "claro" : "oscuro", b = $("#tema-btn");
+    b.setAttribute("aria-label", `Cambiar a tema ${otro}`); b.title = `Cambiar a tema ${otro}`;
+    $("use", b).setAttribute("href", t === "dark" ? "#i-sol" : "#i-luna");
+    if (guardar) { try { localStorage.setItem("tema", t); } catch (e) {} }
+  }
+  aplicarTema(document.documentElement.dataset.theme === "dark" ? "dark" : "light", false);
+  $("#tema-btn").addEventListener("click", () => aplicarTema(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true));
+  // Si la persona nunca eligió, seguir al sistema cuando cambie
+  if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (ev) => {
+    let elegido = null; try { elegido = localStorage.getItem("tema"); } catch (e) {}
+    if (!elegido) aplicarTema(ev.matches ? "dark" : "light", false);
+  });
+
   // ---------- Pestañas dentro de secciones ----------
   function activarTab(clave, enDireccion) {
     const [grupo, parte] = clave.split(":");
