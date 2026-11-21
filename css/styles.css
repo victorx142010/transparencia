@@ -957,3 +957,17 @@ main > .vista:not(#inicio) { padding-top: 1rem; }
 /* Qué no incluye cada dato: una línea honesta antes de la fuente */
 .limites { margin: 1rem 0 0; padding: .65rem .85rem; border: 1px solid var(--borde); border-radius: var(--radio-sm); font-size: .86rem; color: var(--texto-suave); background: var(--fondo-2); max-width: 80ch; }
 .limites strong { color: var(--texto); }
+
+/* Semáforo de la municipalidad: estado con color + ícono + palabra */
+.semaforo { margin: 1.2rem 0 .4rem; }
+.semaforo__lista { list-style: none; margin: .4rem 0 .6rem; padding: 0; display: grid; gap: 8px; }
+.semaforo__fila { display: grid; grid-template-columns: 8.5rem 1fr; gap: .9rem; align-items: start; padding: .8rem .9rem;
+  border-radius: var(--radio-sm); background: var(--fondo-2); border: 1px solid var(--borde); }
+.semaforo__estado { display: inline-flex; align-items: center; gap: .45rem; font-weight: 700; font-size: .88rem; }
+.semaforo__estado i { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; font-style: normal; font-size: .85rem; font-weight: 800; flex: none; }
+.semaforo--bien .semaforo__estado { color: var(--ok); } .semaforo--bien i { background: var(--ok-fondo); color: var(--ok); }
+.semaforo--ojo .semaforo__estado { color: var(--aviso); } .semaforo--ojo i { background: var(--aviso-fondo); color: var(--aviso); }
+.semaforo--mal .semaforo__estado { color: var(--mal); } .semaforo--mal i { background: var(--mal-fondo); color: var(--mal); }
+.semaforo__p { margin: 0; font-weight: 700; }
+.semaforo__t { margin: .15rem 0 0; font-size: .92rem; color: var(--texto-suave); }
+@media (max-width: 559.98px) { .semaforo__fila { grid-template-columns: 1fr; gap: .35rem; } }

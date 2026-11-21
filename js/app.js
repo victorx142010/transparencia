@@ -1803,6 +1803,48 @@
     $$("#dist-combo [data-dub]").forEach((b) => b.addEventListener("click", () => { box.hidden = true; ev.target.value = ""; abrirDistrito(b.dataset.dub); }));
   });
 
+  // ---------- Semáforo: ¿la municipalidad hace su trabajo? ----------
+  // Tres preguntas simples con estado bien / ojo / mal (color + ícono + palabra, nunca solo color).
+  let medianaMuni = null;
+  function medianaEjecucionMunicipal() {
+    if (medianaMuni != null) return medianaMuni;
+    const v = ENT.entidades.filter((e) => e[3] === "GOBIERNOS LOCALES" && e[7] > 0).map((e) => e[8] / e[7]).sort((a, b) => a - b);
+    medianaMuni = v.length ? v[Math.floor(v.length / 2)] : 0;
+    return medianaMuni;
+  }
+  function semaforoMuni(muni, obras, cuentaDist) {
+    const hoy = new Date(), inicio = new Date(hoy.getFullYear(), 0, 1);
+    const pasado = Math.min(1, (hoy - inicio) / (365 * 864e5));
+    const ej = muni[7] ? muni[8] / muni[7] : 0, med = medianaEjecucionMunicipal();
+    const saldo = obras.reduce((a, o) => a + o.saldo, 0);
+    const filas = [];
+    // 1. Gasto: comparado con lo que va del año y con la municipalidad típica
+    const estGasto = ej >= med - 0.05 ? "bien" : ej >= med - 0.2 ? "ojo" : "mal";
+    filas.push([estGasto, "¿Gasta su presupuesto?",
+      `Lleva gastado el <strong>${nf0.format(ej * 100)}%</strong> cuando ya pasó el ${nf0.format(pasado * 100)}% del año. ` +
+      `La municipalidad típica del país va en ${nf0.format(med * 100)}%.` +
+      (estGasto !== "bien" ? ` Le quedan ${millones((muni[7] - muni[8]) / 1e6)} sin usar.` : "")]);
+    // 2. Auditorías con presuntos responsables
+    const resp = cuentaDist[1] || 0;
+    filas.push([resp === 0 ? "bien" : resp <= 2 ? "ojo" : "mal", "¿La Contraloría encontró problemas?",
+      resp ? `En ${pl(resp, "informe")} de control de 2025–2026 hay funcionarios con presunta responsabilidad en este distrito.`
+        : cuentaDist[0] ? `Hay ${pl(cuentaDist[0], "informe")} de control, ninguno con presuntos responsables.` : "No hay informes de control con presuntos responsables en 2025–2026."]);
+    // 3. Obras paralizadas, comparando lo que falta con el presupuesto del año
+    const peso = muni[7] ? saldo / muni[7] : 0;
+    filas.push([!obras.length ? "bien" : obras.length <= 2 && peso < 0.25 ? "ojo" : "mal", "¿Tiene obras paralizadas?",
+      obras.length ? `${pl(obras.length, "obra paralizada", "obras paralizadas")} en el distrito; falta ${soles(saldo)} para terminarlas` +
+        (peso >= 0.05 ? `, el ${nf0.format(peso * 100)}% de lo que la municipalidad tiene para todo el año.` : ".")
+        : "No figura ninguna en el último informe de la Contraloría."]);
+    const ETQ = { bien: ["Bien", "✓"], ojo: ["Para revisar", "!"], mal: ["Preocupa", "×"] };
+    return `<section class="semaforo" aria-labelledby="semaforo-t">
+      <h3 class="exp-sub" id="semaforo-t">¿La municipalidad hace su trabajo?</h3>
+      <ul class="semaforo__lista">${filas.map(([e, p, t]) => `<li class="semaforo__fila semaforo--${e}">
+        <span class="semaforo__estado"><i aria-hidden="true">${ETQ[e][1]}</i>${ETQ[e][0]}</span>
+        <div><p class="semaforo__p">${p}</p><p class="semaforo__t">${t}</p></div></li>`).join("")}</ul>
+      <p class="ayuda">Es una lectura rápida de datos oficiales, no una calificación oficial. Abre cada parte para ver el detalle.</p>
+    </section>`;
+  }
+
   async function abrirDistrito(ub) {
     const box = $("#dist-ficha");
     box.hidden = false; box.innerHTML = '<p class="vacio">Armando la ficha del distrito…</p>';
@@ -1837,6 +1879,7 @@
         ["Obras paralizadas", nf0.format(obras.length), obras.length ? `falta ejecutar ${soles(obras.reduce((a, o) => a + o.saldo, 0))}` : "según la Contraloría"],
         ["Informes de Contraloría", nf0.format(cuentaDist[0]), `${nf0.format(cuentaDist[1])} con presuntos responsables`]
       ].map(kpiHTML).join("")}</div>` : ""}
+      ${muni ? semaforoMuni(muni, obras, cuentaDist) : ""}
       <p class="dist-resumen">${muni ? `La municipalidad tiene <strong>${millones(muni[7] / M)}</strong> para este año y ya gastó el <strong>${pct(muni[8], muni[7])}</strong>. ` : ""}${obras.length ? `Hay <strong>${pl(obras.length, "obra paralizada", "obras paralizadas")}</strong> según la Contraloría` : "No hay obras paralizadas registradas"}${cuentaDist[0] ? ` y <strong>${pl(cuentaDist[0], "informe")} de control</strong>${cuentaDist[1] ? `, ${nf0.format(cuentaDist[1])} con presuntos responsables` : ""}.` : "."}</p>
       <div class="controles controles--enlaces">
         ${muni ? `<a class="boton boton--secundario boton--chico" href="#entidades?id=${encodeURIComponent(muni[0])}">Gasto y proyectos de la municipalidad</a>
