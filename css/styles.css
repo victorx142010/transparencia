@@ -235,10 +235,21 @@ strong { font-weight: 650; }
 }
 .hero::after { margin-top: 1.6rem; }
 @media (min-width: 760px) { .hero::after { margin-top: 2.2rem; } }
-/* Paisaje andino en pixel art (js/andes.js): la alpaca camina sobre la greca */
-.andes { display: block; width: 100%; height: 72px; margin-top: 1.2rem; image-rendering: pixelated; }
-@media (min-width: 560px) { .andes { height: 96px; margin-top: 1.6rem; } }
-.hero:has(.andes)::after { margin-top: 0; }
+/* Paisaje andino en pixel art (js/andes.js), de borde a borde de la pantalla.
+   Móvil: franja al pie de la portada, sobre la greca. Pantalla ancha: fondo de toda la
+   portada; la cordillera deja un valle bajo el texto y la llama pasta a la derecha. */
+body { overflow-x: clip; }
+.andes {
+  display: block; width: 100vw; height: 132px; margin: 1.4rem 0 0 calc(50% - 50vw);
+  image-rendering: crisp-edges; image-rendering: pixelated;
+}
+.hero:has(.andes)::after { margin-top: 0; width: 100vw; margin-left: calc(50% - 50vw); }
+@media (min-width: 900px) {
+  .hero:has(.andes) { position: relative; isolation: isolate; }
+  .hero:has(.andes)::after { margin-top: 64px; } /* franja de puna bajo el texto */
+  /* un canvas no se estira con top/bottom: necesita alto explícito (alto de la portada menos la greca) */
+  .andes { position: absolute; z-index: -1; left: calc(50% - 50vw); top: -1.25rem; height: calc(100% + 1.25rem - 8px); margin: 0; }
+}
 @media (min-width: 760px) { .hero { padding: 3rem 0 0; } }
 .hero .eyebrow { margin-top: 0; }
 .hero h1 { max-width: 17ch; font-size: clamp(2.3rem, 6.6vw, 4.1rem); line-height: 1.02; letter-spacing: -.025em; margin-bottom: 1rem; }
