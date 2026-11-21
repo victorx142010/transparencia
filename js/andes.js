@@ -44,8 +44,8 @@
     const css = getComputedStyle(document.documentElement);
     const v = (n) => css.getPropertyValue(n).trim();
     pal = oscuro
-      ? { lejos: "#2a303c", cerca: "#353d4c", nieve: "#c9ced8", ichu: "#4c4434", ichu2: "#5c523d",
-          lana: "#c99a68", cara: "#e7cfa8", borde: "#0c0e12", ojo: "#0c0e12", pompon: v("--rojo") || "#ef5a6d" }
+      ? { lejos: "#222b52", cerca: "#2e3866", nieve: "#d8def5", ichu: "#4d4230", ichu2: "#62543a",
+          lana: "#d1a26e", cara: "#efd9b3", borde: "#080b18", ojo: "#080b18", pompon: v("--rojo") || "#ff5c74" }
       : { lejos: "#d6d0c4", cerca: "#c3bba9", nieve: "#ffffff", ichu: "#d9c597", ichu2: "#c8b07a",
           lana: "#b98a5b", cara: "#ecd9b8", borde: "#3a2a1e", ojo: "#1a1310", pompon: v("--rojo") || "#b3132f" };
   }

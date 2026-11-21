@@ -1787,7 +1787,7 @@
   // ---------- Tema claro / oscuro (el script del <head> ya puso el inicial) ----------
   function aplicarTema(t, guardar) {
     document.documentElement.dataset.theme = t;
-    const meta = $("#meta-tema"); if (meta) meta.content = t === "dark" ? "#12151b" : "#f5f3ef";
+    const meta = $("#meta-tema"); if (meta) meta.content = t === "dark" ? "#0e1324" : "#f5f3ef";
     const otro = t === "dark" ? "claro" : "oscuro", b = $("#tema-btn");
     b.setAttribute("aria-label", `Cambiar a tema ${otro}`); b.title = `Cambiar a tema ${otro}`;
     $("use", b).setAttribute("href", t === "dark" ? "#i-sol" : "#i-luna");

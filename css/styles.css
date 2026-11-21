@@ -53,38 +53,51 @@
   --bancada-4: #6250d6; --bancada-5: #eda100; --bancada-6: #e87ba4; --bancada-otra: #8b8f97;
   color-scheme: light;
 }
-/* Tema oscuro: lo activa el script del <head> (elección guardada o la del sistema) */
+/* Tema oscuro: "noche andina". Lana teñida de añil (fondos), texto color sillar, carmín de
+   cochinilla más vivo y un tercer tinte, el oro del qolle, para el foco y los detalles.
+   Lo activa el script del <head> (elección guardada o la del sistema). */
 :root[data-theme="dark"] {
-  --fondo: #12151b;
-  --fondo-2: #171b23;
+  /* Superficies: añil profundo, no gris */
+  --fondo: #0e1324;
+  --fondo-2: #121830;
+  --superficie: #161d33;
+  --borde: #252e4c;
+  --borde-fuerte: #36406a;
+  /* Texto: blanco sillar (cálido) sobre añil (frío) */
+  --texto: #f3eee5;
+  --texto-suave: #c4bdb1;
+  --texto-tenue: #a39c91;
+  /* Marca y datos: añil claro */
+  --primario: #9cb2ff;
+  --primario-fuerte: #b9c9ff;
+  --primario-suave: #1e2950;
+  --primario-texto: #a9bcff;
+  /* Carmín de cochinilla y oro */
+  --rojo: #ff5c74;
+  --oro: #e9b54d;
+  --foco: #e9b54d;
+  /* Estados */
+  --ok: #6fd6a0;
+  --ok-fondo: #12302a;
+  --aviso: #f2c060;
+  --aviso-fondo: #33290f;
+  --mal: #ff8f78;
+  --mal-fondo: #3a1d22;
+  /* Gráficos */
+  --barra-fondo: #232c4a;
+  --nivel-1: #9cb2ff;
+  --nivel-2: #5c6fb8;
+  --nivel-3: #34406e;
+  --arbol-base: #18214a;
   --bancada-1: #d95926; --bancada-2: #3987e5; --bancada-3: #199e70;
-  --bancada-4: #9085e9; --bancada-5: #c98500; --bancada-6: #d55181; --bancada-otra: #6b717c;
-  --superficie: #1c212b;
-  --borde: #2b313d;
-  --borde-fuerte: #3a4150;
-  --texto: #eceef1;
-  --texto-suave: #adb3bd;
-  --texto-tenue: #9198a4;
-  --foco: #a9bcec;
-  --primario: #8ea7e0;
-  --primario-fuerte: #a9bcec;
-  --primario-suave: #222c43;
-  --primario-texto: #a6baeb;
-  --rojo: #ef5a6d;
-  --ok: #6fcf97;
-  --ok-fondo: #173226;
-  --aviso: #f0bf62;
-  --aviso-fondo: #362b14;
-  --mal: #f08a74;
-  --mal-fondo: #3a2019;
-  --barra-fondo: #272e3b;
-  --nivel-1: #8ea7e0;
-  --nivel-2: #5a73aa;
-  --nivel-3: #3e4b66;
-  --arbol-base: #15203a;
-  --sombra: 0 1px 2px rgba(0, 0, 0, .3);
-  --sombra-hover: 0 4px 18px rgba(0, 0, 0, .35);
+  --bancada-4: #9085e9; --bancada-5: #c98500; --bancada-6: #d55181; --bancada-otra: #6b7391;
+  --sombra: 0 1px 2px rgba(3, 6, 20, .5), 0 8px 28px rgba(3, 6, 20, .35);
+  --sombra-hover: 0 2px 4px rgba(3, 6, 20, .5), 0 14px 36px rgba(3, 6, 20, .5);
   color-scheme: dark;
+}
+/* Un leve resplandor añil arriba, como el cielo antes de que oscurezca del todo */
+:root[data-theme="dark"] body {
+  background: radial-gradient(120% 620px at 50% 0, #1a2450 0, rgba(26, 36, 80, 0) 100%) no-repeat, var(--fondo);
 }
 
 * { box-sizing: border-box; }
@@ -178,7 +191,7 @@ strong { font-weight: 650; }
 }
 .subnav__fila a:hover { color: var(--texto); border-color: var(--primario); }
 .subnav__fila a[aria-current="page"] { background: var(--primario); border-color: var(--primario); color: #fff; }
-:root[data-theme="dark"] .subnav__fila a[aria-current="page"] { color: #12151b; }
+:root[data-theme="dark"] .subnav__fila a[aria-current="page"] { color: var(--fondo); }
 
 @media (min-width: 760px) {
   .nav { border-top: 1px solid var(--borde); }
@@ -306,7 +319,7 @@ a.kpi::after { content: "→"; position: absolute; right: .2rem; top: .8rem; col
 }
 .boton:hover { background: var(--primario-fuerte); }
 .boton:not(.boton--secundario) { color: #fff; }
-:root[data-theme="dark"] .boton:not(.boton--secundario) { color: #12151b; }
+:root[data-theme="dark"] .boton:not(.boton--secundario) { color: var(--fondo); }
 
 .segmentado { display: inline-flex; background: var(--fondo-2); border-radius: 999px; padding: 3px; }
 .segmentado button {
@@ -646,7 +659,7 @@ code { background: var(--fondo-2); padding: .05rem .35rem; border-radius: 6px; f
 .combo__op span { font-weight: 600; }
 .combo__op small { color: var(--texto-suave); font-size: .8rem; }
 .chip--activo { background: var(--primario); color: #fff; border-color: var(--primario); }
-:root[data-theme="dark"] .chip--activo { color: #12151b; }
+:root[data-theme="dark"] .chip--activo { color: var(--fondo); }
 .chip small { opacity: .75; margin-left: .2rem; }
 .entidad-elegida { margin: -.3rem 0 .8rem; color: var(--texto-suave); }
 .tabla__sub { display: block; color: var(--texto-tenue); font-size: .76rem; }
