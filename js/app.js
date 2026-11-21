@@ -1870,7 +1870,7 @@
   // ---------- Reportar un error ----------
   // Web3Forms reenvía el mensaje al correo del proyecto sin mostrarlo en la página.
   // La clave se obtiene en web3forms.com (está pensada para ir en el código público).
-  const WEB3FORMS_CLAVE = "";
+  const WEB3FORMS_CLAVE = "a6b70fad-122e-4216-ba00-be81ba17e862";
   // Al ir al formulario se anota desde qué parte de la web venía la persona.
   $("#link-reportar").addEventListener("click", () => {
     const h = (location.hash || "#inicio").slice(1);
