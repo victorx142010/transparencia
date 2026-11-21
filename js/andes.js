@@ -49,7 +49,7 @@
   };
   const ABAJO = { // pastando: el hocico toca el ichu (sin desplazar)
     13: "......lll", 14: ".....llll", 15: "....llll", 16: "...llll", 17: "..llll",
-    18: "..lllld", 19: ".lllldl", 20: ".llllllp", 21: ".lelll", 22: ".llll",
+    18: "p.llll", 19: "dllll", 20: "dlllll", 21: ".lelll", 22: ".llll", // oreja arriba con su borla en la punta
     23: ".cccl", 24: ".ccc", 25: ".ncc",
   };
   function armar(cabeza, desp, extra) {
