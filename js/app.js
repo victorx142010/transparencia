@@ -229,6 +229,24 @@
       bancadas: R.congreso ? "asientos por partido" : ""
     };
     $$("#grupos-inicio [data-dato]").forEach((s) => (s.textContent = dato[s.dataset.dato] || ""));
+    pintarImportante(R.destacados || []);
+  }
+
+  // ---------- Lo importante esta semana (titulares de scripts/destacados.py) ----------
+  const TEMA_IMPORTANTE = { control: "Auditorías", contratos: "Contratos", gasto: "Presupuesto", congreso: "Congreso", obras: "Obras paralizadas", viajes: "Viajes" };
+  function pintarImportante(lista) {
+    $("#importante-caja").hidden = !lista.length;
+    if (!lista.length) return;
+    const cuando = (f) => !f ? "" : f.length === 7 ? `${MESES_LARGO[+f.slice(5) - 1]} ${f.slice(0, 4)}` : fechaLarga(f);
+    $("#importante").innerHTML = lista.map((d, i) => `
+      <article class="dest${i === 0 ? " dest--principal" : ""}">
+        <p class="dest__cifra"><span>${esc(d.cifra)}</span><small>${esc(d.cifraTxt || "")}</small></p>
+        <div class="dest__cuerpo">
+          <h3 class="dest__titular"><a href="${esc(d.enlace)}">${esc(d.titular)}</a></h3>
+          <p class="dest__detalle">${esc(d.detalle || "")}</p>
+          <p class="dest__meta"><span>${TEMA_IMPORTANTE[d.tema] || ""}</span>${d.fecha ? `<span>${cuando(d.fecha)}</span>` : ""}<a href="${esc(d.fuente.url)}" target="_blank" rel="noopener">${esc(d.fuente.nombre)} ↗</a></p>
+        </div>
+      </article>`).join("");
   }
 
   // ---------- INGRESOS ----------

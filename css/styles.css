@@ -915,3 +915,30 @@ main [id] { scroll-margin-top: 135px; }
 }
 /* Aire entre el submenú y el título de cada sección */
 main > .vista:not(#inicio) { padding-top: 1rem; }
+
+/* ---------- Lo importante esta semana: titulares de datos, estilo periódico ---------- */
+.importante-caja .titulo-seccion { margin-bottom: .2rem; }
+.importante__nota { margin: 0 0 1rem; font-size: .9rem; color: var(--texto-suave); max-width: 70ch; }
+.importante { display: grid; border-top: 2px solid var(--texto); }
+@media (min-width: 760px) { .importante { grid-template-columns: 1fr 1fr; column-gap: 32px; } .dest--principal { grid-column: 1 / -1; } }
+.dest { display: grid; grid-template-columns: minmax(92px, 7.5rem) 1fr; gap: 1rem; padding: 1.1rem 0; border-bottom: 1px solid var(--borde); align-items: start; }
+.dest__cifra { margin: 0; color: var(--rojo); font-family: var(--titular); font-stretch: var(--ancho-titular); font-weight: 800;
+  font-size: 1.55rem; line-height: 1.02; letter-spacing: -.02em; font-variant-numeric: lining-nums tabular-nums; overflow-wrap: anywhere; }
+.dest__cifra small { display: block; margin-top: .35rem; font-family: var(--sans); font-stretch: 100%; font-size: .78rem; font-weight: 600; letter-spacing: 0; color: var(--texto-suave); line-height: 1.3; }
+.dest__titular { margin: 0; font-family: var(--titular); font-stretch: var(--ancho-titular); font-size: 1.12rem; font-weight: 700; line-height: 1.28; text-wrap: balance; }
+.dest__titular a { color: var(--texto); text-decoration: none; }
+.dest__titular a:hover { text-decoration: underline; text-decoration-color: var(--rojo); }
+.dest__detalle { margin: .4rem 0 .5rem; font-size: .92rem; color: var(--texto-suave); line-height: 1.5; }
+.dest__meta { margin: 0; display: flex; flex-wrap: wrap; gap: .25rem .9rem; font-size: .8rem; color: var(--texto-tenue); }
+.dest__meta span:first-child { font-weight: 700; color: var(--texto-suave); }
+.dest__meta a { color: var(--texto-suave); }
+.dest--principal { padding: 1.4rem 0; }
+.dest--principal .dest__cifra { font-size: clamp(2.2rem, 5vw, 3.2rem); }
+.dest--principal .dest__titular { font-size: clamp(1.3rem, 2.4vw, 1.65rem); max-width: 40ch; }
+.dest--principal .dest__detalle { font-size: 1rem; max-width: 70ch; }
+@media (min-width: 760px) { .dest--principal { grid-template-columns: minmax(150px, 13rem) 1fr; gap: 1.5rem; } }
+@media (max-width: 559.98px) {
+  .dest, .dest--principal { grid-template-columns: 1fr; gap: .35rem; }
+  .dest__cifra, .dest--principal .dest__cifra { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; font-size: 1.6rem; }
+  .dest__cifra small { margin: 0; }
+}

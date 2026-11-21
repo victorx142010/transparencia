@@ -10,6 +10,7 @@ Uso:  python scripts/actualizar_resumen.py
 import sys
 
 from comun import ahora_lima, guardar_json, leer_json
+from destacados import destacados
 
 
 def asistencia(camara):
@@ -22,7 +23,8 @@ def asistencia(camara):
 
 def main():
     fuentes = {n: leer_json(f"{n}.json", {}) or {} for n in
-               ("contratos", "obras", "sueldos", "congreso", "proyectos", "visitas", "programas", "deuda", "partidas", "presupuesto", "recaudacion")}
+               ("contratos", "obras", "sueldos", "congreso", "proyectos", "visitas", "programas", "deuda", "partidas", "presupuesto", "recaudacion",
+                "control", "entidades", "viajes")}
     c, o, s, cg = fuentes["contratos"], fuentes["obras"], fuentes["sueldos"], fuentes["congreso"]
     res = {"generado": ahora_lima().isoformat(timespec="minutes")}
     if c.get("total"):
@@ -47,8 +49,11 @@ def main():
         res["deuda"] = {"total": ult["PN03371FQ"]}
     if fuentes["partidas"].get("partidas"):
         res["partidas"] = {"n": len(fuentes["partidas"]["partidas"])}
+    # "Lo importante esta semana": titulares escritos a partir de los datos (scripts/destacados.py)
+    res["destacados"] = destacados(fuentes, ahora_lima().date())
     # Fecha de la actualización más reciente entre los datos de la portada
-    fechas = sorted(f.get("actualizado") for f in fuentes.values() if isinstance(f.get("actualizado"), str))
+    fechas = sorted(f.get("actualizado") for f in fuentes.values()
+                    if isinstance(f.get("actualizado"), str) and f is not fuentes["control"])
     if fechas:
         res["actualizado"] = fechas[-1]
     guardar_json("resumen.json", res)
