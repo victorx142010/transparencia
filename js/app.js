@@ -889,7 +889,7 @@
     return `<article class="proyecto">
       <div class="ley__cab"><span class="ley__num">${fechaLarga(fecha)} · ${esc(cat)}</span><span class="etapa etapa--inicio">${esc(metodo)}</span></div>
       <p class="ley__titulo">${esc(cortado(fraseL(objeto)))}</p>
-      <div class="proyecto__montos"><span>${esc(propio(prov))}${esRUC(ruc) ? ` <small>(RUC ${esc(ruc)})</small>` : ""}</span><span>${soles(monto)}</span></div>
+      <div class="proyecto__montos"><span><a href="${enlaceEmpresa(ruc, prov)}">${esc(propio(prov))}</a>${esRUC(ruc) ? ` <small>(RUC ${esc(ruc)})</small>` : ""}</span><span>${soles(monto)}</span></div>
       <p class="ley__meta">Contrató: ${esc(propio(ent))} ${escalaHTML(monto)}</p>
       ${alertas ? `<p class="alertas-linea">${chipsAlerta(alertas)}</p>` : ""}
       <a class="ley__link" href="${CON.urlProceso}${esc(ocid.replace(/^ocds-dgv273-/, ""))}" target="_blank" rel="noopener">Ver proceso oficial (OECE) ↗</a>
@@ -909,7 +909,7 @@
     const maxP = CON.topProveedores.length ? CON.topProveedores[0][2] : 1;
     $("#con-proveedores").innerHTML = !CON.topProveedores.length ? vacioCon : corta(CON.topProveedores.slice(0, 15).map(([ruc, n, m, c, e]) => filaHTML({
       nombre: esc(propio(n)), valorTexto: corto(m / 1e6), ancho: (m / maxP) * 100,
-      detalle: `<p>${esRUC(ruc) ? `RUC ${esc(ruc)} · ` : ""}${nf0.format(c)} contrato${c === 1 ? "" : "s"} con ${nf0.format(e)} entidad${e === 1 ? "" : "es"} · total ${soles(m)}.</p><p><button type="button" class="boton boton--secundario boton--chico" data-buscar="${esc(esRUC(ruc) ? ruc : n)}">Ver sus contratos</button></p>`
+      detalle: `<p>${esRUC(ruc) ? `RUC ${esc(ruc)} · ` : ""}${nf0.format(c)} contrato${c === 1 ? "" : "s"} con ${nf0.format(e)} entidad${e === 1 ? "" : "es"} · total ${soles(m)}.</p><p><a class="boton boton--secundario boton--chico" href="${enlaceEmpresa(ruc, n)}">Ver ficha de la empresa</a> <button type="button" class="boton boton--secundario boton--chico" data-buscar="${esc(esRUC(ruc) ? ruc : n)}">Ver sus contratos</button></p>`
     })), 8);
     const maxE = CON.topEntidades.length ? CON.topEntidades[0][1] : 1;
     $("#con-entidades").innerHTML = !CON.topEntidades.length ? vacioCon : corta(CON.topEntidades.slice(0, 15).map(([n, m, c]) => filaHTML({
@@ -1017,7 +1017,7 @@
     const filas = lista.map((m) => {
       const w = (n) => ((n / m.sesiones) * 100).toFixed(1);
       return `<div class="asis">
-        <div class="asis__top"><span class="asis__nombre">${esc(m.nombre)}<small>${quien}${m.bancada ? " · " + esc(m.bancada) : ""}</small></span><span class="asis__pct">${nf0.format(m.pct)}%</span></div>
+        <div class="asis__top"><span class="asis__nombre"><a href="${enlaceCongresista(camara, m.nombre)}">${esc(m.nombre)}</a><small>${quien}${m.bancada ? " · " + esc(m.bancada) : ""}</small></span><span class="asis__pct">${nf0.format(m.pct)}%</span></div>
         <div class="asis__barra" aria-hidden="true"><span class="a-pre" style="width:${w(m.presente)}%"></span><span class="a-lic" style="width:${w(m.licencia + m.otro)}%"></span><span class="a-aus" style="width:${w(m.ausente)}%"></span></div>
         <p class="asis__txt">Asistió a ${m.presente} de ${m.sesiones} · ${m.licencia ? `${m.licencia} con licencia · ` : ""}<strong class="${m.ausente ? "rojo" : ""}">${m.ausente} ausencia${m.ausente === 1 ? "" : "s"}</strong></p>
       </div>`;
@@ -1099,7 +1099,7 @@
       const m = p.clave && asis[p.clave];
       const otroPartido = p.partido && p.partido !== p.bancada ? ` · postuló por ${esc(p.partido)}` : "";
       return `<div class="integrante"><i style="background:${colorBancada(p.bancada)}" aria-hidden="true"></i>
-        <span class="integrante__n"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.apellidos)}, ${esc(p.nombres)}</a>
+        <span class="integrante__n"><a href="${enlaceCongresista(camara, p.apellidos)}">${esc(p.apellidos)}, ${esc(p.nombres)}</a>
         <small>${bancadaSel ? "" : esc(p.bancada) + " · "}${esc(p.distrito || "")}${otroPartido}</small></span>
         ${m ? `<a class="integrante__a" href="#congreso?c=${camara}&q=${encodeURIComponent(m.nombre)}" title="Asistencia a los plenos">${nf0.format(m.pct)}% asist.</a>` : ""}</div>`;
     };
@@ -1219,7 +1219,7 @@
       if (mayus) { const b = acc || l; return i > 0 && MINUS_P.has(l) ? b : b.charAt(0).toUpperCase() + b.slice(1); }
       if (acc && w.length > 1) return w[0] === w[0].toUpperCase() ? acc.charAt(0).toUpperCase() + acc.slice(1) : acc;
       return w;
-    });
+    }).replace(/\b(?:\p{L}\.){1,4}\p{L}?\.?(?=\s|$)/gu, (x) => x.toUpperCase()); // siglas con puntos: S.A.C., E.I.R.L.
   };
   // Textos que el robot cortó a 200 caracteres: terminar en palabra completa con "…"
   const cortado = (s) => (s && s.length >= 200 && !s.endsWith("…") ? s.slice(0, 199).replace(/\s+\S*$/, "").replace(/[ ,;:-]+$/, "") + "…" : s || "");
@@ -1803,6 +1803,97 @@
     $$("#dist-combo [data-dub]").forEach((b) => b.addEventListener("click", () => { box.hidden = true; ev.target.value = ""; abrirDistrito(b.dataset.dub); }));
   });
 
+  // ---------- FICHAS: todo lo que sabemos de un congresista o de una empresa, en una página ----------
+  // #ficha?tipo=congresista&c=senado&k=<clave>   ·   #ficha?tipo=empresa&id=<RUC o nombre>
+  const enlaceCongresista = (camara, nombre) => `#ficha?tipo=congresista&c=${camara}&k=${encodeURIComponent(clave(nombre))}`;
+  const enlaceEmpresa = (ruc, nombre) => `#ficha?tipo=empresa&id=${encodeURIComponent(esRUC(ruc) ? ruc : nombre)}`;
+  const cabeceraFicha = (titulo, sub, extra = "") => `<div class="ficha__cab"><p class="ficha__tipo">${sub}</p><h1 id="t-ficha">${titulo}</h1>${extra}</div>`;
+
+  async function pintarFicha(p) {
+    const caja = $("#ficha-cuerpo"), tipo = p.get("tipo");
+    caja.innerHTML = '<p class="vacio">Armando la ficha…</p>';
+    if (tipo === "congresista") return fichaCongresista(p.get("c"), p.get("k"));
+    if (tipo === "empresa") return fichaEmpresa(p.get("id") || "");
+    caja.innerHTML = '<p class="vacio">No encontramos esa ficha.</p>';
+  }
+
+  async function fichaCongresista(cam, k) {
+    await asegurar("congreso", "proyectos", "visitas");
+    const caja = $("#ficha-cuerpo"), c = CONG && CONG.camaras[cam];
+    if (!c) { caja.innerHTML = '<p class="vacio">No hay datos del Congreso.</p>'; return; }
+    const m = c.miembros.find((x) => clave(x.nombre) === k);
+    const f = (c.integrantes || []).find((x) => x.clave === k || clave(x.apellidos) === k);
+    if (!m && !f) { caja.innerHTML = '<p class="vacio">No encontramos a esa persona en esta cámara.</p>'; return; }
+    const apellidos = f ? f.apellidos : m.nombre, nombreCompleto = f ? `${f.nombres} ${f.apellidos}` : m.nombre;
+    const ka = clave(apellidos), cargo = cam === "senado" ? "Senado" : "Cámara de Diputados";
+    // Votaciones donde figura
+    const vs = (c.votaciones || []).map((v) => {
+      const en = (g) => v[g].some((n) => clave(n) === k);
+      return [v, en("favor") ? "favor" : en("contra") ? "contra" : en("abstencion") ? "abstencion" : null];
+    });
+    // Proyectos de ley: como autor principal (primer firmante) y como coautor
+    const proys = (PROY && PROY.proyectos || []).filter((x) => (x.camara === (cam === "senado" ? "S" : "D")) && x.autores && x.autores.some((a) => clave(a.split(",")[0]) === ka));
+    const principal = proys.filter((x) => clave(x.autores[0].split(",")[0]) === ka);
+    // Visitas a Palacio (la persona como visitante)
+    const visitas = (VIS && VIS.presidencia || []).filter((r) => clave(r[1]).startsWith(ka));
+    const voto = { favor: ["voto voto--favor", "A favor"], contra: ["voto voto--contra", "En contra"], abstencion: ["voto voto--abst", "Se abstuvo"] };
+    const v = m ? m.votos || {} : {};
+    caja.innerHTML = `
+      ${cabeceraFicha(esc(propio(nombreCompleto)), `${cargo}${f && f.distrito ? ` · ${esc(f.distrito)}` : ""}`,
+        f ? `<p class="ficha__sub"><i class="punto" style="background:${colorBancada(f.bancada)}"></i>${esc(f.bancada)}${f.partido && f.partido !== f.bancada ? ` · postuló por ${esc(f.partido)}` : ""} · <a href="${esc(f.url)}" target="_blank" rel="noopener">Ficha oficial ↗</a></p>` : "")}
+      <div class="kpis kpis--4">${[
+        ["Asistencia al Pleno", m ? `${nf0.format(m.pct)}%` : "—", m ? `fue a ${m.presente} de ${m.sesiones} sesiones` : "sin actas leídas"],
+        ["Faltas sin justificar", m ? nf0.format(m.ausente) : "—", m && m.licencia ? `y ${pl(m.licencia, "falta")} con licencia` : "sin licencia registrada"],
+        ["Votaciones", nf0.format((v.favor || 0) + (v.contra || 0) + (v.abstencion || 0)), `${nf0.format(v.favor || 0)} a favor · ${nf0.format(v.contra || 0)} en contra · ${nf0.format(v.abstencion || 0)} abst.`],
+        ["Proyectos de ley", nf0.format(principal.length), `como autor principal · firmó ${nf0.format(proys.length)} en total`]
+      ].map(kpiHTML).join("")}</div>
+      ${m && m.sesiones ? `<div class="asis__barra asis__barra--grande" aria-label="Asistencia: ${m.presente} presente, ${m.licencia + m.otro} con licencia, ${m.ausente} ausente"><span class="a-pre" style="width:${(m.presente / m.sesiones) * 100}%"></span><span class="a-lic" style="width:${((m.licencia + m.otro) / m.sesiones) * 100}%"></span><span class="a-aus" style="width:${(m.ausente / m.sesiones) * 100}%"></span></div>` : ""}
+      <div class="dos-col dos-col--plano">
+        <div><h2 class="exp-sub">Cómo votó en las últimas votaciones</h2>
+          ${vs.length ? `<ul class="ficha__lista">${vs.slice(0, 8).map(([x, s]) => `<li><span class="${s ? voto[s][0] : "voto"}">${s ? voto[s][1] : "No votó"}</span><span>${esc(fraseL(x.titulo).slice(0, 140))}</span><small>${fechaLarga(x.fecha)}</small></li>`).join("")}</ul>
+          <p><a href="#congreso?t=votos&c=${cam}">Ver todas las votaciones →</a></p>` : '<p class="vacio">Aún no hay votaciones leídas.</p>'}</div>
+        <div><h2 class="exp-sub">Proyectos de ley que presentó</h2>
+          ${principal.length ? `<ul class="ficha__lista">${principal.slice(0, 6).map((x) => `<li><span class="etapa etapa--inicio">${esc(bonito(x.estado))}</span><span><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(fraseL(x.titulo).slice(0, 140))}</a></span><small>${fechaLarga(x.fecha)}</small></li>`).join("")}</ul>` : '<p class="vacio">No figura como autor principal de ningún proyecto todavía.</p>'}
+          <h2 class="exp-sub">Visitas a Palacio de Gobierno</h2>
+          ${visitas.length ? `<ul class="ficha__lista">${visitas.slice(0, 6).map((r) => `<li><span>${esc(bonito(r[3]))}</span><span>con ${esc(bonito(r[4]))}</span><small>${fechaLarga(r[0])}${r[6] ? ` · ${esc(r[6])}` : ""}</small></li>`).join("")}</ul>` : '<p class="vacio">No figura en el registro de visitas a la Presidencia.</p>'}
+        </div>
+      </div>
+      <p class="limites"><strong>No incluye:</strong> trabajo en comisiones, declaraciones juradas ni hoja de vida. Las visitas se cruzan por apellidos y pueden incluir a otra persona con los mismos apellidos.</p>
+      <p class="fuente">Fuentes: actas del Pleno y fichas oficiales ${cam === "senado" ? "del Senado" : "de la Cámara de Diputados"}, Sistema de Proposiciones Legislativas y registro de visitas de Palacio.</p>`;
+  }
+
+  async function fichaEmpresa(id) {
+    await asegurar("contratos");
+    const caja = $("#ficha-cuerpo");
+    const todos = await cargarListaContratos();
+    const porRuc = esRUC(id);
+    const lista = todos.filter((r) => (porRuc ? r[3] === id : normal(r[2]) === normal(id))).sort((a, b) => b[4] - a[4]);
+    if (!lista.length) { caja.innerHTML = `<p class="vacio">No encontramos contratos de esa empresa en ${CON ? CON.anio : "este año"}.</p>`; return; }
+    const nombre = lista[0][2], total = lista.reduce((a, r) => a + r[4], 0);
+    const ents = {}; lista.forEach((r) => { const e = ents[r[1]] || (ents[r[1]] = [0, 0]); e[0] += r[4]; e[1]++; });
+    const topE = Object.entries(ents).sort((a, b) => b[1][0] - a[1][0]);
+    const maxE = topE[0][1][0];
+    const al = {}; lista.forEach((r) => (r[9] || "").split("").forEach((k) => (al[k] = (al[k] || 0) + 1)));
+    const conAl = lista.filter((r) => r[9]).length;
+    caja.innerHTML = `
+      ${cabeceraFicha(esc(propio(nombre)), `Empresa proveedora del Estado${porRuc ? ` · RUC ${esc(id)}` : ""}`)}
+      <div class="kpis kpis--4">${[
+        [`Ganó en ${CON.anio}`, soles(total), escala(total) ? `≈ ${escala(total)}` : ""],
+        ["Contratos", nf0.format(lista.length), `con ${pl(topE.length, "entidad", "entidades")}`],
+        ["Con señales de alerta", nf0.format(conAl), conAl ? `${pct(conAl, lista.length)} de sus contratos` : "ninguna"],
+        ["Su contrato más grande", soles(lista[0][4]), propio(lista[0][1]).slice(0, 60)]
+      ].map(kpiHTML).join("")}</div>
+      ${conAl ? `<p class="alertas-linea">${Object.entries(al).map(([k, n]) => ALERTA[k] ? `<span class="alerta alerta--${k}" title="${esc(ALERTA[k][1])}">${esc(ALERTA[k][0])} · ${n}</span>` : "").join("")}</p>
+      <p class="ayuda">Una señal de alerta no prueba una irregularidad: indica qué conviene revisar.</p>` : ""}
+      <div class="dos-col dos-col--plano">
+        <div><h2 class="exp-sub">¿Qué entidades le pagan?</h2><div class="barras">${topE.slice(0, 10).map(([e, [m, n]]) => filaSimple(propio(e), m, maxE, `${corto(m / 1e6)} · ${pl(n, "contrato")}`)).join("")}</div></div>
+        <div><h2 class="exp-sub">Sus contratos más grandes</h2><div class="proyectos">${lista.slice(0, 8).map(tarjetaContrato).join("")}</div>
+          ${lista.length > 8 ? `<p><a href="#contratos?q=${encodeURIComponent(porRuc ? id : nombre)}">Ver sus ${nf0.format(lista.length)} contratos →</a></p>` : ""}</div>
+      </div>
+      <p class="limites"><strong>No incluye:</strong> compras menores a 8 UIT, contratos de años anteriores ni aportes a campañas o sanciones (aún no cruzamos esas fuentes).</p>
+      <p class="fuente">Fuente: OECE, Portal de Contrataciones Abiertas (procesos registrados en el SEACE).</p>`;
+  }
+
   // ---------- Semáforo: ¿la municipalidad hace su trabajo? ----------
   // Tres preguntas simples con estado bien / ojo / mal (color + ícono + palabra, nunca solo color).
   let medianaMuni = null;
@@ -2089,6 +2180,7 @@
     }
     if (v.id === "sueldos" && SUE && p.get("ent")) { activarTab("sueldos:planilla"); abrirPlanilla(+p.get("ent")); }
     if (v.id === "control") pintarControl().then(() => { if (q && CTRL) { CT.q = q; $("#control-q").value = q; pintarListaControl(); } });
+    if (v.id === "ficha") pintarFicha(p);
     if (v.id === "viajes") pintarViajes().then(() => { if (q && VIA && VIA.viajes) { VJ.q = q; $("#viajes-q").value = q; pintarListaViajes(); } });
     if (v.id === "distrito") { if (!MAPA) pintarMapa(); else setTimeout(() => MAPA.invalidateSize(), 50); if (p.get("u")) abrirDistrito(p.get("u")); }
   }
@@ -2137,7 +2229,7 @@
       .map((x) => [fraseL(x.titulo).slice(0, 90), `${x.numero} · ${fraseL(x.estado)}`, `#leyes?q=${x.numero}`]), `#leyes?q=${enc}`);
     if (CONG) {
       const m = [];
-      for (const c of ["senado", "diputados"]) CONG.camaras[c].miembros.filter((x) => hay(x.nombre)).forEach((x) => m.push([x.nombre, `${c === "senado" ? "Senado" : "Diputados"} · asistió a ${x.presente} de ${x.sesiones} sesiones`, `#congreso?c=${c}&q=${encodeURIComponent(x.nombre)}`]));
+      for (const c of ["senado", "diputados"]) CONG.camaras[c].miembros.filter((x) => hay(x.nombre)).forEach((x) => m.push([x.nombre, `${c === "senado" ? "Senado" : "Diputados"} · asistió a ${x.presente} de ${x.sesiones} sesiones`, `${enlaceCongresista(c, x.nombre)}`]));
       add("Congresistas", m.slice(0, 4));
     }
     if (PART) add("¿Qué se compra?", PART.partidas.filter((x) => hay(x[1])).slice(0, 3).map((x) => [bonito(x[1]), `${corto(x[3] / 1e6)} en todo el Estado`, `#gastos-partidas?q=${encodeURIComponent(x[1])}`]));

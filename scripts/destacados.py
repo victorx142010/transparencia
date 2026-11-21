@@ -110,7 +110,7 @@ def contratos(f, hoy):
             "titular": f"{bonito(r[2])} ganó un contrato de {soles(r[4])} con {bonito(r[1])} {motivo}{extra}.",
             "cifra": soles(r[4]), "cifraTxt": "sin competencia" if directa else "un solo postor", "monto": r[4],
             "detalle": frase(r[5], 150) + ".",
-            "enlace": f"#contratos?q={r[3] or r[2]}",
+            "enlace": f"#ficha?tipo=empresa&id={r[3] if re.fullmatch(r'[0-9]{11}', r[3] or '') else r[2]}",
             "fuente": {"nombre": "Proceso en el SEACE", "url": (c.get("urlProceso") or "") + ocid if ocid else c.get("fuente")},
         }
 
@@ -167,7 +167,7 @@ def congreso(f, hoy):
         "titular": f"{camara}, {bonito(nombre)}{banc} faltó sin justificar a {m['ausente']} de las {m['sesiones']} sesiones del Pleno.",
         "cifra": f"{m['ausente']} de {m['sesiones']}", "cifraTxt": "sesiones sin justificar",
         "detalle": "Sin justificar quiere decir sin licencia registrada en el acta oficial de la sesión.",
-        "enlace": f"#congreso?c={cid}&q={m['nombre']}",
+        "enlace": f"#ficha?tipo=congresista&c={cid}&k={clave(m['nombre'])}",
         "fuente": {"nombre": "Actas del Pleno", "url": cg[cid].get("fuente")},
     }
 
