@@ -115,7 +115,9 @@
   // Meseta (solo en pantalla ancha): a la derecha del buscador, a su altura, para que la llama
   // pastee a la vista sin que haga falta bajar. null = la llama pasta en la puna de abajo.
   let mesa = null;
-  const bordeMesa = (i) => (mesa ? suave(mesa.a - 14, mesa.a + 3, i) : 0);
+  // Ladera de la meseta en andenes: terrazas de 7 columnas de ancho y 5 filas de alto
+  const ANDEN_W = 7, ANDEN_H = 5;
+  const anden = (i) => mesa.y + Math.ceil((mesa.a - i) / ANDEN_W) * ANDEN_H;
   const topeMesa = (i) => {
     const plano = i >= llamaX - 3 && i <= llamaX + W + 3; // bajo la llama, parejo
     return mesa.y + (plano ? 0 : Math.round(ruido(i + 41) * 1.4 - 0.4));
@@ -126,7 +128,7 @@
   // Cuánto se levanta el relieve en la columna i (0..1): bajo en el valle del texto, alto a los lados
   function envolvente(i) {
     if (!modoFondo) return 1;
-    const [a, b] = valle, m = 26;
+    const [a, b] = valle, m = 46;
     // A la izquierda solo hay cerros altos si sobra margen (pantallas muy anchas)
     const izquierda = a > 50 ? 1 - suave(a - m * 1.5, a - 4, i) : 0;
     return 0.1 + 0.9 * Math.max(izquierda, suave(b - m * 0.4, b + m, i));
@@ -141,13 +143,15 @@
     const capa = (i) => {
       const e = envolvente(i);
       return {
-        lejos: base - alturaMax * e * (0.55 + 0.45 * (0.6 * tri(i / 47 + 0.3) + 0.3 * tri(i / 19 + 0.7) + 0.1 * tri(i / 7 + 0.1))),
-        medio: base - alturaMax * e * (0.32 + 0.22 * (0.7 * tri(i / 61 + 0.55) + 0.3 * tri(i / 23 + 0.2))),
+        // El filo fino (ondas cortas) hace que las laderas se vean rocosas y no como una curva lisa
+        lejos: base - alturaMax * e * (0.5 + 0.42 * (0.6 * tri(i / 47 + 0.3) + 0.3 * tri(i / 19 + 0.7) + 0.1 * tri(i / 7 + 0.1)) + 0.05 * tri(i / 5.5 + 0.4) + 0.02 * tri(i / 2.3)),
+        // Forma general (sin el filo fino): de ella sale la luz y la sombra, para que no haya rayas
+        lejosLiso: -e * (0.6 * tri(i / 47 + 0.3) + 0.3 * tri(i / 19 + 0.7)),
+        medio: base - alturaMax * e * (0.3 + 0.2 * (0.7 * tri(i / 61 + 0.55) + 0.3 * tri(i / 23 + 0.2)) + 0.04 * tri(i / 7.1 + 0.2)),
         cerca: (() => {
           const cerro = base - Math.max(3, alturaMax * e * (0.12 + 0.12 * (0.6 * tri(i / 83 + 0.1) + 0.4 * tri(i / 29 + 0.8))));
           if (!mesa) return cerro;
-          const k = bordeMesa(i);
-          return k >= 1 ? topeMesa(i) : cerro + (mesa.y - cerro) * k;
+          return i >= mesa.a ? topeMesa(i) : Math.min(cerro, anden(i)); // el más alto de los dos
         })(),
       };
     };
@@ -173,7 +177,7 @@
     for (let i = 0; i < ancho; i++) {
       const c = capas[i], sig = capas[Math.min(ancho - 1, i + 1)];
       // Cordillera: la ladera que baja hacia la derecha queda en sombra
-      const lt = Math.round(c.lejos), enSombra = sig.lejos > c.lejos + 0.15;
+      const lt = Math.round(c.lejos), enSombra = sig.lejosLiso > c.lejosLiso;
       g.fillStyle = enSombra ? pal.lejosSombra : pal.lejos; g.fillRect(i, lt, 1, alto - lt);
       // Nieve en las cumbres altas, con borde inferior irregular
       const altura = base - c.lejos;
@@ -185,10 +189,20 @@
       const mt = Math.round(c.medio);
       g.fillStyle = sig.medio > c.medio + 0.1 ? pal.medioSombra : pal.medio; g.fillRect(i, mt, 1, alto - mt);
       const ct = Math.round(c.cerca);
-      const enMesa = mesa && bordeMesa(i) > 0; // la meseta y su ladera, de un solo tono (sin rayas)
+      const esAnden = mesa && i < mesa.a && ct >= Math.round(anden(i)) && ct < base;
+      const enMesa = mesa && (i >= mesa.a || esAnden); // meseta y andenes, de un solo tono (sin rayas)
       g.fillStyle = !enMesa && sig.cerca > c.cerca + 0.1 ? pal.cercaSombra : pal.cerca; g.fillRect(i, ct, 1, alto - ct);
-      // Borde de pasto sobre la meseta
-      if (mesa && i >= mesa.a + 2) { g.fillStyle = pal.suelo; g.fillRect(i, ct, 1, 2); }
+      if (mesa && i >= mesa.a) {
+        g.fillStyle = pal.suelo; g.fillRect(i, ct, 1, 2); // pasto sobre la meseta
+        // El frente de la meseta también está aterrazado: muros de piedra cada ANDEN_H filas
+        g.fillStyle = pal.cercaSombra;
+        for (let y = mesa.y + ANDEN_H; y < base - 1; y += ANDEN_H) g.fillRect(i, y, 1, 1);
+      }
+      if (esAnden) { // cada andén: borde de pasto y, debajo, el muro de piedra
+        g.fillStyle = (i * 5) % 3 ? pal.ichu3 : pal.ichu2; g.fillRect(i, ct, 1, 1); // pasto dorado
+        g.fillStyle = pal.cercaSombra; g.fillRect(i, ct + 1, 1, 1);
+        if ((mesa.a - i) % ANDEN_W === 0) g.fillRect(i, ct + 1, 1, ANDEN_H); // la cara del escalón
+      }
       // Puna
       g.fillStyle = pal.suelo; g.fillRect(i, base, 1, SUELO);
       if (ruido(i + 3) > 0.7) { g.fillStyle = pal.ichu3; g.fillRect(i, base + 1 + Math.floor(ruido(i) * 3), 1, 1); }
