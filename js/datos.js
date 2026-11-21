@@ -16,7 +16,7 @@ window.DATOS = {
 
   poblacion: 34_350_000, // habitantes aprox. (INEI, proyección)
   uit: 5500,             // Unidad Impositiva Tributaria 2026 (S/)
-  rmv: 1130,             // Remuneración Mínima Vital (S/ mensual) — verificar si cambió en 2026
+  rmv: 1230,             // Remuneración Mínima Vital (S/ mensual) desde el 1/10/2026 (D.S. 015-2026-TR); en 2027 sube a S/ 1,300
 
   // ------------------------------------------------------------------
   // INGRESOS: recaudación tributaria del Gobierno Central, año 2025
@@ -137,9 +137,9 @@ window.DATOS = {
       nota: "Remuneración Íntegra Mensual referencial de la Carrera Pública Magisterial. Verificar monto vigente.",
       fuente: { nombre: "Minedu — Carrera Pública Magisterial", url: "https://www.gob.pe/minedu" } },
     { cargo: "Remuneración Mínima Vital (sueldo mínimo)", entidad: "Referencia nacional", grupo: "Referencia",
-      monto: 1130, estado: "oficial",
-      nota: "Vigente desde enero de 2025. Sirve para comparar.",
-      fuente: { nombre: "D.S. N.º 006-2024-TR", url: "https://www.gob.pe/institucion/mtpe" } }
+      monto: 1230, estado: "oficial",
+      nota: "Vigente desde el 1 de octubre de 2026 (antes S/ 1,130). Un segundo tramo la llevará a S/ 1,300 en 2027. Sirve para comparar.",
+      fuente: { nombre: "D.S. N.º 015-2026-TR", url: "https://busquedas.elperuano.pe/dispositivo/EX/2559163-1" } }
   ],
 
   // Dónde buscar el sueldo de UNA PERSONA en particular (datos oficiales)

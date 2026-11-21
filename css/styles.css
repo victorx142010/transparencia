@@ -942,3 +942,7 @@ main > .vista:not(#inicio) { padding-top: 1rem; }
   .dest__cifra, .dest--principal .dest__cifra { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; font-size: 1.6rem; }
   .dest__cifra small { margin: 0; }
 }
+
+/* Escala humana de un monto ("≈ lo que ganan 300 personas con sueldo mínimo en un año") */
+.escala { display: inline-block; margin-left: .15rem; padding: .05rem .5rem; border-radius: 999px; background: var(--primario-suave);
+  color: var(--primario-texto); font-size: .82em; font-weight: 600; line-height: 1.5; cursor: help; }

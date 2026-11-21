@@ -15,6 +15,20 @@
   const corto = millones;
   // "1 contrato" / "2 contratos"
   const pl = (n, uno, varios) => `${nf0.format(n)} ${n === 1 ? uno : (varios || uno + "s")}`;
+  // Escala humana: traduce un monto en soles a algo que se entiende sin hacer cuentas.
+  // Más de S/ 10 mil millones -> "S/ X por cada peruano"; millones -> "lo que ganan N personas con
+  // sueldo mínimo en un año"; miles -> "N meses de sueldo mínimo". Usa D.poblacion y D.rmv.
+  function escala(monto) {
+    const m = +monto || 0;
+    if (m <= 0) return "";
+    if (m >= 1e10) return `S/ ${nf0.format(m / D.poblacion)} por cada peruano`;
+    if (m >= 2e6) return `lo que ganan ${nf0.format(m / (D.rmv * 12))} personas con sueldo mínimo en todo un año`;
+    const meses = m / D.rmv;
+    if (meses >= 24) return `${nf0.format(meses / 12)} años de sueldo mínimo`;
+    if (meses >= 1.5) return `${nf0.format(meses)} meses de sueldo mínimo`;
+    return "";
+  }
+  const escalaHTML = (monto, antes = "") => { const t = escala(monto); return t ? `<span class="escala" title="Sueldo mínimo: S/ ${nf0.format(D.rmv)} al mes · Población: ${nf0.format(D.poblacion)}">≈ ${antes}${t}</span>` : ""; };
   // Respeta "reducir movimiento" también en los desplazamientos hechos desde JS
   const SUAVE = () => (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
   const pct = (a, b) => (b ? nf1.format((a / b) * 100) + "%" : "—");
@@ -243,7 +257,7 @@
         <p class="dest__cifra"><span>${esc(d.cifra)}</span><small>${esc(d.cifraTxt || "")}</small></p>
         <div class="dest__cuerpo">
           <h3 class="dest__titular"><a href="${esc(d.enlace)}">${esc(d.titular)}</a></h3>
-          <p class="dest__detalle">${esc(d.detalle || "")}</p>
+          <p class="dest__detalle">${esc(d.detalle || "")}${d.monto ? ` ${escalaHTML(d.monto, d.montoTxt ? d.montoTxt + ": " : "")}` : ""}</p>
           <p class="dest__meta"><span>${TEMA_IMPORTANTE[d.tema] || ""}</span>${d.fecha ? `<span>${cuando(d.fecha)}</span>` : ""}<a href="${esc(d.fuente.url)}" target="_blank" rel="noopener">${esc(d.fuente.nombre)} ↗</a></p>
         </div>
       </article>`).join("");
@@ -589,7 +603,7 @@
         <p class="ley__meta">${esc(propio(o.entidad))} · ${esc(propio(o.distrito))}, ${esc(propio(o.departamento))}${o.inicio ? ` · empezó en ${o.inicio}` : ""}</p>
         <div class="proyecto__montos"><span>Costo de la obra ${soles(o.costo)}</span><span>Avance físico ${nf0.format(o.avance)}%</span></div>
         <div class="pista" aria-hidden="true"><div class="pista__barra pista__barra--suave" style="width:100%"><div class="pista__gastado pista__gastado--mal" style="width:${Math.min(100, o.avance).toFixed(1)}%"></div></div></div>
-        <p class="ley__meta">Falta ejecutar ${soles(o.saldo)}${o.pim > 0 ? ` · tiene ${soles(o.pim)} en el presupuesto de este año` : " · no tiene presupuesto este año"}</p>
+        <p class="ley__meta">Falta ejecutar ${soles(o.saldo)} ${escalaHTML(o.saldo)}${o.pim > 0 ? ` · tiene ${soles(o.pim)} en el presupuesto de este año` : " · no tiene presupuesto este año"}</p>
         <a class="ley__link" href="${SSI(o.cui)}" target="_blank" rel="noopener">Ver ficha oficial del proyecto (MEF) ↗</a>
       </article>`).join("") : '<p class="vacio">No hay obras que coincidan.</p>';
     $("#mas-obras").hidden = lista.length <= OB.n;
@@ -695,7 +709,7 @@
       <div class="kpis kpis--4">${[
         ["Presupuesto actual", millones(e.pim / M), `aprobado al inicio: ${millones(e.pia / M)}`],
         ["Ya gastado", millones(e.dev / M), `${nf1.format(avance(e.dev, e.pim))}% del presupuesto`],
-        ["Falta gastar", millones(Math.max(0, e.pim - e.dev) / M), "en lo que queda del año"],
+        ["Falta gastar", millones(Math.max(0, e.pim - e.dev) / M), escala(e.pim - e.dev) ? `≈ ${escala(e.pim - e.dev)}` : "en lo que queda del año"],
         ["Proyectos de inversión", nf0.format(e.totalProyectos), e.totalProyectos > e.proyectos.length ? `se muestran los ${e.proyectos.length} más grandes` : "con presupuesto este año"]
       ].map(kpiHTML).join("")}</div>
       <div class="controles controles--enlaces">
@@ -796,7 +810,7 @@
       <div class="ley__cab"><span class="ley__num">${fechaLarga(fecha)} · ${esc(cat)}</span><span class="etapa etapa--inicio">${esc(metodo)}</span></div>
       <p class="ley__titulo">${esc(cortado(fraseL(objeto)))}</p>
       <div class="proyecto__montos"><span>${esc(propio(prov))}${esRUC(ruc) ? ` <small>(RUC ${esc(ruc)})</small>` : ""}</span><span>${soles(monto)}</span></div>
-      <p class="ley__meta">Contrató: ${esc(propio(ent))}</p>
+      <p class="ley__meta">Contrató: ${esc(propio(ent))} ${escalaHTML(monto)}</p>
       ${alertas ? `<p class="alertas-linea">${chipsAlerta(alertas)}</p>` : ""}
       <a class="ley__link" href="${CON.urlProceso}${esc(ocid.replace(/^ocds-dgv273-/, ""))}" target="_blank" rel="noopener">Ver proceso oficial (OECE) ↗</a>
     </article>`;

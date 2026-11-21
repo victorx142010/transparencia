@@ -108,7 +108,7 @@ def contratos(f, hoy):
         return {
             "tema": "contratos", "fecha": r[0],
             "titular": f"{bonito(r[2])} ganó un contrato de {soles(r[4])} con {bonito(r[1])} {motivo}{extra}.",
-            "cifra": soles(r[4]), "cifraTxt": "sin competencia" if directa else "un solo postor",
+            "cifra": soles(r[4]), "cifraTxt": "sin competencia" if directa else "un solo postor", "monto": r[4],
             "detalle": frase(r[5], 150) + ".",
             "enlace": f"#contratos?q={r[3] or r[2]}",
             "fuente": {"nombre": "Proceso en el SEACE", "url": (c.get("urlProceso") or "") + ocid if ocid else c.get("fuente")},
@@ -139,7 +139,7 @@ def gasto(f, hoy):
     return {
         "tema": "gasto", "fecha": str(pres.get("actualizado", ""))[:10],
         "titular": titular,
-        "cifra": f"{pct}%", "cifraTxt": "del presupuesto gastado",
+        "cifra": f"{pct}%", "cifraTxt": "del presupuesto gastado", "monto": pim - dev, "montoTxt": "sin usar",
         "detalle": f"Tiene {soles(pim)} para este año y le quedan {soles(pim - dev)} sin usar. De las entidades con más de S/ 1,000 millones, es la más atrasada.",
         "enlace": f"#entidades?q={p}",
         "fuente": {"nombre": "Presupuesto y gasto del MEF", "url": pres.get("fuente") or "https://apps5.mineco.gob.pe/transparencia/Navegador/default.aspx"},
@@ -182,7 +182,7 @@ def obras(f, hoy):
     return {
         "tema": "obras", "fecha": "",
         "titular": f"Una obra de {soles(o['costo'])} en {lugar} está paralizada con {o.get('avance', 0):.0f}% de avance.",
-        "cifra": soles(o["saldo"]), "cifraTxt": "faltan para terminarla",
+        "cifra": soles(o["saldo"]), "cifraTxt": "faltan para terminarla", "monto": o["saldo"],
         "detalle": f"{frase(o['nombre'], 140)}. Motivo: {str(o.get('causal') or 'no informado').lower()}. A cargo de {bonito(o.get('entidad'))}.",
         "enlace": f"#obras?q={o['cui']}",
         "fuente": {"nombre": "Informe de obras paralizadas", "url": ob.get("fuente")},
@@ -204,7 +204,7 @@ def viajes(f, hoy):
     return {
         "tema": "viajes", "fecha": v[0],
         "titular": f"{persona} ({v[1]}) gastó {soles(v[9])} en pasajes y viáticos en un solo viaje.",
-        "cifra": soles(v[9]), "cifraTxt": "en un viaje",
+        "cifra": soles(v[9]), "cifraTxt": "en un viaje", "monto": v[9],
         "detalle": f"Viaje {v[10].lower()} ({bonito(v[6])}), del {v[4]} al {v[5]}. Es el más caro de los dos últimos meses en las entidades que revisamos.",
         "enlace": f"#viajes?q={v[3]}",
         "fuente": {"nombre": "Portal de Transparencia Estándar", "url": vj.get("fuente")},
