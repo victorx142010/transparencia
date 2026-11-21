@@ -985,3 +985,12 @@ main > .vista:not(#inicio) { padding-top: 1rem; }
 .ficha__lista .voto, .ficha__lista .etapa { white-space: nowrap; }
 .asis__nombre a, .integrante__n a, .proyecto__montos a { color: inherit; text-decoration: none; }
 .asis__nombre a:hover, .integrante__n a:hover, .proyecto__montos a:hover { text-decoration: underline; }
+
+/* Botón para compartir un titular */
+.compartir { display: inline-flex; align-items: center; gap: .35rem; margin-left: auto; min-height: 38px; padding: .3rem .85rem; border-radius: 999px;
+  border: 1px solid var(--borde-fuerte); background: var(--superficie); color: var(--texto); font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer;
+  transition: border-color .15s var(--ease-out), background-color .15s var(--ease-out); }
+.compartir .ico { width: 15px; height: 15px; }
+@media (hover: hover) { .compartir:hover { border-color: var(--rojo); } }
+.compartir:disabled { opacity: .6; cursor: progress; }
+.dest__meta { align-items: center; }

@@ -326,6 +326,74 @@
   new MutationObserver(() => { clearTimeout(glosarPendiente); glosarPendiente = setTimeout(() => glosar(document.getElementById("contenido")), 120); })
     .observe(document.getElementById("contenido"), { childList: true, subtree: true });
 
+  // ---------- Compartir un titular (pensado para WhatsApp) ----------
+  // Arma una imagen cuadrada con la cifra, el titular y la fuente, con la identidad del portal.
+  // En el celular abre el menú de compartir del teléfono; si no se puede, descarga la imagen
+  // y abre WhatsApp con el texto y el enlace.
+  const SITIO = "https://lupa-ciudadana-peru.vercel.app/";
+  function lineas(g, texto, ancho) {
+    const out = []; let l = "";
+    for (const p of texto.split(" ")) { const t = l ? l + " " + p : p; if (g.measureText(t).width > ancho && l) { out.push(l); l = p; } else l = t; }
+    if (l) out.push(l);
+    return out;
+  }
+  async function imagenTitular(d) {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const S = 1080, c = document.createElement("canvas"); c.width = c.height = S;
+    const g = c.getContext("2d");
+    const fondo = "#0e1324", texto = "#f3eee5", suave = "#c4bdb1", rojo = "#ff5c74";
+    g.fillStyle = fondo; g.fillRect(0, 0, S, S);
+    const brillo = g.createRadialGradient(S / 2, 0, 0, S / 2, 0, S * 0.8); brillo.addColorStop(0, "#1a2450"); brillo.addColorStop(1, "rgba(26,36,80,0)");
+    g.fillStyle = brillo; g.fillRect(0, 0, S, S);
+    // Greca escalonada arriba y franja abajo
+    g.fillStyle = rojo;
+    for (let x = 0; x < S; x += 36) { g.fillRect(x, 9, 36, 3); g.fillRect(x + 4.5, 6, 27, 3); g.fillRect(x + 9, 3, 18, 3); g.fillRect(x + 13.5, 0, 9, 3); }
+    g.fillRect(0, S - 12, S, 12);
+    const fam = getComputedStyle(document.body).fontFamily;
+    g.textBaseline = "alphabetic";
+    g.font = `800 40px ${fam}`; g.fillStyle = texto; g.fillText("Lupa", 72, 110);
+    g.fillStyle = rojo; g.fillText("Ciudadana", 72 + g.measureText("Lupa ").width, 110);
+    g.font = `600 30px ${fam}`; g.fillStyle = suave; g.fillText((TEMA_IMPORTANTE[d.tema] || "").toUpperCase(), 72, 200);
+    // Cifra grande
+    g.fillStyle = rojo; let tam = 150; g.font = `800 ${tam}px ${fam}`;
+    while (g.measureText(d.cifra).width > S - 144 && tam > 70) { tam -= 8; g.font = `800 ${tam}px ${fam}`; }
+    g.fillText(d.cifra, 72, 200 + tam);
+    g.font = `600 36px ${fam}`; g.fillStyle = suave; g.fillText(d.cifraTxt || "", 72, 200 + tam + 56);
+    // Titular
+    g.font = `700 50px ${fam}`; g.fillStyle = texto;
+    let y = 200 + tam + 150;
+    const ls = lineas(g, d.titular, S - 144).slice(0, 7);
+    ls.forEach((l) => { g.fillText(l, 72, y); y += 64; });
+    // Fuente y enlace
+    g.font = `500 28px ${fam}`; g.fillStyle = suave;
+    g.fillText(`Fuente: ${d.fuente.nombre}`.slice(0, 70), 72, S - 96);
+    g.fillStyle = texto; g.font = `700 30px ${fam}`; g.fillText(SITIO.replace("https://", "").replace(/\/$/, ""), 72, S - 52);
+    return new Promise((ok) => c.toBlob(ok, "image/png"));
+  }
+  async function compartirTitular(d, boton) {
+    const url = SITIO + d.enlace, texto = `${d.titular} ${url}`;
+    boton.disabled = true;
+    try {
+      const blob = await imagenTitular(d);
+      const archivo = new File([blob], "lupa-ciudadana.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        await navigator.share({ files: [archivo], text: texto });
+      } else {
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "lupa-ciudadana.png"; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank", "noopener");
+      }
+    } catch (e) {
+      if (e && e.name !== "AbortError") window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank", "noopener");
+    } finally { boton.disabled = false; }
+  }
+  document.addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-compartir]");
+    if (!b) return;
+    const d = (RES && RES.destacados || [])[+b.dataset.compartir];
+    if (d) compartirTitular(d, b);
+  });
+
   // ---------- Lo importante esta semana (titulares de scripts/destacados.py) ----------
   const TEMA_IMPORTANTE = { control: "Auditorías", contratos: "Contratos", gasto: "Presupuesto", congreso: "Congreso", obras: "Obras paralizadas", viajes: "Viajes" };
   function pintarImportante(lista) {
@@ -338,7 +406,7 @@
         <div class="dest__cuerpo">
           <h3 class="dest__titular"><a href="${esc(d.enlace)}">${esc(d.titular)}</a></h3>
           <p class="dest__detalle">${esc(d.detalle || "")}${d.monto ? ` ${escalaHTML(d.monto, d.montoTxt ? d.montoTxt + ": " : "")}` : ""}</p>
-          <p class="dest__meta"><span>${TEMA_IMPORTANTE[d.tema] || ""}</span>${d.fecha ? `<span>${cuando(d.fecha)}</span>` : ""}<a href="${esc(d.fuente.url)}" target="_blank" rel="noopener">${esc(d.fuente.nombre)} ↗</a></p>
+          <p class="dest__meta"><span>${TEMA_IMPORTANTE[d.tema] || ""}</span>${d.fecha ? `<span>${cuando(d.fecha)}</span>` : ""}<a href="${esc(d.fuente.url)}" target="_blank" rel="noopener">${esc(d.fuente.nombre)} ↗</a><button type="button" class="compartir" data-compartir="${i}"><svg class="ico" aria-hidden="true"><use href="#i-compartir"/></svg>Compartir</button></p>
         </div>
       </article>`).join("");
   }
