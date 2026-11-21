@@ -246,6 +246,86 @@
     pintarImportante(R.destacados || []);
   }
 
+  // ---------- Glosario donde se lee ----------
+  // Las palabras difíciles se subrayan con puntos y, al tocarlas, muestran su explicación ahí mismo.
+  // Se marca solo la primera aparición en cada párrafo, para no llenar el texto de subrayados.
+  const GLOSARIO = [
+    [/\bdevengad[oa]s?\b/i, "Gasto devengado: el bien o servicio ya se recibió (o la obra avanzó) y el Estado reconoce que debe pagarlo. Es lo que aquí llamamos «gastado»."],
+    [/\bPIM\b/, "Presupuesto Institucional Modificado: el presupuesto actual, después de los cambios hechos durante el año."],
+    [/\bPIA\b/, "Presupuesto Institucional de Apertura: el presupuesto que aprobó el Congreso al inicio del año."],
+    [/\bUIT\b/, "Unidad Impositiva Tributaria: un monto de referencia para impuestos y multas. En 2026 es S/ 5,500."],
+    [/\bSEACE\b/, "Sistema Electrónico de Contrataciones del Estado: donde las entidades registran sus compras y contratos."],
+    [/\bUGEL\b/, "Unidad de Gestión Educativa Local: la oficina que administra los colegios públicos de una zona."],
+    [/\bCUI\b/, "Código Único de Inversiones: el número oficial con el que el MEF sigue cada obra o proyecto."],
+    [/contrataci[oó]n directa/i, "Contratación directa: la entidad elige a la empresa sin concurso. La ley la permite en casos especiales (emergencias, proveedor único…), pero no hay competencia de precios."],
+    [/[uú]nico postor/i, "Único postor: el concurso estaba abierto, pero solo se presentó una empresa, así que no hubo competencia real."],
+    [/valor referencial/i, "Valor referencial: lo que la entidad calculó que debería costar antes de contratar. Pagar mucho más es una señal para revisar."],
+    [/\bconsorcio\b/i, "Consorcio: varias empresas que se juntan para postular a un contrato."],
+    [/responsabilidad (?:penal|civil|administrativa)/i, "La Contraloría señala responsabilidades presuntas: administrativa (sanción en el trabajo), civil (devolver dinero) o penal (posible delito, lo ve la Fiscalía). No es una condena."],
+    [/\bbancada\b/i, "Bancada o grupo parlamentario: el grupo de congresistas que trabaja junto en el Congreso, casi siempre del mismo partido."],
+    [/\bPleno\b/, "Pleno: la reunión de todos los integrantes de una cámara, donde se debate y vota."],
+    [/\blicencia\b/i, "Licencia: permiso para faltar a una sesión (viaje oficial, salud, motivo personal). Una falta con licencia está justificada."],
+    [/vi[aá]ticos/i, "Viáticos: dinero que recibe un funcionario para alojamiento, comida y movilidad cuando viaja por trabajo."],
+    [/\bcanon\b/i, "Canon: parte de los impuestos que pagan las empresas mineras, petroleras o pesqueras que se reparte a la región donde operan."],
+    [/\bFONCOMUN\b/, "Fondo de Compensación Municipal: dinero que el Estado reparte a las municipalidades, sobre todo a las más pobres."],
+    [/\bmediana\b/i, "Mediana o sueldo del medio: la mitad gana más y la otra mitad gana menos. Representa mejor a la mayoría que el promedio."],
+  ];
+  const ZONAS_GLOSARIO = ".intro, .ayuda, .kpi__label, .kpi__extra, .dest__detalle, .importante__nota, .ley__meta, .fuente";
+  function glosar(raiz) {
+    if (!raiz) return;
+    $$(ZONAS_GLOSARIO, raiz).forEach((el) => {
+      if (el.dataset.glosado) return;
+      el.dataset.glosado = "1";
+      const usados = new Set();
+      const andar = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => (n.parentElement.closest("a, button, abbr, .termino, input, select, textarea") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT)
+      });
+      const nodos = [];
+      while (andar.nextNode()) nodos.push(andar.currentNode);
+      for (const n of nodos) {
+        for (const [re, def] of GLOSARIO) {
+          if (usados.has(def)) continue;
+          const m = re.exec(n.nodeValue);
+          if (!m) continue;
+          usados.add(def);
+          const despues = n.splitText(m.index);
+          despues.nodeValue = despues.nodeValue.slice(m[0].length);
+          const b = document.createElement("button");
+          b.type = "button"; b.className = "termino"; b.textContent = m[0]; b.dataset.def = def; b.setAttribute("aria-expanded", "false");
+          n.parentNode.insertBefore(b, despues);
+          break; // un término por nodo de texto: lo que sigue ya es otro nodo
+        }
+      }
+    });
+  }
+  // Burbuja con la explicación (una sola a la vez). También sirve para los <abbr title> que ya había.
+  const burbuja = document.createElement("div");
+  burbuja.className = "burbuja"; burbuja.setAttribute("role", "tooltip"); burbuja.id = "burbuja-glosario"; burbuja.hidden = true;
+  document.body.appendChild(burbuja);
+  let terminoAbierto = null;
+  function cerrarBurbuja() { if (terminoAbierto) terminoAbierto.setAttribute("aria-expanded", "false"); terminoAbierto = null; burbuja.hidden = true; }
+  document.addEventListener("click", (ev) => {
+    const t = ev.target.closest(".termino, abbr[title]");
+    if (!t) { if (!ev.target.closest(".burbuja")) cerrarBurbuja(); return; }
+    ev.preventDefault();
+    if (terminoAbierto === t) { cerrarBurbuja(); return; }
+    cerrarBurbuja();
+    burbuja.textContent = t.dataset.def || t.title;
+    burbuja.hidden = false; terminoAbierto = t;
+    t.setAttribute("aria-expanded", "true"); t.setAttribute("aria-describedby", burbuja.id);
+    const r = t.getBoundingClientRect(), ancho = Math.min(320, innerWidth - 24);
+    burbuja.style.width = ancho + "px";
+    burbuja.style.left = Math.max(12, Math.min(innerWidth - ancho - 12, r.left + r.width / 2 - ancho / 2)) + scrollX + "px";
+    const abajo = r.bottom + 8 + burbuja.offsetHeight < innerHeight;
+    burbuja.style.top = (abajo ? r.bottom + 8 : r.top - 8 - burbuja.offsetHeight) + scrollY + "px";
+  });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") cerrarBurbuja(); });
+  window.addEventListener("scroll", () => { if (terminoAbierto) cerrarBurbuja(); }, { passive: true });
+  // Cada vez que una sección pinta contenido nuevo, se marcan sus términos
+  let glosarPendiente;
+  new MutationObserver(() => { clearTimeout(glosarPendiente); glosarPendiente = setTimeout(() => glosar(document.getElementById("contenido")), 120); })
+    .observe(document.getElementById("contenido"), { childList: true, subtree: true });
+
   // ---------- Lo importante esta semana (titulares de scripts/destacados.py) ----------
   const TEMA_IMPORTANTE = { control: "Auditorías", contratos: "Contratos", gasto: "Presupuesto", congreso: "Congreso", obras: "Obras paralizadas", viajes: "Viajes" };
   function pintarImportante(lista) {
@@ -1509,8 +1589,9 @@
   // ---------- Viajes de funcionarios ----------
   const VJ = { q: "", tipo: "", orden: "monto", n: 20 };
   async function pintarViajes() {
+    // Primero el resumen (pocos KB) y se pinta; la lista completa (~1 MB) llega después, para el buscador
     if (!VIA) VIA = await cargarUna("viajes.json");
-    if (!VIA || !VIA.viajes) { $("#viajes-lista").innerHTML = '<p class="vacio">Aún no hay datos de viajes.</p>'; return; }
+    if (!VIA || !VIA.topEntidades) { $("#viajes-lista").innerHTML = '<p class="vacio">Aún no hay datos de viajes.</p>'; return; }
     $("#viajes-intro").innerHTML = `Pasajes y viáticos que ${nf0.format(VIA.topEntidades.length)} entidades del Estado publicaron en el Portal de Transparencia en ${VIA.anio}: <strong>${nf0.format(VIA.total)} viajes</strong> por <strong>${millones(VIA.monto / 1e6)}</strong>.${VIA.atipicos ? ` Hay ${nf0.format(VIA.atipicos)} viajes con montos inusuales (${soles(VIA.montoAtipico)}) que no sumamos: casi seguro son errores de registro.` : ""}`;
     $("#viajes-kpis").innerHTML = [
       ["Viajes", nf0.format(VIA.total), `${VIA.anio}, entidades principales`],
@@ -1527,6 +1608,11 @@
     $("#viajes-entidades").innerHTML = VIA.topEntidades.slice(0, 15).map(([e, m, n, ni]) => filaSimple(e, m, maxE, `${corto(m / 1e6)} · ${nf0.format(n)} viajes`)).join("");
     $$("#viajes [data-vbus]").forEach((b) => b.addEventListener("click", () => { $("#viajes-q").value = b.dataset.vbus; VJ.q = b.dataset.vbus; VJ.n = 20; pintarListaViajes(); $("#viajes-q").scrollIntoView({ block: "center" }); }));
     $("#viajes-fuente").innerHTML = `Fuente: Portal de Transparencia Estándar, sección "Pasajes y viáticos" de cada entidad. Actualizado: ${new Date(VIA.actualizado).toLocaleDateString("es-PE")}.`;
+    if (!VIA.viajes) {
+      $("#viajes-lista").innerHTML = '<p class="vacio">Cargando la lista de viajes…</p>';
+      const l = await cargarUna("viajes_lista.json");
+      VIA.viajes = (l && l.viajes) || [];
+    }
     pintarListaViajes();
   }
   function pintarListaViajes() {

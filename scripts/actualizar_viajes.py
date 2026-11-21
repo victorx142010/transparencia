@@ -6,7 +6,9 @@ entidad (lo publican por Ley 27806). Se consulta mes a mes, por separado los via
 nacionales y los internacionales, para las entidades principales (las mismas de la
 lista ENTIDADES de actualizar_sueldos.py).
 
-Salida: data/viajes.json
+Salidas:
+  data/viajes.json         resumen (totales y rankings, unos KB): la página lo muestra al instante
+  data/viajes_lista.json   todos los viajes (~1 MB comprimido): se carga después, para el buscador
 
 Para no repetir cientos de consultas, solo se vuelven a pedir los últimos RECIENTES
 meses (las entidades publican con atraso); los anteriores se toman de viajes.json.
@@ -59,9 +61,10 @@ def main():
 
     # Viajes ya guardados, agrupados por (entidad, mes, tipo), sin la marca de atípico (se recalcula)
     previo = leer_json("viajes.json", {}) or {}
+    lista_previa = (leer_json("viajes_lista.json", {}) or {}).get("viajes") or previo.get("viajes") or []
     guardados = defaultdict(list)
     if previo.get("anio") == args.anio:
-        for v in previo.get("viajes", []):
+        for v in lista_previa:
             guardados[(v[11], int(v[0][5:7]), "2" if v[10] == "Internacional" else "1")].append(v[:12])
     completo = args.completo or not guardados or (hoy.weekday() == 0 and hoy.day <= 7)
     desde_mes = 1 if completo else max(1, ultimo_mes - RECIENTES + 1)
@@ -121,8 +124,8 @@ def main():
         "topEntidades": sorted(([e, round(x[0]), x[1], x[2]] for e, x in por_ent.items()), key=lambda r: -r[1]),
         "topDestinos": destinos.most_common(25),
         "campos": ["mes", "entidad", "area", "persona", "salida", "retorno", "ruta", "pasajes", "viaticos", "total", "tipo", "idEntidad", "atipico"],
-        "viajes": viajes,
     })
+    guardar_json("viajes_lista.json", {"anio": args.anio, "viajes": viajes})
     print(f"{len(viajes):,} viajes, S/ {sum(v[9] for v in viajes):,.0f}")
 
 

@@ -24,7 +24,7 @@ def asistencia(camara):
 def main():
     fuentes = {n: leer_json(f"{n}.json", {}) or {} for n in
                ("contratos", "obras", "sueldos", "congreso", "proyectos", "visitas", "programas", "deuda", "partidas", "presupuesto", "recaudacion",
-                "control", "entidades", "viajes")}
+                "control", "entidades", "viajes", "viajes_lista")}
     c, o, s, cg = fuentes["contratos"], fuentes["obras"], fuentes["sueldos"], fuentes["congreso"]
     res = {"generado": ahora_lima().isoformat(timespec="minutes")}
     if c.get("total"):

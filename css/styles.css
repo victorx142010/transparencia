@@ -946,3 +946,14 @@ main > .vista:not(#inicio) { padding-top: 1rem; }
 /* Escala humana de un monto ("≈ lo que ganan 300 personas con sueldo mínimo en un año") */
 .escala { display: inline-block; margin-left: .15rem; padding: .05rem .5rem; border-radius: 999px; background: var(--primario-suave);
   color: var(--primario-texto); font-size: .82em; font-weight: 600; line-height: 1.5; cursor: help; }
+
+/* Glosario donde se lee: término tocable y burbuja con la explicación */
+.termino, abbr[title] { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: help;
+  text-decoration: underline dotted; text-decoration-color: var(--texto-tenue); text-underline-offset: 3px; }
+.termino:hover, .termino[aria-expanded="true"] { text-decoration-color: var(--rojo); text-decoration-style: solid; }
+.burbuja { position: absolute; z-index: 60; padding: .75rem .9rem; border-radius: var(--radio-sm); background: var(--texto); color: var(--fondo);
+  font-size: .88rem; line-height: 1.45; box-shadow: var(--sombra-hover); }
+
+/* Qué no incluye cada dato: una línea honesta antes de la fuente */
+.limites { margin: 1rem 0 0; padding: .65rem .85rem; border: 1px solid var(--borde); border-radius: var(--radio-sm); font-size: .86rem; color: var(--texto-suave); background: var(--fondo-2); max-width: 80ch; }
+.limites strong { color: var(--texto); }

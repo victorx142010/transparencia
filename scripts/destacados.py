@@ -191,7 +191,7 @@ def obras(f, hoy):
 
 def viajes(f, hoy):
     vj = f.get("viajes") or {}
-    vs = [v for v in vj.get("viajes", []) if not (len(v) > 12 and v[12])]
+    vs = [v for v in (f.get("viajes_lista") or {}).get("viajes", vj.get("viajes", [])) if not (len(v) > 12 and v[12])]
     if not vs:
         return None
     # Los dos últimos meses con datos suficientes (el mes en curso casi siempre está incompleto)
